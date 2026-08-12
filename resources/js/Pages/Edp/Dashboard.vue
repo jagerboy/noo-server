@@ -3,9 +3,11 @@
  * Executive Dashboard NOO+ v2.0 dengan Realtime Metrics, Interactive Filter, Visualisasi Grafik & Summary Logs (Vue 3).
  */
 import { ref, computed, onMounted, watch } from 'vue';
-import { Head, router } from '@inertiajs/vue3';
+import { Head, router, usePage } from '@inertiajs/vue3';
 import EdpLayout from '@/Layouts/EdpLayout.vue';
 import SearchableSelect from '@/Components/SearchableSelect.vue';
+
+const page = usePage();
 
 const props = defineProps({
   metrics: {
@@ -37,12 +39,35 @@ const props = defineProps({
 const selectedRegion = ref(props.filters?.region_code || '');
 const selectedPrincipal = ref(props.filters?.principal || '');
 const selectedBranch = ref(props.filters?.branch_id || '');
+const selectedMonth = ref(props.filters?.month || '');
 const selectedYear = ref(props.filters?.year || '');
+
+const isFiltering = ref(false);
 
 const chart1Year = ref(props.filters?.chart1_year || props.filters?.year || '');
 const chart2Year = ref(props.filters?.chart2_year || props.filters?.year || '');
 const chart3Year = ref(props.filters?.chart3_year || props.filters?.year || '');
 const chart4Year = ref(props.filters?.chart4_year || props.filters?.year || '');
+
+const displayUserRole = computed(() => {
+  const role = props.userRole || 'EDP_REGION';
+  const userObj = page.props.auth?.user || {};
+  const reg = (userObj.region_code || props.filters?.region_code || '').toUpperCase();
+  const username = (userObj.username || '').toLowerCase();
+
+  if (role === 'EDP_REGION') return 'EDP Regional';
+  if (role === 'SUPERADMIN') return 'Superadmin';
+  if (role === 'ADMIN_PRINCIPAL') {
+    if (reg.includes('ASWSUM') || username.includes('aswsum')) return 'Admin Principal ASW Sumatera';
+    if (reg.includes('ASWJWA') || username.includes('aswjwa')) return 'Admin Principal ASW Jawa';
+    if (reg.includes('ASWPUL') || username.includes('aswpul')) return 'Admin Principal ASW Pulau';
+    if (reg.includes('INAJWA') || username.includes('inajwa')) return 'Admin Principal INA Jawa';
+    if (reg.includes('INAPUL') || username.includes('inapul')) return 'Admin Principal INA Pulau';
+    if (reg.includes('INASUM') || username.includes('inasum')) return 'Admin Principal INA Sumatera';
+    return 'Admin Principal';
+  }
+  return role;
+});
 
 // Intersection Observer state for charts scroll trigger
 const chartSectionRef = ref(null);
@@ -164,6 +189,21 @@ const branchOptions = computed(() => {
   });
 });
 
+const monthOptions = computed(() => [
+  { value: '1', label: 'Januari' },
+  { value: '2', label: 'Februari' },
+  { value: '3', label: 'Maret' },
+  { value: '4', label: 'April' },
+  { value: '5', label: 'Mei' },
+  { value: '6', label: 'Juni' },
+  { value: '7', label: 'Juli' },
+  { value: '8', label: 'Agustus' },
+  { value: '9', label: 'September' },
+  { value: '10', label: 'Oktober' },
+  { value: '11', label: 'November' },
+  { value: '12', label: 'Desember' },
+]);
+
 const yearOptions = computed(() => {
   const years = props.filterOptions?.years || [new Date().getFullYear()];
   return years.map((y) => ({
@@ -173,19 +213,30 @@ const yearOptions = computed(() => {
 });
 
 function applyFilters() {
+  isFiltering.value = true;
   router.get(
     route('edp.dashboard'),
     {
       region_code: selectedRegion.value,
       principal: selectedPrincipal.value,
       branch_id: selectedBranch.value,
+      month: selectedMonth.value,
       year: selectedYear.value,
       chart1_year: chart1Year.value,
       chart2_year: chart2Year.value,
       chart3_year: chart3Year.value,
       chart4_year: chart4Year.value,
     },
-    { preserveState: true, replace: true, preserveScroll: true }
+    {
+      preserveState: true,
+      replace: true,
+      preserveScroll: true,
+      only: ['metrics', 'charts', 'filters'],
+      onFinish: () => {
+        isFiltering.value = false;
+        animateNumbers();
+      },
+    }
   );
 }
 
@@ -193,6 +244,7 @@ function resetFilters() {
   selectedRegion.value = '';
   selectedPrincipal.value = '';
   selectedBranch.value = '';
+  selectedMonth.value = '';
   selectedYear.value = '';
   chart1Year.value = '';
   chart2Year.value = '';
@@ -276,7 +328,7 @@ function formatActionLabel(action) {
 
         <div class="flex items-center gap-2">
           <span class="text-xs font-bold px-3.5 py-1.5 rounded-full bg-purple-100 text-[#542B85] border border-purple-200 shadow-2xs">
-            Peran Login: {{ userRole === 'EDP_REGION' ? 'Operator Principal (Region)' : userRole }}
+            Peran Login: {{ displayUserRole }}
           </span>
         </div>
       </div>
@@ -288,7 +340,7 @@ function formatActionLabel(action) {
           <span>FILTER DATA WILAYAH, PRINCIPAL, CABANG & TAHUN</span>
         </h2>
 
-        <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4">
+        <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-5 gap-4">
           <div>
             <label class="block text-xs font-semibold text-[#4B5563] mb-1">REGION</label>
             <SearchableSelect
@@ -320,6 +372,18 @@ function formatActionLabel(action) {
               searchPlaceholder="Ketik ID atau Nama Cabang..."
               @change="applyFilters"
             />
+          </div>
+
+          <div>
+            <label class="block text-xs font-semibold text-[#4B5563] mb-1">BULAN PENGAJUAN</label>
+            <select
+              v-model="selectedMonth"
+              @change="applyFilters"
+              class="w-full px-3 py-2 text-xs border border-slate-300 rounded-lg bg-white font-semibold text-slate-800 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition cursor-pointer"
+            >
+              <option value="">-- Semua Bulan --</option>
+              <option v-for="m in monthOptions" :key="m.value" :value="m.value">{{ m.label }}</option>
+            </select>
           </div>
 
           <div>
@@ -485,7 +549,7 @@ function formatActionLabel(action) {
               <select
                 v-model="chart1Year"
                 @change="applyFilters"
-                class="px-2.5 py-1 text-xs border border-slate-200 rounded-lg bg-slate-50 font-bold text-slate-700 hover:bg-white transition cursor-pointer"
+                class="pl-2.5 pr-8 py-1 text-xs border border-slate-200 rounded-lg bg-slate-50 font-bold text-slate-700 hover:bg-white transition cursor-pointer min-w-[125px]"
               >
                 <option value="">Semua Tahun</option>
                 <option v-for="y in yearOptions" :key="y.value" :value="y.value">{{ y.label }}</option>
@@ -589,7 +653,7 @@ function formatActionLabel(action) {
               <select
                 v-model="chart2Year"
                 @change="applyFilters"
-                class="px-2.5 py-1 text-xs border border-slate-200 rounded-lg bg-slate-50 font-bold text-slate-700 hover:bg-white transition cursor-pointer"
+                class="pl-2.5 pr-8 py-1 text-xs border border-slate-200 rounded-lg bg-slate-50 font-bold text-slate-700 hover:bg-white transition cursor-pointer min-w-[125px]"
               >
                 <option value="">Semua Tahun</option>
                 <option v-for="y in yearOptions" :key="y.value" :value="y.value">{{ y.label }}</option>
@@ -647,7 +711,7 @@ function formatActionLabel(action) {
               <select
                 v-model="chart3Year"
                 @change="applyFilters"
-                class="px-2.5 py-1 text-xs border border-slate-200 rounded-lg bg-slate-50 font-bold text-slate-700 hover:bg-white transition cursor-pointer"
+                class="pl-2.5 pr-8 py-1 text-xs border border-slate-200 rounded-lg bg-slate-50 font-bold text-slate-700 hover:bg-white transition cursor-pointer min-w-[125px]"
               >
                 <option value="">Semua Tahun</option>
                 <option v-for="y in yearOptions" :key="y.value" :value="y.value">{{ y.label }}</option>
@@ -699,7 +763,7 @@ function formatActionLabel(action) {
               <select
                 v-model="chart4Year"
                 @change="applyFilters"
-                class="px-2.5 py-1 text-xs border border-slate-200 rounded-lg bg-slate-50 font-bold text-slate-700 hover:bg-white transition cursor-pointer"
+                class="pl-2.5 pr-8 py-1 text-xs border border-slate-200 rounded-lg bg-slate-50 font-bold text-slate-700 hover:bg-white transition cursor-pointer min-w-[125px]"
               >
                 <option value="">Semua Tahun</option>
                 <option v-for="y in yearOptions" :key="y.value" :value="y.value">{{ y.label }}</option>

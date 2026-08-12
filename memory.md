@@ -188,5 +188,9 @@ Saya bekerja sendiri (Solo Developer). Kode harus bisa menjelaskan dirinya sendi
 18. **Logo Badge Header Murni `NOO+`**:
     - Memastikan logo badge pada header topbar seluruh portal murni menampilkan teks **`NOO+`** tanpa imbuhan teks "ASW" atau "INA" yang menempel pada badge.
 
+19. **Format Dinamis Peran Role per Region & Perbaikan Layout Dropdown Filter Tahun**:
+    - **Pemformatan Peran Admin Principal per Region**: Di header topbar (`EdpLayout.vue`) dan badge dashboard (`Dashboard.vue`), peran `ADMIN_PRINCIPAL` otomatis diformat sesuai wilayahnya (`Admin Principal ASW Sumatera`, `Admin Principal ASW Jawa`, `Admin Principal ASW Pulau`, `Admin Principal INA Jawa`, `Admin Principal INA Pulau`, `Admin Principal INA Sumatera`), `EDP_REGION` menjadi `EDP Regional`, dan `SUPERADMIN` menjadi `Superadmin`.
+    - **Perbaikan Dropdown Filter Tahun**: Menambahkan `min-w-[125px]` dan padding kanan `pr-8` pada ke-4 elemen `<select>` filter tahun chart dashboard sehingga opsi `"Semua Tahun"` ter-render lapang tanpa tertutup ikon panah.
+
 
 

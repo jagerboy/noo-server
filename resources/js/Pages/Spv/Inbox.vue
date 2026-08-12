@@ -153,10 +153,55 @@ function selectDay(dayKey) {
   });
 }
 
-// Helper toggle Pola Minggu (M1-M4) Button
-function toggleWeek(weekKey) {
+// Helper toggle Pola Minggu (M1-M4) Button & Pattern P2 / P4
+const selectedVisitPattern = ref(''); // 'P2' | 'P4' | ''
+const p2SelectedType = ref(''); // '' | 'GANJIL' | 'GENAP'
+
+function selectVisitPattern(pattern) {
   if (isReadOnly.value) return;
-  approveForm[weekKey] = approveForm[weekKey] === 'Y' ? '' : 'Y';
+  selectedVisitPattern.value = pattern;
+
+  if (pattern === 'P4') {
+    approveForm.m1 = 'Y';
+    approveForm.m2 = 'Y';
+    approveForm.m3 = 'Y';
+    approveForm.m4 = 'Y';
+    p2SelectedType.value = '';
+  } else if (pattern === 'P2') {
+    p2SelectedType.value = ''; // Biarkan user memilih M1/M3 atau M2/M4 secara manual
+    approveForm.m1 = 'T';
+    approveForm.m2 = 'T';
+    approveForm.m3 = 'T';
+    approveForm.m4 = 'T';
+  }
+}
+
+function selectP2SubOption(option) {
+  if (isReadOnly.value) return;
+  if (option === 'M1_M3') {
+    approveForm.m1 = 'Y';
+    approveForm.m2 = 'T';
+    approveForm.m3 = 'Y';
+    approveForm.m4 = 'T';
+  } else if (option === 'M2_M4') {
+    approveForm.m1 = 'T';
+    approveForm.m2 = 'Y';
+    approveForm.m3 = 'T';
+    approveForm.m4 = 'Y';
+  }
+}
+
+function handleWeekClick(weekKey) {
+  if (isReadOnly.value || !selectedVisitPattern.value) return;
+  if (selectedVisitPattern.value === 'P2') {
+    if (weekKey === 'm1' || weekKey === 'm3') {
+      selectP2SubOption('M1_M3');
+      p2SelectedType.value = 'GANJIL';
+    } else if (weekKey === 'm2' || weekKey === 'm4') {
+      selectP2SubOption('M2_M4');
+      p2SelectedType.value = 'GENAP';
+    }
+  }
 }
 
 // Cek apakah form dalam mode Read-Only / Terkunci (jika status bukan PUSHED_TO_SPV)
@@ -174,7 +219,7 @@ const selectedDayKey = computed(() => {
 const isRouteValid = computed(() => {
   const hasDay = ['h1', 'h2', 'h3', 'h4', 'h5', 'h6', 'h7'].some((k) => approveForm[k] === 'Y');
   const hasWeek = ['m1', 'm2', 'm3', 'm4'].some((k) => approveForm[k] === 'Y');
-  return hasDay && hasWeek;
+  return hasDay && hasWeek && selectedVisitPattern.value !== '';
 });
 
 // Buka Modal Detail & Pengisian Rute Toko
@@ -189,10 +234,34 @@ function openDetailModal(item) {
   approveForm.h5 = item.h5 || '';
   approveForm.h6 = item.h6 || '';
   approveForm.h7 = item.h7 || '';
-  approveForm.m1 = item.m1 || '';
-  approveForm.m2 = item.m2 || '';
-  approveForm.m3 = item.m3 || '';
-  approveForm.m4 = item.m4 || '';
+
+  const m1IsY = item.m1 === 'Y' || item.m1 === 'YES';
+  const m2IsY = item.m2 === 'Y' || item.m2 === 'YES';
+  const m3IsY = item.m3 === 'Y' || item.m3 === 'YES';
+  const m4IsY = item.m4 === 'Y' || item.m4 === 'YES';
+
+  if (m1IsY && m2IsY && m3IsY && m4IsY) {
+    selectedVisitPattern.value = 'P4';
+    p2SelectedType.value = '';
+    approveForm.m1 = 'Y';
+    approveForm.m2 = 'Y';
+    approveForm.m3 = 'Y';
+    approveForm.m4 = 'Y';
+  } else if (m1IsY || m2IsY || m3IsY || m4IsY) {
+    selectedVisitPattern.value = 'P2';
+    if (m2IsY || m4IsY) {
+      p2SelectedType.value = 'GENAP';
+      approveForm.m1 = 'T'; approveForm.m2 = 'Y'; approveForm.m3 = 'T'; approveForm.m4 = 'Y';
+    } else {
+      p2SelectedType.value = 'GANJIL';
+      approveForm.m1 = 'Y'; approveForm.m2 = 'T'; approveForm.m3 = 'Y'; approveForm.m4 = 'T';
+    }
+  } else {
+    selectedVisitPattern.value = '';
+    p2SelectedType.value = '';
+    approveForm.m1 = ''; approveForm.m2 = ''; approveForm.m3 = ''; approveForm.m4 = '';
+  }
+
   approveForm.spv_notes = item.spv_notes || '';
   showDetailModal.value = true;
 }
@@ -898,7 +967,7 @@ function getLineStyle(stepBefore, item) {
                     <div v-if="getRouteDaysSummary(selectedSubmission) !== 'Belum di-set'" class="flex items-center gap-2">
                       <span class="font-semibold text-slate-500 min-w-[70px]">Rute Sales:</span>
                       <span class="font-semibold text-purple-800 bg-purple-50/90 px-2 py-0.5 rounded border border-purple-200 text-[11.5px]">
-                        📅 Rute: {{ getRouteDaysSummary(selectedSubmission) }} | Pola: {{ getRouteWeeksSummary(selectedSubmission) }}
+                        📅 Rute: {{ getRouteDaysSummary(selectedSubmission) }} | Periode: {{ getRouteWeeksSummary(selectedSubmission) }}
                       </span>
                     </div>
                   </div>
@@ -959,6 +1028,22 @@ function getLineStyle(stepBefore, item) {
                     <p class="whitespace-pre-line leading-relaxed">{{ selectedSubmission.edp_notes }}</p>
                   </div>
                   <div v-else class="text-slate-400 italic text-[11px]">Tidak ada catatan EDP principal.</div>
+                </div>
+              </div>
+
+              <!-- Dedicated Rejection & Reset Reason Section -->
+              <div v-if="selectedSubmission.reject_reason || selectedSubmission.reset_reason" class="pt-3 border-t border-slate-200 space-y-2">
+                <div v-if="selectedSubmission.reject_reason" class="p-3 rounded-xl bg-rose-50 border border-rose-300 text-rose-900 text-xs shadow-2xs">
+                  <span class="font-bold block text-[11px] text-rose-800 uppercase tracking-wider mb-1 flex items-center gap-1">
+                    🚫 Alasan Penolakan (Rejected Reason):
+                  </span>
+                  <p class="whitespace-pre-line leading-relaxed font-medium text-rose-950">{{ selectedSubmission.reject_reason }}</p>
+                </div>
+                <div v-if="selectedSubmission.reset_reason" class="p-3 rounded-xl bg-amber-50 border border-amber-300 text-amber-900 text-xs shadow-2xs">
+                  <span class="font-bold block text-[11px] text-amber-800 uppercase tracking-wider mb-1 flex items-center gap-1">
+                    ↩️ Alasan Pembatalan / Reset:
+                  </span>
+                  <p class="whitespace-pre-line leading-relaxed font-medium text-amber-950">{{ selectedSubmission.reset_reason }}</p>
                 </div>
               </div>
 
@@ -1214,78 +1299,144 @@ function getLineStyle(stepBefore, item) {
               </div>
             </div>
 
-            <!-- Button-Only Pola Minggu (M1-M4) dengan Lock/Disable -->
-            <div>
-              <label class="block text-[14px] font-medium text-[#4B5563] mb-2">
-                Jadwal Pola Minggu (M1 - M4):
+            <!-- Choice of Visit Pattern (P2 vs P4) -->
+            <div class="space-y-2 pt-2 border-t border-slate-100">
+              <label class="block text-[14px] font-semibold text-[#1F2937]">
+                Periode Frekuensi Kunjungan Salesman (JKS): <span class="text-rose-500 font-bold">*</span>
               </label>
+              <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <!-- Option P2 -->
+                <button
+                  type="button"
+                  @click="selectVisitPattern('P2')"
+                  :disabled="isReadOnly"
+                  :class="[
+                    'p-3 rounded-xl border text-left transition-all flex items-center justify-between cursor-pointer',
+                    selectedVisitPattern === 'P2'
+                      ? 'bg-purple-50 border-purple-500 ring-2 ring-purple-400 text-purple-950 font-bold shadow-xs'
+                      : isReadOnly
+                      ? 'bg-slate-100 border-slate-200 text-slate-400 opacity-60 cursor-not-allowed'
+                      : 'bg-slate-50 border-slate-200 text-slate-700 hover:border-purple-300 hover:bg-purple-50/50'
+                  ]"
+                >
+                  <div class="text-xs font-bold uppercase tracking-wider flex items-center gap-2">
+                    <span class="w-3.5 h-3.5 rounded-full border-2 flex items-center justify-center shrink-0" :class="selectedVisitPattern === 'P2' ? 'border-purple-600 bg-purple-600' : 'border-slate-400'">
+                      <span v-if="selectedVisitPattern === 'P2'" class="w-1.5 h-1.5 bg-white rounded-full"></span>
+                    </span>
+                    <span>PERIODE P2 (2 MINGGU SEKALI)</span>
+                  </div>
+                </button>
+
+                <!-- Option P4 -->
+                <button
+                  type="button"
+                  @click="selectVisitPattern('P4')"
+                  :disabled="isReadOnly"
+                  :class="[
+                    'p-3 rounded-xl border text-left transition-all flex items-center justify-between cursor-pointer',
+                    selectedVisitPattern === 'P4'
+                      ? 'bg-purple-50 border-purple-500 ring-2 ring-purple-400 text-purple-950 font-bold shadow-xs'
+                      : isReadOnly
+                      ? 'bg-slate-100 border-slate-200 text-slate-400 opacity-60 cursor-not-allowed'
+                      : 'bg-slate-50 border-slate-200 text-slate-700 hover:border-purple-300 hover:bg-purple-50/50'
+                  ]"
+                >
+                  <div class="text-xs font-bold uppercase tracking-wider flex items-center gap-2">
+                    <span class="w-3.5 h-3.5 rounded-full border-2 flex items-center justify-center shrink-0" :class="selectedVisitPattern === 'P4' ? 'border-purple-600 bg-purple-600' : 'border-slate-400'">
+                      <span v-if="selectedVisitPattern === 'P4'" class="w-1.5 h-1.5 bg-white rounded-full"></span>
+                    </span>
+                    <span>PERIODE P4 (SETIAP MINGGU)</span>
+                  </div>
+                </button>
+              </div>
+            </div>
+
+            <!-- Button-Only Pola Minggu (M1-M4) dengan Auto Lock/Disable -->
+            <div class="space-y-2">
+              <div class="flex items-center justify-between">
+                <label class="block text-[14px] font-medium text-[#4B5563]">
+                  Jadwal Minggu Kunjungan (M1 - M4):
+                </label>
+                <span v-if="!selectedVisitPattern" class="text-[11px] font-bold text-amber-600 bg-amber-50 px-2 py-0.5 rounded border border-amber-200">
+                  ⚠️ Pilih Periode P2/P4 dahulu
+                </span>
+                <span v-else-if="selectedVisitPattern === 'P2'" class="text-[11px] font-bold text-purple-700 bg-purple-50 px-2 py-0.5 rounded border border-purple-200">
+                  <template v-if="p2SelectedType === 'GANJIL'">Pilihan anda Minggu Ganjil</template>
+                  <template v-else-if="p2SelectedType === 'GENAP'">Pilihan anda Minggu Genap</template>
+                  <template v-else>Klik M1/M3 (untuk minggu ganjil) atau M2/M4 (untuk minggu genap)</template>
+                </span>
+                <span v-else-if="selectedVisitPattern === 'P4'" class="text-[11px] font-bold text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded border border-emerald-200">
+                  ✓ Semua Minggu (M1, M2, M3, M4) Terpilih
+                </span>
+              </div>
+
               <div class="grid grid-cols-2 sm:grid-cols-4 gap-3">
                 <button
                   type="button"
-                  @click="toggleWeek('m1')"
-                  :disabled="isReadOnly"
+                  @click="handleWeekClick('m1')"
+                  :disabled="isReadOnly || !selectedVisitPattern || selectedVisitPattern === 'P4'"
                   :class="[
                     'py-2.5 px-3 rounded-lg text-xs font-semibold border transition-all flex items-center justify-center space-x-1.5',
                     approveForm.m1 === 'Y'
                       ? 'bg-[#7C3AED] text-white border-[#6D28D9] shadow-sm font-bold ring-2 ring-purple-300'
-                      : isReadOnly
+                      : isReadOnly || !selectedVisitPattern || selectedVisitPattern === 'P4'
                       ? 'bg-[#F3F4F6] text-[#9CA3AF] border-[#E5E7EB] opacity-50 cursor-not-allowed'
                       : 'bg-[#F8FAFC] text-[#1E293B] border-[#CBD5E1] hover:bg-purple-50 hover:border-purple-300'
                   ]"
                 >
                   <span>M1</span>
-                  <span class="text-[11px] opacity-80">(Minggu Ke-1)</span>
+                  <span class="text-[11px] opacity-80">(Minggu 1)</span>
                 </button>
 
                 <button
                   type="button"
-                  @click="toggleWeek('m2')"
-                  :disabled="isReadOnly"
+                  @click="handleWeekClick('m2')"
+                  :disabled="isReadOnly || !selectedVisitPattern || selectedVisitPattern === 'P4'"
                   :class="[
                     'py-2.5 px-3 rounded-lg text-xs font-semibold border transition-all flex items-center justify-center space-x-1.5',
                     approveForm.m2 === 'Y'
                       ? 'bg-[#7C3AED] text-white border-[#6D28D9] shadow-sm font-bold ring-2 ring-purple-300'
-                      : isReadOnly
+                      : isReadOnly || !selectedVisitPattern || selectedVisitPattern === 'P4'
                       ? 'bg-[#F3F4F6] text-[#9CA3AF] border-[#E5E7EB] opacity-50 cursor-not-allowed'
                       : 'bg-[#F8FAFC] text-[#1E293B] border-[#CBD5E1] hover:bg-purple-50 hover:border-purple-300'
                   ]"
                 >
                   <span>M2</span>
-                  <span class="text-[11px] opacity-80">(Minggu Ke-2)</span>
+                  <span class="text-[11px] opacity-80">(Minggu 2)</span>
                 </button>
 
                 <button
                   type="button"
-                  @click="toggleWeek('m3')"
-                  :disabled="isReadOnly"
+                  @click="handleWeekClick('m3')"
+                  :disabled="isReadOnly || !selectedVisitPattern || selectedVisitPattern === 'P4'"
                   :class="[
                     'py-2.5 px-3 rounded-lg text-xs font-semibold border transition-all flex items-center justify-center space-x-1.5',
                     approveForm.m3 === 'Y'
                       ? 'bg-[#7C3AED] text-white border-[#6D28D9] shadow-sm font-bold ring-2 ring-purple-300'
-                      : isReadOnly
+                      : isReadOnly || !selectedVisitPattern || selectedVisitPattern === 'P4'
                       ? 'bg-[#F3F4F6] text-[#9CA3AF] border-[#E5E7EB] opacity-50 cursor-not-allowed'
                       : 'bg-[#F8FAFC] text-[#1E293B] border-[#CBD5E1] hover:bg-purple-50 hover:border-purple-300'
                   ]"
                 >
                   <span>M3</span>
-                  <span class="text-[11px] opacity-80">(Minggu Ke-3)</span>
+                  <span class="text-[11px] opacity-80">(Minggu 3)</span>
                 </button>
 
                 <button
                   type="button"
-                  @click="toggleWeek('m4')"
-                  :disabled="isReadOnly"
+                  @click="handleWeekClick('m4')"
+                  :disabled="isReadOnly || !selectedVisitPattern || selectedVisitPattern === 'P4'"
                   :class="[
                     'py-2.5 px-3 rounded-lg text-xs font-semibold border transition-all flex items-center justify-center space-x-1.5',
                     approveForm.m4 === 'Y'
                       ? 'bg-[#7C3AED] text-white border-[#6D28D9] shadow-sm font-bold ring-2 ring-purple-300'
-                      : isReadOnly
+                      : isReadOnly || !selectedVisitPattern || selectedVisitPattern === 'P4'
                       ? 'bg-[#F3F4F6] text-[#9CA3AF] border-[#E5E7EB] opacity-50 cursor-not-allowed'
                       : 'bg-[#F8FAFC] text-[#1E293B] border-[#CBD5E1] hover:bg-purple-50 hover:border-purple-300'
                   ]"
                 >
                   <span>M4</span>
-                  <span class="text-[11px] opacity-80">(Minggu Ke-4)</span>
+                  <span class="text-[11px] opacity-80">(Minggu 4)</span>
                 </button>
               </div>
             </div>

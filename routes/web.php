@@ -88,6 +88,9 @@ Route::middleware('auth')->group(function () {
         // Home Dashboard
         Route::get('/dashboard', [EdpDashboardController::class, 'index'])->name('dashboard');
 
+        // Monitoring Target RO vs Realisasi Approved Salesman
+        Route::get('/monitoring-ro', [EdpDashboardController::class, 'monitoringRo'])->name('monitoring_ro');
+
         // Inbox NOO Verification
         Route::get('/inbox', [EdpPortalController::class, 'index'])->name('inbox');
         Route::post('/approve', [EdpPortalController::class, 'approve'])->name('approve');

@@ -1531,7 +1531,7 @@ function getLineStyle(stepBefore, item) {
                       <div v-if="getRouteDaysSummary(activeModalSubmission) !== 'Belum di-set'" class="flex items-center gap-2">
                         <span class="font-semibold text-slate-500 min-w-[70px]">Rute Sales:</span>
                         <span class="font-semibold text-purple-800 bg-purple-50/90 px-2 py-0.5 rounded border border-purple-200 text-[11.5px]">
-                          📅 Rute: {{ getRouteDaysSummary(activeModalSubmission) }} | Pola: {{ getRouteWeeksSummary(activeModalSubmission) }}
+                          📅 Rute: {{ getRouteDaysSummary(activeModalSubmission) }} | Periode: {{ getRouteWeeksSummary(activeModalSubmission) }}
                         </span>
                       </div>
                     </div>
@@ -1592,6 +1592,22 @@ function getLineStyle(stepBefore, item) {
                       <p class="whitespace-pre-line leading-relaxed">{{ activeModalSubmission.edp_notes }}</p>
                     </div>
                     <div v-else class="text-slate-400 italic text-[11px]">Tidak ada catatan EDP principal.</div>
+                  </div>
+                </div>
+
+                <!-- Dedicated Rejection & Reset Reason Section -->
+                <div v-if="activeModalSubmission.reject_reason || activeModalSubmission.reset_reason" class="pt-3 border-t border-slate-200 space-y-2">
+                  <div v-if="activeModalSubmission.reject_reason" class="p-3 rounded-xl bg-rose-50 border border-rose-300 text-rose-900 text-xs shadow-2xs">
+                    <span class="font-bold block text-[11px] text-rose-800 uppercase tracking-wider mb-1 flex items-center gap-1">
+                      🚫 Alasan Penolakan (Rejected Reason):
+                    </span>
+                    <p class="whitespace-pre-line leading-relaxed font-medium text-rose-950">{{ activeModalSubmission.reject_reason }}</p>
+                  </div>
+                  <div v-if="activeModalSubmission.reset_reason" class="p-3 rounded-xl bg-amber-50 border border-amber-300 text-amber-900 text-xs shadow-2xs">
+                    <span class="font-bold block text-[11px] text-amber-800 uppercase tracking-wider mb-1 flex items-center gap-1">
+                      ↩️ Alasan Pembatalan / Reset:
+                    </span>
+                    <p class="whitespace-pre-line leading-relaxed font-medium text-amber-950">{{ activeModalSubmission.reset_reason }}</p>
                   </div>
                 </div>
 

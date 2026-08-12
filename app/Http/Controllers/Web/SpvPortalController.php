@@ -168,13 +168,12 @@ class SpvPortalController extends Controller
                 return redirect()->route('spv_login.create')->withErrors(['username' => 'Sesi SPV telah berakhir.']);
             }
             $userName = $user->name ?? $user->spv_name ?? $user->salesman_name ?? 'SPV Area';
-            $nowText = now()->setTimezone('Asia/Jakarta')->format('Y-m-d H:i:s');
-            $rejectNote = trim(($submission->spv_notes ?? '') . "\n[SPV_REJECTED {$nowText} oleh {$userName}] {$request->input('reject_reason')}");
+            $rejectReason = trim((string) $request->input('reject_reason'));
 
             DB::table('noo_submissions')->where('request_id', $requestId)->update([
                 'approval_spv_area' => 'NO',
-                'approved_by_spv' => $user->name ?? $user->email,
-                'spv_notes' => $rejectNote,
+                'approved_by_spv' => $userName,
+                'reject_reason' => $rejectReason,
                 'status' => NooStatusEnum::REJECTED_SPV->value,
                 'spv_submit_at' => now(),
                 'updated_at' => now(),

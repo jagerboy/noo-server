@@ -132,12 +132,11 @@ class AdminDistributorController extends Controller
                 return redirect()->route('distributor_login.create')->withErrors(['pin_branch' => 'Sesi login telah berakhir.']);
             }
             $userName = $user->name ?? $user->branch_name ?? 'Admin Distributor';
-            $nowText = now()->setTimezone('Asia/Jakarta')->format('Y-m-d H:i:s');
-            $rejectNote = "{$request->input('reject_reason')} : [ADMIN_REJECTED {$nowText} oleh {$userName}]";
+            $rejectReason = trim((string) $request->input('reject_reason'));
 
             DB::table('noo_submissions')->where('request_id', $requestId)->update([
                 'status' => NooStatusEnum::ADMIN_REJECTED->value,
-                'admin_notes' => $rejectNote,
+                'reject_reason' => $rejectReason,
                 'approved_by_admin' => $userName,
                 'updated_at' => now(),
             ]);

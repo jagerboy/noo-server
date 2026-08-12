@@ -63,18 +63,23 @@ class EdpMasterController extends Controller
             ->whereNotNull('entity_code_principal');
 
         $branchesQuery = DB::table('master_branches')
-            ->select('region_code', 'entity_code_principal', 'branch_id', 'branch_name')
+            ->select('region_code', 'entity_code_principal', 'branch_id', 'branch_name', 'is_active')
             ->whereNotNull('branch_id');
 
         if ($userRole !== 'SUPERADMIN' && !empty($regionCode)) {
-            $regionsQuery->where('region_code', 'LIKE', "{$regionCode}%");
-            $entitiesQuery->where('region_code', 'LIKE', "{$regionCode}%");
-            $branchesQuery->where('region_code', 'LIKE', "{$regionCode}%");
-        }
-
-        if ($userRole === 'ADMIN_PRINCIPAL' && !empty($user->entity_code_principal)) {
-            $entitiesQuery->where('entity_code_principal', $user->entity_code_principal);
-            $branchesQuery->where('entity_code_principal', $user->entity_code_principal);
+            $regPrefix = substr($regionCode, 0, 6);
+            $regionsQuery->where(function ($q) use ($regionCode, $regPrefix) {
+                $q->where('region_code', 'LIKE', "{$regionCode}%")
+                  ->orWhere('region_code', 'LIKE', "{$regPrefix}%");
+            });
+            $entitiesQuery->where(function ($q) use ($regionCode, $regPrefix) {
+                $q->where('region_code', 'LIKE', "{$regionCode}%")
+                  ->orWhere('region_code', 'LIKE', "{$regPrefix}%");
+            });
+            $branchesQuery->where(function ($q) use ($regionCode, $regPrefix) {
+                $q->where('region_code', 'LIKE', "{$regionCode}%")
+                  ->orWhere('region_code', 'LIKE', "{$regPrefix}%");
+            });
         }
 
         return [
@@ -91,30 +96,14 @@ class EdpMasterController extends Controller
         $query = DB::table('master_branches');
 
         if ($user->role !== 'SUPERADMIN' && !empty($user->region_code)) {
-            $query->where('region_code', 'LIKE', "{$user->region_code}%");
-        }
-
-        if ($request->filled('region_code')) {
-            $query->where('region_code', $request->input('region_code'));
-        }
-        if ($request->filled('entity')) {
-            $query->where('entity_code_principal', $request->input('entity'));
-        }
-        if ($request->filled('search')) {
-            $s = $request->input('search');
-            $query->where(function ($q) use ($s) {
-                $q->where('branch_id', 'ILIKE', "%{$s}%")
-                  ->orWhere('branch_name', 'ILIKE', "%{$s}%")
-                  ->orWhere('region_code', 'ILIKE', "%{$s}%");
+            $regPrefix = substr($user->region_code, 0, 6);
+            $query->where(function ($q) use ($user, $regPrefix) {
+                $q->where('region_code', 'LIKE', "{$user->region_code}%")
+                  ->orWhere('region_code', 'LIKE', "{$regPrefix}%");
             });
         }
 
-        $perPage = (int) $request->input('per_page', 10);
-        if ($perPage <= 0) {
-            $perPage = 100000;
-        }
-
-        $branches = $query->orderBy('branch_id', 'asc')->paginate($perPage)->withQueryString();
+        $branches = $query->orderBy('branch_id', 'asc')->get();
 
         return Inertia::render('Edp/Master/MasterBranch', [
             'branches' => $branches,
@@ -248,37 +237,16 @@ class EdpMasterController extends Controller
             );
 
         if ($user->role !== 'SUPERADMIN' && !empty($user->region_code)) {
-            $query->where(function ($q) use ($user) {
+            $regPrefix = substr($user->region_code, 0, 6);
+            $query->where(function ($q) use ($user, $regPrefix) {
                 $q->where('master_branches.region_code', 'LIKE', "{$user->region_code}%")
-                  ->orWhere('master_salesmen.region_code', 'LIKE', "{$user->region_code}%");
+                  ->orWhere('master_salesmen.region_code', 'LIKE', "{$user->region_code}%")
+                  ->orWhere('master_branches.region_code', 'LIKE', "{$regPrefix}%")
+                  ->orWhere('master_salesmen.region_code', 'LIKE', "{$regPrefix}%");
             });
         }
 
-        if ($request->filled('region_code')) {
-            $r = $request->input('region_code');
-            $query->where(function ($q) use ($r) {
-                $q->where('master_branches.region_code', $r)
-                  ->orWhere('master_salesmen.region_code', $r);
-            });
-        }
-        if ($request->filled('branch_id')) {
-            $query->where('master_salesmen.branch_id', $request->input('branch_id'));
-        }
-        if ($request->filled('search')) {
-            $s = $request->input('search');
-            $query->where(function ($q) use ($s) {
-                $q->where('master_salesmen.salesman_code', 'ILIKE', "%{$s}%")
-                  ->orWhere('master_salesmen.salesman_name', 'ILIKE', "%{$s}%")
-                  ->orWhere('master_salesmen.branch_id', 'ILIKE', "%{$s}%");
-            });
-        }
-
-        $perPage = (int) $request->input('per_page', 10);
-        if ($perPage <= 0) {
-            $perPage = 100000;
-        }
-
-        $salesmen = $query->orderBy('master_salesmen.salesman_code', 'asc')->paginate($perPage)->withQueryString();
+        $salesmen = $query->orderBy('master_salesmen.salesman_code', 'asc')->get();
 
         return Inertia::render('Edp/Master/MasterSalesman', [
             'salesmen' => $salesmen,
@@ -375,38 +343,20 @@ class EdpMasterController extends Controller
                 'master_spvs.is_active',
                 'master_spvs.created_at',
                 'master_spvs.updated_at',
+                'master_branches.branch_name',
                 'master_branches.region_code',
                 'master_branches.entity_code_principal'
             );
 
         if ($user->role !== 'SUPERADMIN' && !empty($user->region_code)) {
-            $query->where('master_branches.region_code', 'LIKE', "{$user->region_code}%");
-        }
-
-        if ($request->filled('region_code')) {
-            $query->where('master_branches.region_code', $request->input('region_code'));
-        }
-        if ($request->filled('entity')) {
-            $query->where('master_branches.entity_code_principal', $request->input('entity'));
-        }
-        if ($request->filled('branch_id')) {
-            $query->where('master_spvs.branch_id', $request->input('branch_id'));
-        }
-        if ($request->filled('search')) {
-            $s = $request->input('search');
-            $query->where(function ($q) use ($s) {
-                $q->where('master_spvs.salescode', 'ILIKE', "%{$s}%")
-                  ->orWhere('master_spvs.nama', 'ILIKE', "%{$s}%")
-                  ->orWhere('master_spvs.branch_id', 'ILIKE', "%{$s}%");
+            $regPrefix = substr($user->region_code, 0, 6);
+            $query->where(function ($q) use ($user, $regPrefix) {
+                $q->where('master_branches.region_code', 'LIKE', "{$user->region_code}%")
+                  ->orWhere('master_branches.region_code', 'LIKE', "{$regPrefix}%");
             });
         }
 
-        $perPage = (int) $request->input('per_page', 10);
-        if ($perPage <= 0) {
-            $perPage = 100000;
-        }
-
-        $spvs = $query->orderBy('master_spvs.salescode', 'asc')->paginate($perPage)->withQueryString();
+        $spvs = $query->orderBy('master_spvs.salescode', 'asc')->get();
 
         return Inertia::render('Edp/Master/MasterSpv', [
             'spvs' => $spvs,

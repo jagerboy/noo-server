@@ -280,11 +280,11 @@ class EdpPortalController extends Controller
 
             $user = $request->user();
             $userName = $user->name ?? $user->username ?? 'EDP Principal';
-            $reason = trim($request->input('reject_reason') ?? $request->input('edp_notes') ?? 'Ditolak EDP Principal');
+            $reason = trim((string)($request->input('reject_reason') ?? $request->input('edp_notes') ?? 'Ditolak EDP Principal'));
 
             DB::table('noo_submissions')->where('request_id', $requestId)->update([
                 'edp_decision' => 'REJECTED',
-                'edp_notes' => $reason,
+                'reject_reason' => $reason,
                 'approved_by_edp' => $userName,
                 'status' => NooStatusEnum::REJECTED_EDP->value,
                 'edp_reviewed_at' => now(),
@@ -336,6 +336,7 @@ class EdpPortalController extends Controller
     {
         $request->validate([
             'request_id' => 'required|uuid',
+            'reason' => 'nullable|string',
         ]);
 
         try {
@@ -351,17 +352,20 @@ class EdpPortalController extends Controller
                 return back()->with('error', 'Data toko tidak ditemukan.');
             }
 
-            $nowText = now()->setTimezone('Asia/Jakarta')->format('Y-m-d H:i:s');
             $user = $request->user();
             $userName = $user->name ?? $user->username ?? 'SUPERADMIN';
             $oldCode = $submission->code_noo_principal ?? 'TANPA_KODE';
+            $resetReason = trim((string)$request->input('reason'));
+            if (empty($resetReason)) {
+                $resetReason = "Reset Approval EDP oleh {$userName}";
+            }
 
             DB::table('noo_submissions')->where('request_id', $requestId)->update([
                 'status' => NooStatusEnum::APPROVED_SPV->value,
                 'edp_decision' => null,
                 'code_noo_principal' => null, // Reset Customer Code Principal
                 'edp_reviewed_at' => null,
-                'flags' => trim(($submission->flags ?? '') . "; RESET_EDP_APPROVAL_AND_CODE_{$oldCode}_BY_{$userName}_AT_{$nowText}"),
+                'reset_reason' => $resetReason,
                 'updated_at' => now(),
             ]);
 

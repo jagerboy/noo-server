@@ -63,8 +63,13 @@ class EdpDashboardController extends Controller
         }
 
         $globalYear = $request->input('year');
+        $globalMonth = $request->input('month');
+
         if ($request->filled('year')) {
             $query->whereYear(DB::raw("COALESCE(submitted_at, created_at)"), $globalYear);
+        }
+        if ($request->filled('month')) {
+            $query->whereMonth(DB::raw("COALESCE(submitted_at, created_at)"), (int)$globalMonth);
         }
 
         $c1Year = $request->input('chart1_year', $globalYear);
@@ -168,7 +173,104 @@ class EdpDashboardController extends Controller
             ->limit(10)
             ->get();
 
-        // 5. Recent Audit Logs (Top 5 Recent Activities - Fast Index Query)
+        // 5. Monitoring Target RO Salesman (P2 = Target 150 RO/bulan, P4 = Target 300 RO/bulan)
+        $salesmenQuery = DB::table('master_salesmen')
+            ->leftJoin('master_branches', 'master_salesmen.branch_id', '=', 'master_branches.branch_id')
+            ->select(
+                'master_salesmen.salesman_code',
+                'master_salesmen.salesman_name',
+                'master_salesmen.branch_id',
+                DB::raw("COALESCE(master_branches.branch_name, master_salesmen.branch_id) as branch_name"),
+                DB::raw("COALESCE(master_branches.region_code, master_salesmen.region_code) as region_code"),
+                DB::raw("COALESCE(master_branches.entity_code_principal, master_salesmen.entity_code_principal) as entity_code_principal")
+            )
+            ->where('master_salesmen.is_active', true);
+
+        if ($userRole !== 'SUPERADMIN' && !empty($userRegion)) {
+            $salesmenQuery->where(function ($q) use ($userRegion) {
+                $q->where('master_branches.region_code', 'LIKE', "{$userRegion}%")
+                  ->orWhere('master_salesmen.region_code', 'LIKE', "{$userRegion}%");
+            });
+        }
+        if ($userRole === 'ADMIN_PRINCIPAL' && !empty($userEntity)) {
+            $salesmenQuery->where(function ($q) use ($userEntity) {
+                $q->where('master_branches.entity_code_principal', $userEntity)
+                  ->orWhere('master_salesmen.entity_code_principal', $userEntity);
+            });
+        }
+
+        if ($request->filled('region_code')) {
+            $rCode = $request->input('region_code');
+            $salesmenQuery->where(function ($q) use ($rCode) {
+                $q->where('master_branches.region_code', $rCode)
+                  ->orWhere('master_salesmen.region_code', $rCode);
+            });
+        }
+        if ($request->filled('principal')) {
+            $p = $request->input('principal');
+            $salesmenQuery->where(function ($q) use ($p) {
+                $q->where('master_branches.entity_code_principal', $p)
+                  ->orWhere('master_salesmen.entity_code_principal', $p);
+            });
+        }
+        if ($request->filled('branch_id')) {
+            $salesmenQuery->where('master_salesmen.branch_id', $request->input('branch_id'));
+        }
+
+        $salesmenList = $salesmenQuery->orderBy('master_salesmen.salesman_code', 'asc')->get();
+
+        $subStatsQuery = DB::table('noo_submissions');
+        if ($request->filled('year')) {
+            $subStatsQuery->whereYear(DB::raw("COALESCE(submitted_at, created_at)"), $globalYear);
+        }
+        if ($request->filled('month')) {
+            $subStatsQuery->whereMonth(DB::raw("COALESCE(submitted_at, created_at)"), (int)$globalMonth);
+        }
+
+        $salesmanStats = $subStatsQuery
+            ->selectRaw("
+                salesman_code,
+                COUNT(CASE WHEN status IN ('APPROVED_EDP', 'INJECTED', 'EDP_APPROVED') THEN 1 END) as approved_ro_count,
+                MAX(
+                    CASE WHEN m1 IN ('Y', 'YES') THEN 1 ELSE 0 END +
+                    CASE WHEN m2 IN ('Y', 'YES') THEN 1 ELSE 0 END +
+                    CASE WHEN m3 IN ('Y', 'YES') THEN 1 ELSE 0 END +
+                    CASE WHEN m4 IN ('Y', 'YES') THEN 1 ELSE 0 END
+                ) as max_active_weeks
+            ")
+            ->groupBy('salesman_code')
+            ->get()
+            ->keyBy('salesman_code');
+
+        $salesmanTargetsData = $salesmenList->map(function ($s) use ($salesmanStats) {
+            $code = $s->salesman_code;
+            $stat = $salesmanStats->get($code);
+
+            $approvedRo = (int)($stat->approved_ro_count ?? 0);
+            $maxWeeks = (int)($stat->max_active_weeks ?? 0);
+
+            $visitType = ($maxWeeks >= 4) ? 'P4' : 'P2';
+            $targetRo = ($visitType === 'P4') ? 300 : 150;
+
+            $percentage = $targetRo > 0 ? round(($approvedRo / $targetRo) * 100, 1) : 0;
+            $isAchieved = $approvedRo >= $targetRo;
+
+            return [
+                'salesman_code' => $code,
+                'salesman_name' => $s->salesman_name ?: $code,
+                'branch_id' => $s->branch_id,
+                'branch_name' => $s->branch_name ?: $s->branch_id,
+                'region_code' => $s->region_code,
+                'entity_code_principal' => $s->entity_code_principal,
+                'visit_type' => $visitType,
+                'approved_ro' => $approvedRo,
+                'target_ro' => $targetRo,
+                'percentage' => $percentage,
+                'is_achieved' => $isAchieved,
+            ];
+        })->values();
+
+        // 6. Recent Audit Logs (Top 5 Recent Activities - Fast Index Query)
         $auditLogs = [];
         try {
             $auditLogs = DB::table('audit_logs')
@@ -249,6 +351,7 @@ class EdpDashboardController extends Controller
                 'rejected_principal' => $rejectedPrincipal,
             ],
             'charts' => [
+                'salesman_targets' => $salesmanTargetsData,
                 'comparison' => $comparisonChart,
                 'top_principal_areas' => $top10PrincipalAreas,
                 'outlet_types' => $outletTypeDistribution,
@@ -259,6 +362,7 @@ class EdpDashboardController extends Controller
                 'region_code' => $request->input('region_code', ''),
                 'principal' => $request->input('principal', ''),
                 'branch_id' => $request->input('branch_id', ''),
+                'month' => $globalMonth ?? '',
                 'year' => $globalYear ?? '',
                 'chart1_year' => $c1Year ?? '',
                 'chart2_year' => $c2Year ?? '',
@@ -269,6 +373,326 @@ class EdpDashboardController extends Controller
                 'regions' => $regions,
                 'entities' => $entities,
                 'branches' => $branches,
+                'years' => $availableYears,
+            ],
+            'userRole' => $userRole,
+        ]);
+    }
+
+    /**
+     * Halaman Khusus Monitoring Target RO vs Realisasi Approved Salesman.
+     * Mengelompokkan data berdasarkan Cabang / Branch dengan sub-list Salesman.
+     */
+    public function monitoringRo(Request $request): Response
+    {
+        $user = Auth::user();
+        $userRole = $user->role ?? 'EDP_REGION';
+        $userRegion = $user->region_code ?? null;
+        $userEntity = $user->entity_code_principal ?? null;
+
+        $globalYear = $request->input('year');
+        $globalMonth = $request->input('month');
+
+        // 1. Fetch Active Branches Only (is_active = 1 and branch_name NOT LIKE '%(NON ACTIVE)%')
+        $masterBranches = DB::table('master_branches')
+            ->select(
+                'branch_id',
+                'branch_name',
+                'region_code',
+                'region_name',
+                'entity_code_principal',
+                'entity_name_principal'
+            )
+            ->where('is_active', 1)
+            ->where(function ($q) {
+                $q->whereNull('branch_name')
+                  ->orWhere('branch_name', 'NOT LIKE', '%(NON ACTIVE)%');
+            })
+            ->get();
+
+        $submissionBranches = DB::table('noo_submissions')
+            ->select(
+                'branch_id',
+                DB::raw("MAX(branch_name) as branch_name"),
+                DB::raw("MAX(region_code) as region_code"),
+                DB::raw("MAX(principal) as entity_name_principal")
+            )
+            ->whereNotNull('branch_id')
+            ->where('branch_id', '!=', '')
+            ->where(function ($q) {
+                $q->whereNull('branch_name')
+                  ->orWhere('branch_name', 'NOT LIKE', '%(NON ACTIVE)%');
+            })
+            ->groupBy('branch_id')
+            ->get();
+
+        $branchesMap = [];
+        foreach ($masterBranches as $mb) {
+            $branchesMap[$mb->branch_id] = [
+                'branch_id' => $mb->branch_id,
+                'branch_name' => $mb->branch_name ?: $mb->branch_id,
+                'region_code' => $mb->region_code ?: 'REGIONAL',
+                'region_name' => $mb->region_name ?: $mb->region_code,
+                'entity_code_principal' => $mb->entity_code_principal ?: 'ASW',
+                'entity_name_principal' => $mb->entity_name_principal ?: 'ASWFOODS',
+            ];
+        }
+        foreach ($submissionBranches as $sb) {
+            if (!isset($branchesMap[$sb->branch_id])) {
+                $branchesMap[$sb->branch_id] = [
+                    'branch_id' => $sb->branch_id,
+                    'branch_name' => $sb->branch_name ?: $sb->branch_id,
+                    'region_code' => $sb->region_code ?: 'REGIONAL',
+                    'region_name' => $sb->region_code ?: 'REGIONAL',
+                    'entity_code_principal' => 'ASW',
+                    'entity_name_principal' => $sb->entity_name_principal ?: 'ASWFOODS',
+                ];
+            }
+        }
+
+        // Apply Data Isolation / Filtering on Branches Map
+        if ($userRole !== 'SUPERADMIN' && !empty($userRegion)) {
+            $regPrefix = substr($userRegion, 0, 6); // e.g. "ASWSUM" or "ASWJWA"
+            $branchesMap = array_filter($branchesMap, function ($b) use ($userRegion, $regPrefix) {
+                return str_starts_with((string)$b['region_code'], $userRegion) ||
+                       str_starts_with((string)$b['region_code'], $regPrefix);
+            });
+        }
+
+        if ($request->filled('region_code')) {
+            $rCode = $request->input('region_code');
+            $branchesMap = array_filter($branchesMap, function ($b) use ($rCode) {
+                return $b['region_code'] === $rCode;
+            });
+        }
+        if ($request->filled('principal')) {
+            $p = $request->input('principal');
+            $branchesMap = array_filter($branchesMap, function ($b) use ($p) {
+                return str_contains(strtolower((string)$b['entity_name_principal']), strtolower($p)) ||
+                       $b['entity_code_principal'] === $p;
+            });
+        }
+        if ($request->filled('branch_id')) {
+            $bId = $request->input('branch_id');
+            $branchesMap = array_filter($branchesMap, function ($b) use ($bId) {
+                return $b['branch_id'] === $bId;
+            });
+        }
+
+        // Sort branches by branch_id
+        usort($branchesMap, function ($a, $b) {
+            return strcmp((string)$a['branch_id'], (string)$b['branch_id']);
+        });
+
+        // 2. Query Salesmen (Combination from master_salesmen and noo_submissions)
+        $salesmenFromMaster = DB::table('master_salesmen')
+            ->select('salesman_code', 'salesman_name', 'branch_id', 'region_code')
+            ->whereNotNull('salesman_code')
+            ->get();
+
+        $salesmenFromSubmissions = DB::table('noo_submissions')
+            ->select(
+                'salesman_code',
+                DB::raw("MAX(salesman_name) as salesman_name"),
+                'branch_id',
+                DB::raw("MAX(region_code) as region_code")
+            )
+            ->whereNotNull('salesman_code')
+            ->where('salesman_code', '!=', '')
+            ->groupBy('salesman_code', 'branch_id')
+            ->get();
+
+        $salesmenMap = [];
+        foreach ($salesmenFromMaster as $s) {
+            $salesmenMap[$s->salesman_code] = [
+                'salesman_code' => $s->salesman_code,
+                'salesman_name' => $s->salesman_name ?: $s->salesman_code,
+                'branch_id' => $s->branch_id,
+                'region_code' => $s->region_code,
+            ];
+        }
+        foreach ($salesmenFromSubmissions as $s) {
+            if (!isset($salesmenMap[$s->salesman_code])) {
+                $salesmenMap[$s->salesman_code] = [
+                    'salesman_code' => $s->salesman_code,
+                    'salesman_name' => $s->salesman_name ?: $s->salesman_code,
+                    'branch_id' => $s->branch_id,
+                    'region_code' => $s->region_code,
+                ];
+            }
+        }
+
+        // 3. Query Approved RO & JKS Week Stats from noo_submissions (Both Total & Monthly)
+        $subStatsQuery = DB::table('noo_submissions')
+            ->selectRaw("
+                salesman_code,
+                branch_id,
+                EXTRACT(MONTH FROM COALESCE(submitted_at, created_at)) as sub_month,
+                EXTRACT(YEAR FROM COALESCE(submitted_at, created_at)) as sub_year,
+                COUNT(CASE WHEN status IN ('APPROVED_EDP', 'INJECTED', 'EDP_APPROVED') THEN 1 END) as approved_ro_count,
+                MAX(
+                    CASE WHEN m1 IN ('Y', 'YES') THEN 1 ELSE 0 END +
+                    CASE WHEN m2 IN ('Y', 'YES') THEN 1 ELSE 0 END +
+                    CASE WHEN m3 IN ('Y', 'YES') THEN 1 ELSE 0 END +
+                    CASE WHEN m4 IN ('Y', 'YES') THEN 1 ELSE 0 END
+                ) as max_active_weeks
+            ")
+            ->whereNotNull('salesman_code')
+            ->groupBy('salesman_code', 'branch_id', 'sub_month', 'sub_year')
+            ->get();
+
+        $statsLookupBySalesman = [];
+        foreach ($subStatsQuery as $st) {
+            $code = $st->salesman_code;
+            if (!isset($statsLookupBySalesman[$code])) {
+                $statsLookupBySalesman[$code] = [];
+            }
+            $statsLookupBySalesman[$code][] = [
+                'month' => (int)$st->sub_month,
+                'year' => (int)$st->sub_year,
+                'approved_count' => (int)$st->approved_ro_count,
+                'max_weeks' => (int)$st->max_active_weeks,
+            ];
+        }
+
+        // 4. Group Salesmen under each Branch
+        $totalSalesmenGlobal = 0;
+        $totalAchievedGlobal = 0;
+        $totalApprovedRoGlobal = 0;
+
+        $branchesData = array_map(function ($b) use ($salesmenMap, $statsLookupBySalesman, &$totalSalesmenGlobal, &$totalAchievedGlobal, &$totalApprovedRoGlobal) {
+            $branchId = $b['branch_id'];
+
+            $branchSalesmen = array_filter($salesmenMap, function ($s) use ($branchId) {
+                return $s['branch_id'] === $branchId;
+            });
+
+            $salesmenItems = [];
+            $branchApprovedRo = 0;
+            $branchTargetRo = 0;
+            $branchAchievedCount = 0;
+
+            foreach ($branchSalesmen as $s) {
+                $code = $s['salesman_code'];
+                $monthlyList = $statsLookupBySalesman[$code] ?? [];
+
+                $approvedRo = 0;
+                $maxWeeks = 0;
+                foreach ($monthlyList as $mItem) {
+                    $approvedRo += $mItem['approved_count'];
+                    if ($mItem['max_weeks'] > $maxWeeks) {
+                        $maxWeeks = $mItem['max_weeks'];
+                    }
+                }
+
+                $visitType = ($maxWeeks >= 4) ? 'P4' : 'P2';
+                $targetRo = ($visitType === 'P4') ? 300 : 150;
+
+                $percentage = $targetRo > 0 ? round(($approvedRo / $targetRo) * 100, 1) : 0;
+                $isAchieved = $approvedRo >= $targetRo;
+
+                if ($isAchieved) {
+                    $branchAchievedCount++;
+                    $totalAchievedGlobal++;
+                }
+
+                $branchApprovedRo += $approvedRo;
+                $branchTargetRo += $targetRo;
+                $totalApprovedRoGlobal += $approvedRo;
+                $totalSalesmenGlobal++;
+
+                $salesmenItems[] = [
+                    'salesman_code' => $code,
+                    'salesman_name' => $s['salesman_name'],
+                    'visit_type' => $visitType,
+                    'approved_ro' => $approvedRo,
+                    'target_ro' => $targetRo,
+                    'percentage' => $percentage,
+                    'is_achieved' => $isAchieved,
+                    'monthly_stats' => $monthlyList,
+                ];
+            }
+
+            return [
+                'branch_id' => $b['branch_id'],
+                'branch_name' => $b['branch_name'],
+                'region_code' => $b['region_code'],
+                'region_name' => $b['region_name'],
+                'entity_code_principal' => $b['entity_code_principal'],
+                'entity_name_principal' => $b['entity_name_principal'],
+                'total_approved_ro' => $branchApprovedRo,
+                'total_target_ro' => $branchTargetRo,
+                'achieved_salesmen_count' => $branchAchievedCount,
+                'total_salesmen_count' => count($salesmenItems),
+                'salesmen' => array_values($salesmenItems),
+            ];
+        }, $branchesMap);
+
+        // Available Years Query
+        $availableYears = DB::table('noo_submissions')
+            ->selectRaw("DISTINCT EXTRACT(YEAR FROM COALESCE(submitted_at, created_at)) as yr")
+            ->whereNotNull('created_at')
+            ->pluck('yr')
+            ->map(fn($y) => (int)$y)
+            ->filter()
+            ->sortDesc()
+            ->values()
+            ->toArray();
+
+        if (empty($availableYears)) {
+            $availableYears = [(int)date('Y')];
+        }
+
+        // Filter Options List (Active Only)
+        $regionsQuery = DB::table('master_branches')->select('region_code', 'region_name')->distinct()->where('is_active', 1)->whereNotNull('region_code');
+        $entitiesQuery = DB::table('master_branches')->select('entity_code_principal', 'entity_name_principal', 'region_code')->distinct()->where('is_active', 1)->whereNotNull('entity_code_principal');
+        $branchesFilterQuery = DB::table('master_branches')
+            ->select('branch_id', 'branch_name', 'region_code', 'entity_code_principal')
+            ->where('is_active', 1)
+            ->where(function ($q) {
+                $q->whereNull('branch_name')
+                  ->orWhere('branch_name', 'NOT LIKE', '%(NON ACTIVE)%');
+            });
+
+        if ($userRole !== 'SUPERADMIN' && !empty($userRegion)) {
+            $regPrefix = substr($userRegion, 0, 6); // e.g. "ASWSUM"
+            $regionsQuery->where(function ($q) use ($userRegion, $regPrefix) {
+                $q->where('region_code', 'LIKE', "{$userRegion}%")
+                  ->orWhere('region_code', 'LIKE', "{$regPrefix}%");
+            });
+            $entitiesQuery->where(function ($q) use ($userRegion, $regPrefix) {
+                $q->where('region_code', 'LIKE', "{$userRegion}%")
+                  ->orWhere('region_code', 'LIKE', "{$regPrefix}%");
+            });
+            $branchesFilterQuery->where(function ($q) use ($userRegion, $regPrefix) {
+                $q->where('region_code', 'LIKE', "{$userRegion}%")
+                  ->orWhere('region_code', 'LIKE', "{$regPrefix}%");
+            });
+        }
+
+        $regions = $regionsQuery->orderBy('region_code')->get();
+        $entities = $entitiesQuery->orderBy('entity_code_principal')->get();
+        $branchesOptions = $branchesFilterQuery->orderBy('branch_id', 'asc')->get();
+
+        return Inertia::render('Edp/MonitoringRo', [
+            'branchesData' => array_values($branchesData),
+            'summary' => [
+                'total_branches' => count($branchesData),
+                'total_salesmen' => $totalSalesmenGlobal,
+                'total_achieved' => $totalAchievedGlobal,
+                'total_approved_ro' => $totalApprovedRoGlobal,
+            ],
+            'filters' => [
+                'region_code' => $request->input('region_code', ''),
+                'principal' => $request->input('principal', ''),
+                'branch_id' => $request->input('branch_id', ''),
+                'month' => $globalMonth ?? '',
+                'year' => $globalYear ?? '',
+            ],
+            'filterOptions' => [
+                'regions' => $regions,
+                'entities' => $entities,
+                'branches' => $branchesOptions,
                 'years' => $availableYears,
             ],
             'userRole' => $userRole,

@@ -230,17 +230,17 @@ class EdpProgressController extends Controller
                 return back()->with('error', 'Toko sudah di-approve oleh EDP Principal. Lakukan Reset Approval EDP terlebih dahulu sebelum mereset inputan Admin/SPV.');
             }
 
-            $nowText = now()->setTimezone('Asia/Jakarta')->format('Y-m-d H:i:s');
             $actorName = $user->name ?? $user->username ?? $user->email;
-            $note = "[CASCADING RESET ADMIN & SPV INPUT pada {$nowText} oleh {$actorName}] " . ($request->input('reason') ?? 'Dibatalkan oleh Principal Admin');
-            $updatedNotes = trim(($submission->admin_notes ?? '') . "\n" . $note);
+            $resetReason = trim((string)$request->input('reason'));
+            if (empty($resetReason)) {
+                $resetReason = "Reset Input Admin & SPV oleh {$actorName}";
+            }
 
             DB::table('noo_submissions')->where('request_id', $requestId)->update([
                 // Reset Admin fields
                 'custcode_distributor' => null,
                 'approved_by_admin' => null,
                 'pushed_to_spv_at' => null,
-                'admin_notes' => $updatedNotes,
                 // Cascading Reset SPV fields
                 'norute' => null,
                 'h1' => null, 'h2' => null, 'h3' => null, 'h4' => null, 'h5' => null, 'h6' => null, 'h7' => null,
@@ -249,6 +249,7 @@ class EdpProgressController extends Controller
                 'approved_by_spv' => null,
                 'spv_submit_at' => null,
                 'pushed_to_edp_at' => null,
+                'reset_reason' => $resetReason,
                 // Reset status to initial SE_SUBMITTED
                 'status' => 'SE_SUBMITTED',
                 'updated_at' => now(),
@@ -292,10 +293,11 @@ class EdpProgressController extends Controller
                 return back()->with('error', 'Toko sudah di-approve oleh EDP Principal. Lakukan Reset Approval EDP terlebih dahulu sebelum mereset inputan SPV.');
             }
 
-            $nowText = now()->setTimezone('Asia/Jakarta')->format('Y-m-d H:i:s');
             $actorName = $user->name ?? $user->username ?? $user->email;
-            $note = "[RESET SPV INPUT pada {$nowText} oleh {$actorName}] " . ($request->input('reason') ?? 'Rute JKS dibatalkan oleh Principal Admin');
-            $updatedNotes = trim(($submission->spv_notes ?? '') . "\n" . $note);
+            $resetReason = trim((string)$request->input('reason'));
+            if (empty($resetReason)) {
+                $resetReason = "Reset Input SPV oleh {$actorName}";
+            }
 
             DB::table('noo_submissions')->where('request_id', $requestId)->update([
                 'norute' => null,
@@ -305,8 +307,8 @@ class EdpProgressController extends Controller
                 'approved_by_spv' => null,
                 'spv_submit_at' => null,
                 'pushed_to_edp_at' => null,
+                'reset_reason' => $resetReason,
                 'status' => 'PUSHED_TO_SPV',
-                'spv_notes' => $updatedNotes,
                 'updated_at' => now(),
             ]);
 

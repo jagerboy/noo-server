@@ -14,6 +14,27 @@ const page = usePage();
 const user = computed(() => page.props.auth?.user || {});
 const userRole = computed(() => user.value.role || 'EDP_REGION');
 
+const displayUserRole = computed(() => {
+  const role = user.value.role || 'EDP_REGION';
+  const reg = (user.value.region_code || '').toUpperCase();
+  const username = (user.value.username || '').toLowerCase();
+
+  if (role === 'EDP_REGION') {
+    return user.value.region_code ? `EDP Regional (${user.value.region_code})` : 'EDP Regional';
+  }
+  if (role === 'SUPERADMIN') return 'Superadmin';
+  if (role === 'ADMIN_PRINCIPAL') {
+    if (reg.includes('ASWSUM') || username.includes('aswsum')) return 'Admin Principal ASW Sumatera';
+    if (reg.includes('ASWJWA') || username.includes('aswjwa')) return 'Admin Principal ASW Jawa';
+    if (reg.includes('ASWPUL') || username.includes('aswpul')) return 'Admin Principal ASW Pulau';
+    if (reg.includes('INAJWA') || username.includes('inajwa')) return 'Admin Principal INA Jawa';
+    if (reg.includes('INAPUL') || username.includes('inapul')) return 'Admin Principal INA Pulau';
+    if (reg.includes('INASUM') || username.includes('inasum')) return 'Admin Principal INA Sumatera';
+    return user.value.region_code ? `Admin Principal (${user.value.region_code})` : 'Admin Principal';
+  }
+  return role;
+});
+
 const isFlashSuccessDismissed = ref(false);
 const isFlashErrorDismissed = ref(false);
 
@@ -109,7 +130,7 @@ function toggleMasterMenu() {
             <div class="hidden md:flex flex-col items-end text-right">
               <span class="text-[14px] font-semibold text-white">{{ user.name || user.username || user.email }}</span>
               <span class="text-[12px] text-amber-200 font-semibold px-2 py-0.5 rounded-[6px] bg-white/15 border border-white/20">
-                {{ userRole === 'EDP_REGION' ? 'Operator Principal (Region)' : userRole }} {{ user.region_code ? `(${user.region_code})` : '' }}
+                {{ displayUserRole }}
               </span>
             </div>
 
@@ -192,7 +213,33 @@ function toggleMasterMenu() {
             </div>
           </div>
 
-          <!-- MENU 3: PROGRESS TRACKING NOO -->
+          <!-- MENU 3: MONITORING RO -->
+          <div class="relative group">
+            <Link
+              :href="route('edp.monitoring_ro')"
+              :class="[
+                'flex items-center gap-3 py-2.5 rounded-[8px] text-[14px] font-medium transition-all duration-150',
+                isSidebarPinned ? 'px-3.5' : 'justify-center px-0',
+                route().current('edp.monitoring_ro') 
+                  ? 'bg-[#DBEAFE] text-[#1D4ED8] font-semibold shadow-xs' 
+                  : 'text-[#4B5563] hover:bg-[#EFF6FF] hover:text-[#111827]'
+              ]"
+            >
+              <svg class="w-5 h-5 text-[#2563EB] shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"/></svg>
+              <span v-show="isSidebarPinned" class="whitespace-nowrap">Monitoring RO</span>
+            </Link>
+
+            <!-- Floating Tooltip on Icon Hover (Mode Mini) -->
+            <div 
+              v-if="!isSidebarPinned"
+              class="absolute left-full top-1/2 -translate-y-1/2 ml-3 px-3 py-1.5 bg-[#0F172A] text-white text-xs font-semibold rounded-lg shadow-xl whitespace-nowrap pointer-events-none opacity-0 group-hover:opacity-100 transition-opacity duration-200 z-50 flex items-center gap-1 border border-slate-700/60"
+            >
+              <div class="absolute right-full top-1/2 -mt-1 border-4 border-transparent border-r-[#0F172A]"></div>
+              <span>Monitoring RO</span>
+            </div>
+          </div>
+
+          <!-- MENU 4: PROGRESS TRACKING NOO -->
           <div class="relative group">
             <Link
               :href="route('edp.progress_tracking')"
@@ -204,7 +251,7 @@ function toggleMasterMenu() {
                   : 'text-[#4B5563] hover:bg-[#EFF6FF] hover:text-[#111827]'
               ]"
             >
-              <svg class="w-5 h-5 text-[#2563EB] shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"/></svg>
+              <svg class="w-5 h-5 text-[#2563EB] shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-3 7h3m-3 4h3m-6-4h.01M9 16h.01"/></svg>
               <span v-show="isSidebarPinned" class="whitespace-nowrap">Progress Tracking NOO</span>
             </Link>
 
