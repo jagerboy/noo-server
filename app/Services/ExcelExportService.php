@@ -211,6 +211,9 @@ class ExcelExportService
             $this->appendReadyToInjectSheet($spreadsheet, $submissions);
         }
 
+        // Ensure Sheet 1 ("Template") is the active sheet opened first in MS Excel
+        $spreadsheet->setActiveSheetIndex(0);
+
         // Output file
         $writer = new Xlsx($spreadsheet);
         ob_start();

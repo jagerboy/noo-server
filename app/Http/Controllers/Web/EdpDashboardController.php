@@ -68,7 +68,13 @@ class EdpDashboardController extends Controller
         if ($request->filled('year')) {
             $query->whereYear(DB::raw("COALESCE(submitted_at, created_at)"), $globalYear);
         }
-        if ($request->filled('month')) {
+        if ($request->filled('months')) {
+            $rawMonths = explode(',', (string) $request->input('months'));
+            $monthsArray = array_values(array_filter(array_map('intval', $rawMonths)));
+            if (!empty($monthsArray)) {
+                $query->whereRaw("EXTRACT(MONTH FROM COALESCE(submitted_at, created_at)) IN (" . implode(',', $monthsArray) . ")");
+            }
+        } elseif ($request->filled('month')) {
             $query->whereMonth(DB::raw("COALESCE(submitted_at, created_at)"), (int)$globalMonth);
         }
 
@@ -452,10 +458,8 @@ class EdpDashboardController extends Controller
 
         // Apply Data Isolation / Filtering on Branches Map
         if ($userRole !== 'SUPERADMIN' && !empty($userRegion)) {
-            $regPrefix = substr($userRegion, 0, 6); // e.g. "ASWSUM" or "ASWJWA"
-            $branchesMap = array_filter($branchesMap, function ($b) use ($userRegion, $regPrefix) {
-                return str_starts_with((string)$b['region_code'], $userRegion) ||
-                       str_starts_with((string)$b['region_code'], $regPrefix);
+            $branchesMap = array_filter($branchesMap, function ($b) use ($userRegion) {
+                return (string)$b['region_code'] === $userRegion || str_starts_with((string)$b['region_code'], $userRegion);
             });
         }
 
@@ -527,9 +531,9 @@ class EdpDashboardController extends Controller
             ->selectRaw("
                 salesman_code,
                 branch_id,
-                EXTRACT(MONTH FROM COALESCE(submitted_at, created_at)) as sub_month,
-                EXTRACT(YEAR FROM COALESCE(submitted_at, created_at)) as sub_year,
-                COUNT(CASE WHEN status IN ('APPROVED_EDP', 'INJECTED', 'EDP_APPROVED') THEN 1 END) as approved_ro_count,
+                EXTRACT(MONTH FROM COALESCE(edp_reviewed_at, submitted_at, created_at)) as sub_month,
+                EXTRACT(YEAR FROM COALESCE(edp_reviewed_at, submitted_at, created_at)) as sub_year,
+                COUNT(CASE WHEN status IN ('APPROVED_EDP', 'INJECTED', 'EDP_APPROVED') AND COALESCE(is_ro, true) = true THEN 1 END) as approved_ro_count,
                 MAX(
                     CASE WHEN m1 IN ('Y', 'YES') THEN 1 ELSE 0 END +
                     CASE WHEN m2 IN ('Y', 'YES') THEN 1 ELSE 0 END +
@@ -585,8 +589,8 @@ class EdpDashboardController extends Controller
                     }
                 }
 
-                $visitType = ($maxWeeks >= 4) ? 'P4' : 'P2';
-                $targetRo = ($visitType === 'P4') ? 300 : 150;
+                $visitType = ($maxWeeks >= 4) ? 'F4' : 'F2';
+                $targetRo = ($visitType === 'F4') ? 300 : 150;
 
                 $percentage = $targetRo > 0 ? round(($approvedRo / $targetRo) * 100, 1) : 0;
                 $isAchieved = $approvedRo >= $targetRo;
@@ -655,19 +659,9 @@ class EdpDashboardController extends Controller
             });
 
         if ($userRole !== 'SUPERADMIN' && !empty($userRegion)) {
-            $regPrefix = substr($userRegion, 0, 6); // e.g. "ASWSUM"
-            $regionsQuery->where(function ($q) use ($userRegion, $regPrefix) {
-                $q->where('region_code', 'LIKE', "{$userRegion}%")
-                  ->orWhere('region_code', 'LIKE', "{$regPrefix}%");
-            });
-            $entitiesQuery->where(function ($q) use ($userRegion, $regPrefix) {
-                $q->where('region_code', 'LIKE', "{$userRegion}%")
-                  ->orWhere('region_code', 'LIKE', "{$regPrefix}%");
-            });
-            $branchesFilterQuery->where(function ($q) use ($userRegion, $regPrefix) {
-                $q->where('region_code', 'LIKE', "{$userRegion}%")
-                  ->orWhere('region_code', 'LIKE', "{$regPrefix}%");
-            });
+            $regionsQuery->where('region_code', 'LIKE', "{$userRegion}%");
+            $entitiesQuery->where('region_code', 'LIKE', "{$userRegion}%");
+            $branchesFilterQuery->where('region_code', 'LIKE', "{$userRegion}%");
         }
 
         $regions = $regionsQuery->orderBy('region_code')->get();

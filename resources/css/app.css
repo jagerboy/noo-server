@@ -98,8 +98,49 @@ body {
   background-color: #F8FAFC;
   color: #374151;
   font-size: 14px;
-  line-height: 20px;
+  line-height: 1.5;
   font-weight: 400;
+}
+
+/* Global Typography Scale Enforcement */
+h1, .text-h1 {
+  font-size: 20px;
+  font-weight: 600;
+  line-height: 1.4;
+  letter-spacing: -0.01em;
+}
+@media (min-width: 768px) {
+  h1, .text-h1 {
+    font-size: 24px;
+  }
+}
+
+h2, .text-h2 {
+  font-size: 18px;
+  font-weight: 600;
+  line-height: 1.4;
+  letter-spacing: -0.01em;
+}
+@media (min-width: 768px) {
+  h2, .text-h2 {
+    font-size: 20px;
+  }
+}
+
+h3, .text-h3 {
+  font-size: 16px;
+  font-weight: 500;
+  line-height: 1.4;
+}
+
+p, span, td, input, select, textarea, label, button, .text-body {
+  line-height: 1.5;
+}
+
+.text-caption {
+  font-size: 12px;
+  font-weight: 400;
+  line-height: 1.5;
 }
 
 /* High visibility top progress loading bar with ASWFOODS & INAFOODS brand colors */

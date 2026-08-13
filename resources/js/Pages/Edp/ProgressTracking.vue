@@ -151,9 +151,9 @@ function formatJksDays(item) {
 
 /**
  * Helper format Minggu JKS (M1 - M4)
- * - YYYY = P4 / All Week
- * - YTYT = P2 / Minggu Ganjil
- * - TYTY = P2 / Minggu Genap
+ * - YYYY = F4 / All Week
+ * - YTYT = F2 / Minggu Ganjil
+ * - TYTY = F2 / Minggu Genap
  */
 function formatJksWeeks(item) {
   if (!item) return '-';
@@ -164,11 +164,11 @@ function formatJksWeeks(item) {
   const pattern = `${m1}${m2}${m3}${m4}`;
 
   if (pattern === 'YYYY') {
-    return 'P4 / All Week';
+    return 'F4 / All Week';
   } else if (pattern === 'YTYT') {
-    return 'P2 / Minggu Ganjil';
+    return 'F2 / Minggu Ganjil';
   } else if (pattern === 'TYTY') {
-    return 'P2 / Minggu Genap';
+    return 'F2 / Minggu Genap';
   } else {
     const weeks = [];
     if (m1 === 'Y') weeks.push('M1');

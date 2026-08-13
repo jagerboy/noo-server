@@ -192,5 +192,61 @@ Saya bekerja sendiri (Solo Developer). Kode harus bisa menjelaskan dirinya sendi
     - **Pemformatan Peran Admin Principal per Region**: Di header topbar (`EdpLayout.vue`) dan badge dashboard (`Dashboard.vue`), peran `ADMIN_PRINCIPAL` otomatis diformat sesuai wilayahnya (`Admin Principal ASW Sumatera`, `Admin Principal ASW Jawa`, `Admin Principal ASW Pulau`, `Admin Principal INA Jawa`, `Admin Principal INA Pulau`, `Admin Principal INA Sumatera`), `EDP_REGION` menjadi `EDP Regional`, dan `SUPERADMIN` menjadi `Superadmin`.
     - **Perbaikan Dropdown Filter Tahun**: Menambahkan `min-w-[125px]` dan padding kanan `pr-8` pada ke-4 elemen `<select>` filter tahun chart dashboard sehingga opsi `"Semua Tahun"` ter-render lapang tanpa tertutup ikon panah.
 
+20. **Penyelarasan Urutan Filter Status & Pemindahan Dropdown Sort pada Inbox**:
+    - **Urutan Filter Status Berdasarkan Role ($role)**: Mengurutkan opsi status dropdown secara sekuensial sesuai dengan workflow approval di `Admin/Inbox.vue`, `Spv/Inbox.vue`, dan `Edp/Inbox.vue`.
+    - **Dropdown Sort Mandiri**: Memindahkan pengurutan dari klik header tabel ke dropdown `Urutkan:` di sebelah `Filter Status:`, serta membersihkan indikator arah pada header tabel (`th`).
 
+21. **Standardisasi Tipografi Global & Identitas Warna Corporate**:
+    - Memuat skala tipografi global Inter (`H1`: 20/24px 600, `H2`: 18/20px 600, `H3`: 16px 500, `Body`: 14px 400 line-height 1.5, `Caption`: 12px 400) dan CSS custom properties warna merek ASWFOODS (`#D9232A` & `#1E2B7B`) serta INAFOODS (`#542B85` & `#F59E0B`) di `resources/css/app.css`.
 
+22. **Pembaruan Terminologi Kunjungan Salesman (P2 ➔ F2 & P4 ➔ F4)**:
+    - Mengubah seluruh sebutan dan logika frekuensi kunjungan dari `P2` (Periode 2 minggu sekali) menjadi **`F2`** dan `P4` (Periode 4 minggu sekali / setiap minggu) menjadi **`F4`** di UI modal `Spv/Inbox.vue`, `Edp/ProgressTracking.vue`, dan `Edp/MonitoringRo.vue`.
+
+23. **Perbaikan Responsivitas Mobile (`SpvLogin.vue` & `Spv/Inbox.vue`)**:
+    - **`SpvLogin.vue`**: Menghapus kuncian `100vh overflow-hidden` pada container dan menggantinya dengan `overflow-y-auto` dengan padding responsif (`p-3 sm:p-4`) agar form login pada HP tidak terpotong.
+    - **`Spv/Inbox.vue`**: Mengoptimalkan container modal detail rute (`max-h-[92vh]`) dan grid tombol jadwal hari kunjungan H1-H7 (`grid-cols-2 sm:grid-cols-4 lg:grid-cols-7`) agar ramah layar sentuh mobile.
+
+24. **Pengisolasian Ketat Data Monitoring RO per `region_code` User (`EdpDashboardController.php`)**:
+    - Memastikan bahwa pengguna selain `SUPERADMIN` (misal role `EDP_REGION` seperti `ASWSUM2`) secara ketat hanya melihat data cabang dan salesman yang berada persis di dalam `region_code` miliknya (`region_code === $userRegion`), serta mengisolasi opsi cascading filter (Region, Entity, Branch) sesuai hak akses region user.
+
+25. **Pembaruan Visual Stacked Bar Chart (Gradient Pill Bar Graph) pada Monitoring RO**:
+    - Mengubah tampilan grafik **Stacked Bar Chart • Vertical Analytics (Model Bar in Bar)** pada `MonitoringRo.vue` menggunakan desain modern **Gradient Pill Bar Graph**:
+      - Background pill track untuk Target RO (`slate-200/80`).
+      - Gradient pill active bar untuk Realisasi (`Blue-600` ➔ `Indigo-600` ➔ `Blue-700` atau `Emerald-500` ➔ `Teal-500` ➔ `Emerald-600` jika Achieved ≥ 100%).
+      - Melengkapi dengan tooltip hover card interaktif dan tetap **mempertahankan kartu tabel data detail** per cabang di bawahnya.
+
+26. **Pembaruan Konsep Monitoring RO, Fitur Toggle RO Status (Tabel & Bulk) & Redesain UI Tabel**:
+    - **Otomatisasi & Kontrol Status RO (`is_ro`)**:
+      - Menambahkan kolom `is_ro` (boolean default `true`) pada tabel `noo_submissions` (Migration `2026_08_13_000010_add_is_ro_to_noo_submissions.php`).
+      - Setiap NOO yang di-approve EDP/Principal secara otomatis berstatus `is_ro = true`.
+      - **Toggle Switch Button pada Tabel & Modal Detail**: Menambahkan tombol toggle switch bergaya iOS (`bg-[#16A34A]` / `bg-[#9CA3AF]`) di setiap baris tabel Inbox Principal (`Edp/Inbox.vue`) untuk toko yang berstatus Approved EDP untuk mengubah status `🟢 RO Aktif` ⇄ `⚪ RO Off` secara instan.
+      - **Redesain UI/UX Ubah Status RO Massal (Bulk Action)**: Memperbarui tampilan Bulk Action Bar menjadi card executive light-mode (`bg-white border-2 border-blue-600 shadow-xl`) dengan pill count toko terpilih, deskripsi aksi yang jelas, serta tombol `✅ Set Aktifkan RO (Bulk)` dan `🚫 Set Nonaktifkan RO (Bulk)`.
+      - **Modal Filter & Urutkan Data (Dedicated Modal Filter)**: Menyembunyikan filter card inline yang besar dan menggantinya dengan toolbar ringkas di atas tabel (Search Input + Tombol `🎛️ Filter & Urutkan Data`). Memindahkan seluruh control filter (Region, Entity, Branch, Status, dan Sort) ke dalam **Modal Filter & Urutkan Data** tersendiri.
+      - **Perbaikan Dropdown Sort Overlap**: Memperbaiki tampilan dropdown `Urutkan Tampilan Tabel (Sort)` di dalam modal filter dengan `w-full text-xs font-semibold p-3 pr-10 appearance-none` dan ikon panah `▼` terpisah sehingga teks opsi tidak menutupi ikon panah.
+    - **Monitoring RO Berbasis Target Lifetime / Selamanya & Tanggal Approval EDP**:
+      - Target RO (F2: 150 RO, F4: 300 RO) bersifat lifetime / selamanya per salesman.
+      - Filter bulan/tahun pengajuan memfilter berdasarkan tanggal/bulan/tahun pengajuan/approval EDP (`edp_reviewed_at`).
+    - **Dropdown Multiselect Checkbox Filter Bulan**:
+      - Menambahkan komponen dropdown multiselect checkbox `Bulan Approved EDP` dengan pill count badge (contoh `Status (1) ▾`), preset button (Q1-Q4, Semester 1-2, Semua), dan daftar checkbox 12 bulan untuk pemantauan progres bertingkat (per kuartal/semester).
+    - **Redesain UI Tabel Rekapitulasi Monitoring RO**:
+      - Merombak tampilan tabel data rekapitulasi salesman per cabang pada `MonitoringRo.vue` dengan desain executive light mode: header accordion cabang interaktif, badge status kunjungan (`F2`/`F4`), target RO, pill count realisasi, progress pill bar dengan persentase real-time, dan status badge target (`🎉 Achieved` / `⏳ In Progress`).
+
+27. **Perbaikan Navigasi Filter Inertia, Loading Overlay, Clean URL Params & Multiselect Checkbox Bulan**:
+    - **Perbaikan Error `ReferenceError: selectedEdpMonths & monthDropdownRef is not defined`**: Mendeklarasikan `selectedEdpMonths`, `isMonthDropdownOpen`, dan `monthDropdownRef` pada baris utama variabel `ref` utama di `Edp/Inbox.vue`.
+    - **Perbaikan Error `ReferenceError: onMounted is not defined`**: Menambahkan `onMounted` dan `onUnmounted` ke dalam import statement dari `vue` pada `Edp/Inbox.vue`.
+    - **Pembersihan Preset Tombol Cepat Filter Bulan**: Menghapus seluruh preset tombol cepat (`Q1-Q4`, `Semester 1-2`, `Semua`) pada dropdown multiselect bulan di `Edp/Inbox.vue` dan `Edp/MonitoringRo.vue` sesuai permintaan user.
+    - **Pembersihan URL Bar (URL Parameter Clean)**: Mengeliminasi parameter kosong (`edp_month=&edp_year=&principal=...`) agar tidak muncul mengotori URL browser saat memfilter. Menggunakan objek parameter bersih pada Inertia dan `replaceState` saat reset agar URL tetap bersih (`http://localhost:8000/principal/inbox`).
+    - **Multiselect Checkbox Bulan Approval EDP (Seragam Monitoring RO)**: Menyesuaikan filter `Bulan Approval EDP` pada `Edp/Inbox.vue` agar menggunakan komponen multiselect checkbox seperti di `MonitoringRo.vue`.
+    - **Perbaikan Filter Data Tidak Berubah**: Memperbaiki bug navigasi filter Inertia dengan `{ preserveScroll: true, replace: true }` serta pencarian backend `EdpPortalController.php` yang mencocokkan `branch_id` maupun `branch_name`.
+    - **Perbaikan Loading Overlay Bloat / Offside**: Mengisolasi *Loading Spinner Overlay* dengan menambahkan CSS `isolation: isolate` (`isolate`) dan mengganti `backdrop-blur` dengan `bg-white/85` pada kontainer tabel di `Edp/Inbox.vue` sehingga efek loading berada 100% di dalam area tabel tanpa pernah meluap/bocor melampaui header navbar.
+
+28. **Optimasi Seamless Flow Modal Export Approved NOO & Active Sheet Excel**:
+    - **Filter Distributor Hanya Menampilkan Cabang Ber-Data (Strict Available Branches)**: Mengubah kueri backend `getApprovedExportData` dan `getRejectedExportData` di `EdpPortalController.php` agar daftar distributor di dropdown dipetik (*pluck*) langsung dari cabang yang memiliki data submisi pada range tanggal tersebut. Cabang yang memiliki 0 data pada tanggal tersebut tidak akan pernah muncul di dropdown.
+    - **Prominent Executive Loading Spinner Overlay**: Menambahkan komponen animasi *Loading Spinner Overlay* yang menonjol dan transparan di dalam area tabel modal ekspor `Edp/Inbox.vue` saat data sedang dimuat dari server.
+    - **Instant Data Loading on Distributor Select**: Mengonfigurasi modal export di `Edp/Inbox.vue` agar saat distributor dipilih dari dropdown, data NOO Approved langsung dimuat (*auto-fetch*) secara instan tanpa perlu menekan tombol terpisah.
+    - **Otomatis Select All Data**: Seluruh data baris toko yang berhasil dimuat langsung ter-centang (*Select All*) secara otomatis. Pengguna dapat memilih semua atau membatalkan centang toko tertentu.
+    - **Default Active Sheet "Template"**: Menambahkan `$spreadsheet->setActiveSheetIndex(0)` di `ExcelExportService.php` sehingga saat berkas `.xlsx` hasil ekspor dibuka di MS Excel / Google Sheets, sheet pertama yang aktif terbuka adalah Sheet 1 **"Template"**.
+
+29. **Multiselect Checkbox Dropdown Bulan Pengajuan di Principal Dashboard**:
+    - **Keseragaman Komponen Multiselect Bulan**: Mengganti elemen native `<select>` pada filter `BULAN PENGAJUAN` di `Edp/Dashboard.vue` dengan komponen multiselect checkbox dropdown yang seragam dengan `Inbox.vue` dan `MonitoringRo.vue`.
+    - **Dukungan Multi-Month Query Backend**: Memperbarui `EdpDashboardController.php` untuk mendukung parameter `months=1,2,3` via `EXTRACT(MONTH FROM COALESCE(submitted_at, created_at)) IN (...)`.

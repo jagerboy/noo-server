@@ -35,8 +35,8 @@ function submitLogin() {
 <template>
   <Head title="Sign In - Portal SPV Area NOO+" />
 
-  <!-- Background Halaman Ringkas 100vh tanpa scrollbar -->
-  <div class="flex items-center justify-center min-h-screen bg-[#F0F2F5] text-[#374151] p-3 font-sans selection:bg-emerald-100 overflow-hidden">
+  <!-- Background Halaman Ringkas Responsif Mobile -->
+  <div class="flex items-center justify-center min-h-screen bg-[#F0F2F5] text-[#374151] p-3 sm:p-4 font-sans selection:bg-emerald-100 overflow-y-auto">
     <!-- Main Card Container Kompak -->
     <div class="w-full max-w-4xl bg-white shadow-[0_10px_35px_rgba(0,0,0,0.08)] rounded-2xl overflow-hidden grid grid-cols-1 md:grid-cols-12 border border-[#E2E8F0] my-auto">
       

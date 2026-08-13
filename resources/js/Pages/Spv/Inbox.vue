@@ -24,7 +24,6 @@ const props = defineProps({
 const searchQuery = ref('');
 const statusFilter = ref('ALL');
 const branchFilter = ref('ALL');
-const subGroupFilter = ref('ALL');
 
 // State Modal Detail & Action
 const showDetailModal = ref(false);
@@ -71,27 +70,27 @@ const filteredSubmissions = computed(() => {
         ? true
         : item.branch_id === branchFilter.value;
 
-    const matchesSubGroup =
-      subGroupFilter.value === 'ALL'
-        ? true
-        : (item.sub_group_region || item.principal || '').toUpperCase().includes(subGroupFilter.value.toUpperCase());
-
-    return matchesSearch && matchesStatus && matchesBranch && matchesSubGroup;
+    return matchesSearch && matchesStatus && matchesBranch;
   });
 });
 
-// State & Handler Sort Tabel (ASC / DESC)
+// State & Handler Sort Tabel
 const sortKey = ref('submitted_at');
 const sortDir = ref('desc');
 
-function handleSort(key) {
-  if (sortKey.value === key) {
-    sortDir.value = sortDir.value === 'asc' ? 'desc' : 'asc';
-  } else {
+const sortSelect = computed({
+  get() {
+    return `${sortKey.value}_${sortDir.value}`;
+  },
+  set(val) {
+    if (!val) return;
+    const parts = val.split('_');
+    const dir = parts.pop();
+    const key = parts.join('_');
     sortKey.value = key;
-    sortDir.value = 'asc';
-  }
-}
+    sortDir.value = dir;
+  },
+});
 
 const sortedSubmissions = computed(() => {
   const list = [...filteredSubmissions.value];
@@ -153,22 +152,22 @@ function selectDay(dayKey) {
   });
 }
 
-// Helper toggle Pola Minggu (M1-M4) Button & Pattern P2 / P4
-const selectedVisitPattern = ref(''); // 'P2' | 'P4' | ''
-const p2SelectedType = ref(''); // '' | 'GANJIL' | 'GENAP'
+// Helper toggle Pola Minggu (M1-M4) Button & Pattern F2 / F4
+const selectedVisitPattern = ref(''); // 'F2' | 'F4' | ''
+const f2SelectedType = ref(''); // '' | 'GANJIL' | 'GENAP'
 
 function selectVisitPattern(pattern) {
   if (isReadOnly.value) return;
   selectedVisitPattern.value = pattern;
 
-  if (pattern === 'P4') {
+  if (pattern === 'F4') {
     approveForm.m1 = 'Y';
     approveForm.m2 = 'Y';
     approveForm.m3 = 'Y';
     approveForm.m4 = 'Y';
-    p2SelectedType.value = '';
-  } else if (pattern === 'P2') {
-    p2SelectedType.value = ''; // Biarkan user memilih M1/M3 atau M2/M4 secara manual
+    f2SelectedType.value = '';
+  } else if (pattern === 'F2') {
+    f2SelectedType.value = ''; // Biarkan user memilih M1/M3 atau M2/M4 secara manual
     approveForm.m1 = 'T';
     approveForm.m2 = 'T';
     approveForm.m3 = 'T';
@@ -176,7 +175,7 @@ function selectVisitPattern(pattern) {
   }
 }
 
-function selectP2SubOption(option) {
+function selectF2SubOption(option) {
   if (isReadOnly.value) return;
   if (option === 'M1_M3') {
     approveForm.m1 = 'Y';
@@ -193,13 +192,13 @@ function selectP2SubOption(option) {
 
 function handleWeekClick(weekKey) {
   if (isReadOnly.value || !selectedVisitPattern.value) return;
-  if (selectedVisitPattern.value === 'P2') {
+  if (selectedVisitPattern.value === 'F2') {
     if (weekKey === 'm1' || weekKey === 'm3') {
-      selectP2SubOption('M1_M3');
-      p2SelectedType.value = 'GANJIL';
+      selectF2SubOption('M1_M3');
+      f2SelectedType.value = 'GANJIL';
     } else if (weekKey === 'm2' || weekKey === 'm4') {
-      selectP2SubOption('M2_M4');
-      p2SelectedType.value = 'GENAP';
+      selectF2SubOption('M2_M4');
+      f2SelectedType.value = 'GENAP';
     }
   }
 }
@@ -241,24 +240,24 @@ function openDetailModal(item) {
   const m4IsY = item.m4 === 'Y' || item.m4 === 'YES';
 
   if (m1IsY && m2IsY && m3IsY && m4IsY) {
-    selectedVisitPattern.value = 'P4';
-    p2SelectedType.value = '';
+    selectedVisitPattern.value = 'F4';
+    f2SelectedType.value = '';
     approveForm.m1 = 'Y';
     approveForm.m2 = 'Y';
     approveForm.m3 = 'Y';
     approveForm.m4 = 'Y';
   } else if (m1IsY || m2IsY || m3IsY || m4IsY) {
-    selectedVisitPattern.value = 'P2';
+    selectedVisitPattern.value = 'F2';
     if (m2IsY || m4IsY) {
-      p2SelectedType.value = 'GENAP';
+      f2SelectedType.value = 'GENAP';
       approveForm.m1 = 'T'; approveForm.m2 = 'Y'; approveForm.m3 = 'T'; approveForm.m4 = 'Y';
     } else {
-      p2SelectedType.value = 'GANJIL';
+      f2SelectedType.value = 'GANJIL';
       approveForm.m1 = 'Y'; approveForm.m2 = 'T'; approveForm.m3 = 'Y'; approveForm.m4 = 'T';
     }
   } else {
     selectedVisitPattern.value = '';
-    p2SelectedType.value = '';
+    f2SelectedType.value = '';
     approveForm.m1 = ''; approveForm.m2 = ''; approveForm.m3 = ''; approveForm.m4 = '';
   }
 
@@ -532,12 +531,23 @@ function getStepTimestamp(step, item) {
 
   return '-';
 }
-
 function getLineStyle(stepBefore, item) {
   const st = getStepStatus(stepBefore, item);
   if (st === 'COMPLETED') return 'bg-emerald-500';
   if (st === 'REJECTED') return 'bg-red-500';
   return 'bg-slate-200';
+}
+
+function getRowStyle(item) {
+  const st = item.status;
+  if (['APPROVED_SPV', 'APPROVED_BY_SPV', 'APPROVED_EDP', 'EDP_APPROVED', 'INJECTED'].includes(st)) {
+    return 'bg-emerald-50/50 hover:bg-emerald-100/60 text-slate-900';
+  }
+  if (['SPV_REJECTED', 'REJECTED_SPV', 'EDP_REJECTED', 'REJECTED_EDP', 'ADMIN_REJECTED', 'REJECTED_ADMIN'].includes(st)) {
+    return 'bg-rose-50/50 hover:bg-rose-100/60 text-slate-900';
+  }
+  // Pending
+  return 'bg-white hover:bg-slate-50 text-slate-900';
 }
 </script>
 
@@ -547,16 +557,16 @@ function getLineStyle(stepBefore, item) {
   <SpvLayout>
     <div class="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 space-y-6">
 
-      <!-- Header & Stats Counter Cards (Page Title 32px / 700) -->
+      <!-- Header & Stats Counter Cards -->
       <div class="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-6">
         <div>
           <div class="flex items-center space-x-3">
-            <h2 class="text-[32px] leading-[40px] font-bold text-[#111827] tracking-tight">Inbox Submisi SPV Area</h2>
+            <h1 class="text-xl md:text-[24px] font-semibold text-[#111827] tracking-tight leading-[1.4]">Inbox Submisi SPV Area</h1>
             <span class="px-3 py-1 rounded-lg text-xs font-semibold bg-[#F3E8FF] text-[#7E22CE] border border-[#C084FC]">
               Supervisor Area
             </span>
           </div>
-          <p class="text-[14px] leading-[20px] font-normal text-[#6B7280] mt-1">
+          <p class="text-[14px] leading-[1.5] font-normal text-[#6B7280] mt-1">
             Verifikasi data pendaftaran toko, pengisian rute kunjungan H1-H7 & M1-M4, dan persetujuan ke EDP Principal.
           </p>
         </div>
@@ -582,69 +592,54 @@ function getLineStyle(stepBefore, item) {
         </div>
       </div>
 
-      <!-- Filter & Search Toolbar -->
-      <div class="bg-white p-4 rounded-xl border border-[#E5E7EB] shadow-[0_1px_3px_rgba(0,0,0,0.08)] flex flex-col md:flex-row items-center justify-between gap-4">
+      <!-- Filter Bar SPV Area (Hijau Emerald Accent) -->
+      <div class="bg-white p-4 rounded-xl border border-[#E5E7EB] shadow-[0_1px_3px_rgba(0,0,0,0.08)] flex flex-col lg:flex-row items-center justify-between gap-4">
         
-        <!-- Search Input -->
-        <div class="relative w-full md:w-96">
+        <!-- Search Input (Form Input 16px / 400) -->
+        <div class="relative w-full lg:w-80">
           <svg class="w-4 h-4 absolute left-3.5 top-3.5 text-[#9CA3AF]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/>
           </svg>
           <input
             v-model="searchQuery"
             type="text"
-            placeholder="Cari toko, salesman, cabang, custcode..."
-            class="w-full pl-10 pr-4 py-2 text-[16px] font-normal rounded-lg bg-white border border-[#D1D5DB] text-[#374151] placeholder-[#9CA3AF] focus:ring-2 focus:ring-[#3B82F6] focus:border-[#2563EB] transition"
+            placeholder="Cari toko, pemilik, salesman, sub-grup..."
+            class="w-full pl-10 pr-4 py-2 text-[15px] font-normal rounded-lg bg-white border border-[#D1D5DB] text-[#374151] placeholder-[#9CA3AF] focus:ring-2 focus:ring-[#059669] focus:border-[#047857] transition"
           />
         </div>
 
-        <!-- Filter Dropdowns (Branch, Sub-Group & Status) -->
-        <div class="flex flex-col sm:flex-row items-center gap-3 w-full md:w-auto">
-          <!-- Filter Sub-Grup Daerah -->
-          <div class="flex items-center space-x-2 w-full sm:w-auto">
-            <label class="text-[14px] font-medium text-[#4B5563] whitespace-nowrap">Sub-Grup:</label>
-            <select
-              v-model="subGroupFilter"
-              class="w-full sm:w-48 text-[14px] font-normal rounded-lg bg-white border border-[#D1D5DB] text-[#374151] py-2 px-3 focus:ring-2 focus:ring-[#3B82F6] focus:border-[#2563EB]"
-            >
-              <option value="ALL">Semua Sub-Grup</option>
-              <option value="ASWFOODS - SUMATERA">ASWFOODS - SUMATERA</option>
-              <option value="ASWFOODS - JAWA">ASWFOODS - JAWA</option>
-              <option value="ASWFOODS - PULAU">ASWFOODS - PULAU</option>
-              <option value="INAFOODS - JAWA">INAFOODS - JAWA</option>
-              <option value="INAFOODS - PULAU">INAFOODS - PULAU</option>
-              <option value="INAFOODS - SUMATERA">INAFOODS - SUMATERA</option>
-            </select>
-          </div>
-
-          <!-- Filter Branch (jika SPV memiliki > 1 cabang) -->
-          <div v-if="props.myBranches && props.myBranches.length > 0" class="flex items-center space-x-2 w-full sm:w-auto">
-            <label class="text-[14px] font-medium text-[#4B5563] whitespace-nowrap">Filter Cabang:</label>
-            <select
-              v-model="branchFilter"
-              class="w-full sm:w-48 text-[14px] font-normal rounded-lg bg-white border border-[#D1D5DB] text-[#374151] py-2 px-3 focus:ring-2 focus:ring-[#3B82F6] focus:border-[#2563EB]"
-            >
-              <option value="ALL">Semua Cabang SPV</option>
-              <option v-for="b in props.myBranches" :key="b.branch_id || b" :value="b.branch_id || b">
-                {{ b.branch_id || b }} {{ b.branch_name ? '- ' + b.branch_name : '' }}
-              </option>
-            </select>
-          </div>
-
+        <!-- Filter Status & Sort Dropdowns Side-by-Side -->
+        <div class="flex flex-col sm:flex-row items-center gap-3 w-full lg:w-auto">
           <!-- Filter Status Dropdown -->
           <div class="flex items-center space-x-2 w-full sm:w-auto">
             <label class="text-[14px] font-medium text-[#4B5563] whitespace-nowrap">Filter Status:</label>
             <select
               v-model="statusFilter"
-              class="w-full sm:w-48 text-[14px] font-normal rounded-lg bg-white border border-[#D1D5DB] text-[#374151] py-2 px-3 focus:ring-2 focus:ring-[#3B82F6] focus:border-[#2563EB]"
+              class="w-full sm:w-60 text-[14px] font-medium rounded-lg bg-white border border-[#D1D5DB] text-[#1F2937] py-2 px-3 focus:ring-2 focus:ring-[#059669] focus:border-[#047857] shadow-xs cursor-pointer"
             >
               <option value="ALL">Semua Submisi SPV</option>
-              <option value="PUSHED_TO_SPV">Pending SPV (Perlu Action)</option>
-              <option value="APPROVED_SPV">Disetujui SPV (Pushed to EDP)</option>
-              <option value="APPROVED_EDP">Approved EDP (Selesai)</option>
-              <option value="REJECTED_SPV">Ditolak SPV Area</option>
-              <option value="REJECTED_EDP">Ditolak EDP Principal</option>
-              <option value="REJECTED">Semua Ditolak (Rejected)</option>
+              <option value="PUSHED_TO_SPV">1. Pending Review SPV</option>
+              <option value="APPROVED_BY_SPV">2. Approved SPV (Pending EDP)</option>
+              <option value="SPV_REJECTED">3. Ditolak SPV Area</option>
+              <option value="EDP_APPROVED">4. Approved EDP Principal</option>
+              <option value="EDP_REJECTED">5. Ditolak EDP Principal</option>
+            </select>
+          </div>
+
+          <!-- Sort Dropdown (Memindahkan Sort dari Header Tabel) -->
+          <div class="flex items-center space-x-2 w-full sm:w-auto">
+            <label class="text-[14px] font-medium text-[#4B5563] whitespace-nowrap">Urutkan:</label>
+            <select
+              v-model="sortSelect"
+              class="w-full sm:w-52 text-[14px] font-medium rounded-lg bg-white border border-[#D1D5DB] text-[#1F2937] py-2 px-3 focus:ring-2 focus:ring-[#059669] focus:border-[#047857] shadow-xs cursor-pointer"
+            >
+              <option value="submitted_at_desc">Terbaru (Submisi)</option>
+              <option value="submitted_at_asc">Terlama (Submisi)</option>
+              <option value="nama_noo_asc">Nama Toko (A - Z)</option>
+              <option value="nama_noo_desc">Nama Toko (Z - A)</option>
+              <option value="nama_pemilik_outlet_asc">Pemilik (A - Z)</option>
+              <option value="salesman_name_asc">Salesman (A - Z)</option>
+              <option value="status_asc">Status Approval (Asc)</option>
             </select>
           </div>
         </div>
@@ -656,34 +651,10 @@ function getLineStyle(stepBefore, item) {
           <table class="w-full text-left text-[14px] leading-[20px] text-[#374151] table-fixed min-w-[960px]">
             <thead class="bg-[#F3F4F6] text-[14px] font-semibold text-[#1F2937] border-b border-[#E5E7EB] select-none">
               <tr>
-                <th @click="handleSort('nama_noo')" class="w-[22%] px-4 py-3.5 cursor-pointer hover:bg-[#E5E7EB] transition">
-                  <div class="flex items-center gap-1">
-                    <span>Toko & Sub-Grup</span>
-                    <span v-if="sortKey === 'nama_noo'">{{ sortDir === 'asc' ? '▲' : '▼' }}</span>
-                    <span v-else class="opacity-30">↕</span>
-                  </div>
-                </th>
-                <th @click="handleSort('nama_pemilik_outlet')" class="w-[18%] px-4 py-3.5 cursor-pointer hover:bg-[#E5E7EB] transition">
-                  <div class="flex items-center gap-1">
-                    <span>Pemilik & No. HP</span>
-                    <span v-if="sortKey === 'nama_pemilik_outlet'">{{ sortDir === 'asc' ? '▲' : '▼' }}</span>
-                    <span v-else class="opacity-30">↕</span>
-                  </div>
-                </th>
-                <th @click="handleSort('salesman_name')" class="w-[18%] px-4 py-3.5 cursor-pointer hover:bg-[#E5E7EB] transition">
-                  <div class="flex items-center gap-1">
-                    <span>Salesman & Cabang</span>
-                    <span v-if="sortKey === 'salesman_name'">{{ sortDir === 'asc' ? '▲' : '▼' }}</span>
-                    <span v-else class="opacity-30">↕</span>
-                  </div>
-                </th>
-                <th @click="handleSort('status')" class="w-[15%] px-4 py-3.5 cursor-pointer hover:bg-[#E5E7EB] transition">
-                  <div class="flex items-center gap-1">
-                    <span>Status & Cust Dist.</span>
-                    <span v-if="sortKey === 'status'">{{ sortDir === 'asc' ? '▲' : '▼' }}</span>
-                    <span v-else class="opacity-30">↕</span>
-                  </div>
-                </th>
+                <th class="w-[22%] px-4 py-3.5">Toko & Sub-Grup</th>
+                <th class="w-[18%] px-4 py-3.5">Pemilik & No. HP</th>
+                <th class="w-[18%] px-4 py-3.5">Salesman & Cabang</th>
+                <th class="w-[15%] px-4 py-3.5">Status & Cust Dist.</th>
                 <th class="w-[15%] px-4 py-3.5">Rute Kunjungan</th>
                 <th class="w-[12%] px-4 py-3.5 text-center">Aksi</th>
               </tr>
@@ -695,7 +666,12 @@ function getLineStyle(stepBefore, item) {
                 </td>
               </tr>
 
-              <tr v-for="item in sortedSubmissions" :key="item.request_id || item.id" class="hover:bg-[#F9FAFB] transition">
+              <tr
+                v-for="item in sortedSubmissions"
+                :key="item.request_id || item.id"
+                class="transition border-b"
+                :class="getRowStyle(item)"
+              >
                 <!-- Toko & Sub-Grup -->
                 <td class="px-4 py-3.5">
                   <div class="font-semibold text-[#111827] text-[15px] truncate" :title="item.nama_noo">
@@ -775,8 +751,8 @@ function getLineStyle(stepBefore, item) {
 
     <!-- MODAL SLIDE-OVER PREVIEW DETAIL & PENGATURAN RUTE SPV (LEVEL 1 Z-INDEX 99990) -->
     <Teleport to="body">
-      <div v-if="showDetailModal && selectedSubmission" class="fixed inset-0 min-h-screen min-w-full w-full h-full z-[99990] overflow-y-auto bg-black/60 backdrop-blur-xs flex items-center justify-center p-4 sm:p-6">
-      <div class="bg-white rounded-xl max-w-4xl w-full max-h-[85vh] flex flex-col shadow-[0_15px_40px_rgba(0,0,0,0.18)] border border-[#E5E7EB] overflow-hidden text-[#374151]">
+      <div v-if="showDetailModal && selectedSubmission" class="fixed inset-0 min-h-screen min-w-full w-full h-full z-[99990] overflow-y-auto bg-black/60 backdrop-blur-xs flex items-center justify-center p-2 sm:p-4 md:p-6">
+      <div class="bg-white rounded-xl max-w-4xl w-full max-h-[92vh] sm:max-h-[85vh] flex flex-col shadow-[0_15px_40px_rgba(0,0,0,0.18)] border border-[#E5E7EB] overflow-hidden text-[#374151]">
         
         <!-- Header Modal -->
         <div class="px-6 py-4 bg-[#1E3A8A] text-white flex items-center justify-between shrink-0">
@@ -1177,7 +1153,7 @@ function getLineStyle(stepBefore, item) {
               <label class="block text-[14px] font-medium text-[#4B5563] mb-2">
                 Jadwal Hari Kunjungan (Pilih 1 Hari):
               </label>
-              <div class="grid grid-cols-2 sm:grid-cols-4 md:grid-cols-7 gap-2">
+              <div class="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-7 gap-2">
                 <button
                   type="button"
                   @click="selectDay('h1')"
@@ -1299,20 +1275,20 @@ function getLineStyle(stepBefore, item) {
               </div>
             </div>
 
-            <!-- Choice of Visit Pattern (P2 vs P4) -->
+            <!-- Choice of Visit Pattern (F2 vs F4) -->
             <div class="space-y-2 pt-2 border-t border-slate-100">
               <label class="block text-[14px] font-semibold text-[#1F2937]">
                 Periode Frekuensi Kunjungan Salesman (JKS): <span class="text-rose-500 font-bold">*</span>
               </label>
               <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                <!-- Option P2 -->
+                <!-- Option F2 -->
                 <button
                   type="button"
-                  @click="selectVisitPattern('P2')"
+                  @click="selectVisitPattern('F2')"
                   :disabled="isReadOnly"
                   :class="[
                     'p-3 rounded-xl border text-left transition-all flex items-center justify-between cursor-pointer',
-                    selectedVisitPattern === 'P2'
+                    selectedVisitPattern === 'F2'
                       ? 'bg-purple-50 border-purple-500 ring-2 ring-purple-400 text-purple-950 font-bold shadow-xs'
                       : isReadOnly
                       ? 'bg-slate-100 border-slate-200 text-slate-400 opacity-60 cursor-not-allowed'
@@ -1320,21 +1296,21 @@ function getLineStyle(stepBefore, item) {
                   ]"
                 >
                   <div class="text-xs font-bold uppercase tracking-wider flex items-center gap-2">
-                    <span class="w-3.5 h-3.5 rounded-full border-2 flex items-center justify-center shrink-0" :class="selectedVisitPattern === 'P2' ? 'border-purple-600 bg-purple-600' : 'border-slate-400'">
-                      <span v-if="selectedVisitPattern === 'P2'" class="w-1.5 h-1.5 bg-white rounded-full"></span>
+                    <span class="w-3.5 h-3.5 rounded-full border-2 flex items-center justify-center shrink-0" :class="selectedVisitPattern === 'F2' ? 'border-purple-600 bg-purple-600' : 'border-slate-400'">
+                      <span v-if="selectedVisitPattern === 'F2'" class="w-1.5 h-1.5 bg-white rounded-full"></span>
                     </span>
-                    <span>PERIODE P2 (2 MINGGU SEKALI)</span>
+                    <span>PERIODE F2 (2 MINGGU SEKALI)</span>
                   </div>
                 </button>
 
-                <!-- Option P4 -->
+                <!-- Option F4 -->
                 <button
                   type="button"
-                  @click="selectVisitPattern('P4')"
+                  @click="selectVisitPattern('F4')"
                   :disabled="isReadOnly"
                   :class="[
                     'p-3 rounded-xl border text-left transition-all flex items-center justify-between cursor-pointer',
-                    selectedVisitPattern === 'P4'
+                    selectedVisitPattern === 'F4'
                       ? 'bg-purple-50 border-purple-500 ring-2 ring-purple-400 text-purple-950 font-bold shadow-xs'
                       : isReadOnly
                       ? 'bg-slate-100 border-slate-200 text-slate-400 opacity-60 cursor-not-allowed'
@@ -1342,10 +1318,10 @@ function getLineStyle(stepBefore, item) {
                   ]"
                 >
                   <div class="text-xs font-bold uppercase tracking-wider flex items-center gap-2">
-                    <span class="w-3.5 h-3.5 rounded-full border-2 flex items-center justify-center shrink-0" :class="selectedVisitPattern === 'P4' ? 'border-purple-600 bg-purple-600' : 'border-slate-400'">
-                      <span v-if="selectedVisitPattern === 'P4'" class="w-1.5 h-1.5 bg-white rounded-full"></span>
+                    <span class="w-3.5 h-3.5 rounded-full border-2 flex items-center justify-center shrink-0" :class="selectedVisitPattern === 'F4' ? 'border-purple-600 bg-purple-600' : 'border-slate-400'">
+                      <span v-if="selectedVisitPattern === 'F4'" class="w-1.5 h-1.5 bg-white rounded-full"></span>
                     </span>
-                    <span>PERIODE P4 (SETIAP MINGGU)</span>
+                    <span>PERIODE F4 (SETIAP MINGGU)</span>
                   </div>
                 </button>
               </div>
@@ -1358,14 +1334,14 @@ function getLineStyle(stepBefore, item) {
                   Jadwal Minggu Kunjungan (M1 - M4):
                 </label>
                 <span v-if="!selectedVisitPattern" class="text-[11px] font-bold text-amber-600 bg-amber-50 px-2 py-0.5 rounded border border-amber-200">
-                  ⚠️ Pilih Periode P2/P4 dahulu
+                  ⚠️ Pilih Periode F2/F4 dahulu
                 </span>
-                <span v-else-if="selectedVisitPattern === 'P2'" class="text-[11px] font-bold text-purple-700 bg-purple-50 px-2 py-0.5 rounded border border-purple-200">
-                  <template v-if="p2SelectedType === 'GANJIL'">Pilihan anda Minggu Ganjil</template>
-                  <template v-else-if="p2SelectedType === 'GENAP'">Pilihan anda Minggu Genap</template>
+                <span v-else-if="selectedVisitPattern === 'F2'" class="text-[11px] font-bold text-purple-700 bg-purple-50 px-2 py-0.5 rounded border border-purple-200">
+                  <template v-if="f2SelectedType === 'GANJIL'">Pilihan anda Minggu Ganjil</template>
+                  <template v-else-if="f2SelectedType === 'GENAP'">Pilihan anda Minggu Genap</template>
                   <template v-else>Klik M1/M3 (untuk minggu ganjil) atau M2/M4 (untuk minggu genap)</template>
                 </span>
-                <span v-else-if="selectedVisitPattern === 'P4'" class="text-[11px] font-bold text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded border border-emerald-200">
+                <span v-else-if="selectedVisitPattern === 'F4'" class="text-[11px] font-bold text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded border border-emerald-200">
                   ✓ Semua Minggu (M1, M2, M3, M4) Terpilih
                 </span>
               </div>
@@ -1374,12 +1350,12 @@ function getLineStyle(stepBefore, item) {
                 <button
                   type="button"
                   @click="handleWeekClick('m1')"
-                  :disabled="isReadOnly || !selectedVisitPattern || selectedVisitPattern === 'P4'"
+                  :disabled="isReadOnly || !selectedVisitPattern || selectedVisitPattern === 'F4'"
                   :class="[
                     'py-2.5 px-3 rounded-lg text-xs font-semibold border transition-all flex items-center justify-center space-x-1.5',
                     approveForm.m1 === 'Y'
                       ? 'bg-[#7C3AED] text-white border-[#6D28D9] shadow-sm font-bold ring-2 ring-purple-300'
-                      : isReadOnly || !selectedVisitPattern || selectedVisitPattern === 'P4'
+                      : isReadOnly || !selectedVisitPattern || selectedVisitPattern === 'F4'
                       ? 'bg-[#F3F4F6] text-[#9CA3AF] border-[#E5E7EB] opacity-50 cursor-not-allowed'
                       : 'bg-[#F8FAFC] text-[#1E293B] border-[#CBD5E1] hover:bg-purple-50 hover:border-purple-300'
                   ]"
@@ -1391,12 +1367,12 @@ function getLineStyle(stepBefore, item) {
                 <button
                   type="button"
                   @click="handleWeekClick('m2')"
-                  :disabled="isReadOnly || !selectedVisitPattern || selectedVisitPattern === 'P4'"
+                  :disabled="isReadOnly || !selectedVisitPattern || selectedVisitPattern === 'F4'"
                   :class="[
                     'py-2.5 px-3 rounded-lg text-xs font-semibold border transition-all flex items-center justify-center space-x-1.5',
                     approveForm.m2 === 'Y'
                       ? 'bg-[#7C3AED] text-white border-[#6D28D9] shadow-sm font-bold ring-2 ring-purple-300'
-                      : isReadOnly || !selectedVisitPattern || selectedVisitPattern === 'P4'
+                      : isReadOnly || !selectedVisitPattern || selectedVisitPattern === 'F4'
                       ? 'bg-[#F3F4F6] text-[#9CA3AF] border-[#E5E7EB] opacity-50 cursor-not-allowed'
                       : 'bg-[#F8FAFC] text-[#1E293B] border-[#CBD5E1] hover:bg-purple-50 hover:border-purple-300'
                   ]"
@@ -1408,12 +1384,12 @@ function getLineStyle(stepBefore, item) {
                 <button
                   type="button"
                   @click="handleWeekClick('m3')"
-                  :disabled="isReadOnly || !selectedVisitPattern || selectedVisitPattern === 'P4'"
+                  :disabled="isReadOnly || !selectedVisitPattern || selectedVisitPattern === 'F4'"
                   :class="[
                     'py-2.5 px-3 rounded-lg text-xs font-semibold border transition-all flex items-center justify-center space-x-1.5',
                     approveForm.m3 === 'Y'
                       ? 'bg-[#7C3AED] text-white border-[#6D28D9] shadow-sm font-bold ring-2 ring-purple-300'
-                      : isReadOnly || !selectedVisitPattern || selectedVisitPattern === 'P4'
+                      : isReadOnly || !selectedVisitPattern || selectedVisitPattern === 'F4'
                       ? 'bg-[#F3F4F6] text-[#9CA3AF] border-[#E5E7EB] opacity-50 cursor-not-allowed'
                       : 'bg-[#F8FAFC] text-[#1E293B] border-[#CBD5E1] hover:bg-purple-50 hover:border-purple-300'
                   ]"
@@ -1425,12 +1401,12 @@ function getLineStyle(stepBefore, item) {
                 <button
                   type="button"
                   @click="handleWeekClick('m4')"
-                  :disabled="isReadOnly || !selectedVisitPattern || selectedVisitPattern === 'P4'"
+                  :disabled="isReadOnly || !selectedVisitPattern || selectedVisitPattern === 'F4'"
                   :class="[
                     'py-2.5 px-3 rounded-lg text-xs font-semibold border transition-all flex items-center justify-center space-x-1.5',
                     approveForm.m4 === 'Y'
                       ? 'bg-[#7C3AED] text-white border-[#6D28D9] shadow-sm font-bold ring-2 ring-purple-300'
-                      : isReadOnly || !selectedVisitPattern || selectedVisitPattern === 'P4'
+                      : isReadOnly || !selectedVisitPattern || selectedVisitPattern === 'F4'
                       ? 'bg-[#F3F4F6] text-[#9CA3AF] border-[#E5E7EB] opacity-50 cursor-not-allowed'
                       : 'bg-[#F8FAFC] text-[#1E293B] border-[#CBD5E1] hover:bg-purple-50 hover:border-purple-300'
                   ]"

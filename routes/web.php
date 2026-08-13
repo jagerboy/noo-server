@@ -101,6 +101,8 @@ Route::middleware('auth')->group(function () {
         Route::post('/reset-ktp-revision', [EdpPortalController::class, 'resetKtpRevision'])->name('reset_ktp_revision');
         Route::post('/update-store-name', [EdpPortalController::class, 'updateStoreName'])->name('update_store_name');
         Route::post('/update-store-address', [EdpPortalController::class, 'updateStoreAddress'])->name('update_store_address');
+        Route::post('/toggle-ro-status', [EdpPortalController::class, 'toggleRoStatus'])->name('toggle_ro_status');
+        Route::post('/bulk-toggle-ro-status', [EdpPortalController::class, 'bulkToggleRoStatus'])->name('bulk_toggle_ro_status');
         Route::get('/export-excel', [EdpPortalController::class, 'exportExcel'])->name('export_excel');
         Route::get('/export-approved-data', [EdpPortalController::class, 'getApprovedExportData'])->name('export_approved_data');
         Route::post('/export-approved-selected', [EdpPortalController::class, 'exportApprovedSelected'])->name('export_approved_selected');

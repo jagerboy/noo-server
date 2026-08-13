@@ -65,18 +65,23 @@ const filteredSubmissions = computed(() => {
   });
 });
 
-// State & Handler Sort Tabel (ASC / DESC)
+// State & Handler Sort Tabel
 const sortKey = ref('submitted_at');
 const sortDir = ref('desc');
 
-function handleSort(key) {
-  if (sortKey.value === key) {
-    sortDir.value = sortDir.value === 'asc' ? 'desc' : 'asc';
-  } else {
+const sortSelect = computed({
+  get() {
+    return `${sortKey.value}_${sortDir.value}`;
+  },
+  set(val) {
+    if (!val) return;
+    const parts = val.split('_');
+    const dir = parts.pop();
+    const key = parts.join('_');
     sortKey.value = key;
-    sortDir.value = 'asc';
-  }
-}
+    sortDir.value = dir;
+  },
+});
 
 const sortedSubmissions = computed(() => {
   const list = [...filteredSubmissions.value];
@@ -415,22 +420,33 @@ function getLineStyle(stepBefore, item) {
   if (st === 'REJECTED') return 'bg-red-500';
   return 'bg-slate-200';
 }
+function getRowStyle(item) {
+  const st = item.status;
+  if (['EDP_APPROVED', 'APPROVED_EDP', 'APPROVED_BY_SPV', 'APPROVED_SPV', 'INJECTED'].includes(st)) {
+    return 'bg-emerald-50/50 hover:bg-emerald-100/60 text-slate-900';
+  }
+  if (['ADMIN_REJECTED', 'SPV_REJECTED', 'EDP_REJECTED', 'REJECTED_ADMIN', 'REJECTED_SPV', 'REJECTED_EDP'].includes(st)) {
+    return 'bg-rose-50/50 hover:bg-rose-100/60 text-slate-900';
+  }
+  // Pending
+  return 'bg-white hover:bg-slate-50 text-slate-900';
+}
 </script>
 
 <template>
   <AdminLayout>
     <div class="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 space-y-6">
 
-      <!-- Header & Stats Counter Cards (Page Title 32px / 700) -->
+      <!-- Page Header with Brand Stat Cards -->
       <div class="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-6">
         <div>
           <div class="flex items-center space-x-3">
-            <h2 class="text-[32px] leading-[40px] font-bold text-[#111827] tracking-tight">Inbox Submisi Outlet</h2>
+            <h1 class="text-xl md:text-[24px] font-semibold text-[#111827] tracking-tight leading-[1.4]">Inbox Submisi Outlet</h1>
             <span class="px-3 py-1 rounded-lg text-xs font-semibold bg-[#DBEAFE] text-[#1D4ED8] border border-[#93C5FD]">
               Cabang: {{ userBranch || 'Unassigned' }}
             </span>
           </div>
-          <p class="text-[14px] leading-[20px] font-normal text-[#6B7280] mt-1">
+          <p class="text-[14px] leading-[1.5] font-normal text-[#6B7280] mt-1">
             Verifikasi data pendaftaran toko baru, pengisian kode customer distributor, & penyerahan ke SPV Area.
           </p>
         </div>
@@ -456,11 +472,11 @@ function getLineStyle(stepBefore, item) {
         </div>
       </div>
 
-      <!-- Filter & Search Toolbar -->
-      <div class="bg-white p-4 rounded-xl border border-[#E5E7EB] shadow-[0_1px_3px_rgba(0,0,0,0.08)] flex flex-col md:flex-row items-center justify-between gap-4">
+      <!-- Filter & Search Toolbar (Red/Blue Accent for Admin Distributor) -->
+      <div class="bg-white p-4 rounded-xl border border-[#E5E7EB] shadow-[0_1px_3px_rgba(0,0,0,0.08)] flex flex-col lg:flex-row items-center justify-between gap-4">
         
         <!-- Search Input (Form Input 16px / 400) -->
-        <div class="relative w-full md:w-96">
+        <div class="relative w-full lg:w-80">
           <svg class="w-4 h-4 absolute left-3.5 top-3.5 text-[#9CA3AF]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/>
           </svg>
@@ -468,78 +484,60 @@ function getLineStyle(stepBefore, item) {
             v-model="searchQuery"
             type="text"
             placeholder="Cari toko, salesman, custcode, alamat..."
-            class="w-full pl-10 pr-4 py-2 text-[16px] font-normal rounded-lg bg-white border border-[#D1D5DB] text-[#374151] placeholder-[#9CA3AF] focus:ring-2 focus:ring-[#3B82F6] focus:border-[#2563EB] transition"
+            class="w-full pl-10 pr-4 py-2 text-[15px] font-normal rounded-lg bg-white border border-[#D1D5DB] text-[#374151] placeholder-[#9CA3AF] focus:ring-2 focus:ring-[#DC2626] focus:border-[#B91C1C] transition"
           />
         </div>
 
-        <!-- Filter Status Dropdown (Form Label 14px / 500) -->
-        <div class="flex items-center space-x-2 w-full md:w-auto">
-          <label class="text-[14px] font-medium text-[#4B5563] whitespace-nowrap">Filter Status:</label>
-          <select
-            v-model="statusFilter"
-            class="w-full md:w-60 text-[14px] font-normal rounded-lg bg-white border border-[#D1D5DB] text-[#374151] py-2 px-3 focus:ring-2 focus:ring-[#3B82F6] focus:border-[#2563EB]"
-          >
-            <option value="ALL">Semua Submisi</option>
-            <option value="SE_SUBMITTED">Pending Admin</option>
-            <option value="PUSHED_TO_SPV">Pushed to SPV</option>
-            <option value="APPROVED_BY_SPV">Approved SPV</option>
-            <option value="EDP_APPROVED">Approved EDP (Completed)</option>
-            <option value="SPV_REJECTED">Ditolak SPV Area</option>
-            <option value="EDP_REJECTED">Ditolak EDP Principal</option>
-            <option value="ADMIN_REJECTED">Ditolak Admin</option>
-            <option value="REJECTED">Semua Ditolak (Rejected)</option>
-          </select>
+        <!-- Filter Status & Sort Dropdowns Side-by-Side -->
+        <div class="flex flex-col sm:flex-row items-center gap-3 w-full lg:w-auto">
+          <!-- Filter Status Dropdown -->
+          <div class="flex items-center space-x-2 w-full sm:w-auto">
+            <label class="text-[14px] font-medium text-[#4B5563] whitespace-nowrap">Filter Status:</label>
+            <select
+              v-model="statusFilter"
+              class="w-full sm:w-60 text-[14px] font-medium rounded-lg bg-white border border-[#D1D5DB] text-[#1F2937] py-2 px-3 focus:ring-2 focus:ring-[#DC2626] focus:border-[#B91C1C] shadow-xs cursor-pointer"
+            >
+              <option value="ALL">Semua Submisi</option>
+              <option value="SE_SUBMITTED">1. Pending Admin</option>
+              <option value="ADMIN_REJECTED">2. Ditolak Admin</option>
+              <option value="PUSHED_TO_SPV">3. Pushed to SPV (Pending SPV)</option>
+              <option value="APPROVED_BY_SPV">4. Approved SPV (Pending EDP)</option>
+              <option value="SPV_REJECTED">5. Ditolak SPV Area</option>
+              <option value="EDP_APPROVED">6. Approved EDP (Completed)</option>
+              <option value="EDP_REJECTED">7. Ditolak EDP Principal</option>
+            </select>
+          </div>
+
+          <!-- Sort Dropdown (Memindahkan Sort dari Header Tabel) -->
+          <div class="flex items-center space-x-2 w-full sm:w-auto">
+            <label class="text-[14px] font-medium text-[#4B5563] whitespace-nowrap">Urutkan:</label>
+            <select
+              v-model="sortSelect"
+              class="w-full sm:w-56 text-[14px] font-medium rounded-lg bg-white border border-[#D1D5DB] text-[#1F2937] py-2 px-3 focus:ring-2 focus:ring-[#DC2626] focus:border-[#B91C1C] shadow-xs cursor-pointer"
+            >
+              <option value="submitted_at_desc">Terbaru (Tanggal Submisi)</option>
+              <option value="submitted_at_asc">Terlama (Tanggal Submisi)</option>
+              <option value="nama_noo_asc">Nama Toko (A - Z)</option>
+              <option value="nama_noo_desc">Nama Toko (Z - A)</option>
+              <option value="status_asc">Status Approval (Asc)</option>
+              <option value="custcode_distributor_asc">CustCode Dist (A - Z)</option>
+            </select>
+          </div>
         </div>
       </div>
 
-      <!-- TABEL PRESISI DENGAN TABLE-FIXED (Table Header 14px / 600 #F3F4F6, Content 14px / 400) -->
+      <!-- TABEL PRESISI DENGAN TABLE-FIXED -->
       <div class="bg-white rounded-xl border border-[#E5E7EB] shadow-[0_1px_3px_rgba(0,0,0,0.08)] overflow-hidden">
         <div class="w-full overflow-x-auto">
           <table class="w-full text-left text-[14px] leading-[20px] text-[#374151] table-fixed min-w-[900px]">
             <thead class="bg-[#F3F4F6] text-[14px] font-semibold text-[#1F2937] border-b border-[#E5E7EB] select-none">
               <tr>
-                <th @click="handleSort('nama_noo')" class="w-[20%] px-4 py-3.5 cursor-pointer hover:bg-[#E5E7EB] transition">
-                  <div class="flex items-center gap-1">
-                    <span>Toko & Tipe Outlet</span>
-                    <span v-if="sortKey === 'nama_noo'">{{ sortDir === 'asc' ? '▲' : '▼' }}</span>
-                    <span v-else class="opacity-30">↕</span>
-                  </div>
-                </th>
-                <th @click="handleSort('alamat_noo')" class="w-[22%] px-4 py-3.5 cursor-pointer hover:bg-[#E5E7EB] transition">
-                  <div class="flex items-center gap-1">
-                    <span>Alamat & Wilayah</span>
-                    <span v-if="sortKey === 'alamat_noo'">{{ sortDir === 'asc' ? '▲' : '▼' }}</span>
-                    <span v-else class="opacity-30">↕</span>
-                  </div>
-                </th>
-                <th @click="handleSort('submitted_at')" class="w-[18%] px-4 py-3.5 cursor-pointer hover:bg-[#E5E7EB] transition">
-                  <div class="flex items-center gap-1">
-                    <span>Salesman & Tanggal</span>
-                    <span v-if="sortKey === 'submitted_at'">{{ sortDir === 'asc' ? '▲' : '▼' }}</span>
-                    <span v-else class="opacity-30">↕</span>
-                  </div>
-                </th>
-                <th @click="handleSort('status')" class="w-[16%] px-4 py-3.5 cursor-pointer hover:bg-[#E5E7EB] transition">
-                  <div class="flex items-center gap-1">
-                    <span>Status & Foto</span>
-                    <span v-if="sortKey === 'status'">{{ sortDir === 'asc' ? '▲' : '▼' }}</span>
-                    <span v-else class="opacity-30">↕</span>
-                  </div>
-                </th>
-                <th @click="handleSort('custcode_distributor')" class="w-[11%] px-4 py-3.5 cursor-pointer hover:bg-[#E5E7EB] transition">
-                  <div class="flex items-center gap-1">
-                    <span>Cust Code Dist.</span>
-                    <span v-if="sortKey === 'custcode_distributor'">{{ sortDir === 'asc' ? '▲' : '▼' }}</span>
-                    <span v-else class="opacity-30">↕</span>
-                  </div>
-                </th>
-                <th @click="handleSort('code_noo_principal')" class="w-[11%] px-4 py-3.5 cursor-pointer hover:bg-[#E5E7EB] transition">
-                  <div class="flex items-center gap-1">
-                    <span>Cust Code Principal</span>
-                    <span v-if="sortKey === 'code_noo_principal'">{{ sortDir === 'asc' ? '▲' : '▼' }}</span>
-                    <span v-else class="opacity-30">↕</span>
-                  </div>
-                </th>
+                <th class="w-[20%] px-4 py-3.5">Toko & Tipe Outlet</th>
+                <th class="w-[22%] px-4 py-3.5">Alamat & Wilayah</th>
+                <th class="w-[18%] px-4 py-3.5">Salesman & Tanggal</th>
+                <th class="w-[16%] px-4 py-3.5">Status & Foto</th>
+                <th class="w-[11%] px-4 py-3.5">Cust Code Dist.</th>
+                <th class="w-[11%] px-4 py-3.5">Cust Code Principal</th>
                 <th class="w-[12%] px-4 py-3.5 text-center">Aksi</th>
               </tr>
             </thead>
@@ -552,7 +550,8 @@ function getLineStyle(stepBefore, item) {
               <tr
                 v-for="item in sortedSubmissions"
                 :key="item.id || item.request_id"
-                class="hover:bg-[#EFF6FF] transition group"
+                class="transition border-b group"
+                :class="getRowStyle(item)"
               >
                 <!-- Toko & Tipe Outlet -->
                 <td class="px-4 py-3.5">

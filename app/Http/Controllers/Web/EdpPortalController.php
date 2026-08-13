@@ -81,7 +81,16 @@ class EdpPortalController extends Controller
             });
         }
         if ($request->filled('branch_id')) {
-            $query->where('branch_id', $request->input('branch_id'));
+            $b = $request->input('branch_id');
+            $branchObj = DB::table('master_branches')->where('branch_id', $b)->first();
+            $branchName = $branchObj ? $branchObj->branch_name : null;
+
+            $query->where(function ($q) use ($b, $branchName) {
+                $q->where('branch_id', $b);
+                if (!empty($branchName)) {
+                    $q->orWhere('branch_name', 'ILIKE', "%{$branchName}%");
+                }
+            });
         }
         if ($request->filled('status')) {
             $query->where('status', $request->input('status'));
@@ -94,6 +103,22 @@ class EdpPortalController extends Controller
                   ->orWhere('code_noo_principal', 'ILIKE', "%{$s}%")
                   ->orWhere('salesman_code', 'ILIKE', "%{$s}%");
             });
+        }
+
+        if ($request->filled('edp_months')) {
+            $rawMonths = explode(',', (string) $request->input('edp_months'));
+            $monthsArray = array_values(array_filter(array_map('intval', $rawMonths)));
+            if (!empty($monthsArray)) {
+                $query->whereRaw("EXTRACT(MONTH FROM COALESCE(edp_reviewed_at, updated_at)) IN (" . implode(',', $monthsArray) . ")");
+            }
+        } elseif ($request->filled('edp_month')) {
+            $m = (int) $request->input('edp_month');
+            $query->whereRaw("EXTRACT(MONTH FROM COALESCE(edp_reviewed_at, updated_at)) = ?", [$m]);
+        }
+
+        if ($request->filled('edp_year')) {
+            $y = (int) $request->input('edp_year');
+            $query->whereRaw("EXTRACT(YEAR FROM COALESCE(edp_reviewed_at, updated_at)) = ?", [$y]);
         }
 
         $outletTypes = DB::table('master_outlet_types')->pluck('description', 'code')->toArray();
@@ -144,15 +169,34 @@ class EdpPortalController extends Controller
         $entities = $entitiesQuery->orderBy('entity_code_principal')->get();
         $branches = $branchesQuery->orderBy('branch_id', 'asc')->get();
 
+        $edpYears = DB::table('noo_submissions')
+            ->selectRaw("DISTINCT EXTRACT(YEAR FROM COALESCE(edp_reviewed_at, updated_at)) as yr")
+            ->whereNotNull('edp_reviewed_at')
+            ->pluck('yr')
+            ->map(fn($y) => (int)$y)
+            ->filter()
+            ->sortDesc()
+            ->values()
+            ->toArray();
+        if (empty($edpYears)) {
+            $edpYears = [(int)date('Y')];
+        }
+
+        $activeFilters = array_filter(
+            $request->only(['search', 'region_code', 'principal', 'branch_id', 'status', 'edp_month', 'edp_months', 'edp_year']),
+            fn($val) => $val !== null && $val !== ''
+        );
+
         return Inertia::render('Edp/Inbox', [
             'submissions' => $submissions,
             'userRegion' => $regionCode,
             'userRole' => $userRole,
-            'filters' => $request->only(['search', 'region_code', 'principal', 'branch_id', 'status']),
+            'filters' => $activeFilters,
             'filterOptions' => [
                 'regions' => $regions,
                 'entities' => $entities,
                 'branches' => $branches,
+                'edpYears' => $edpYears,
             ],
         ]);
     }
@@ -250,6 +294,7 @@ class EdpPortalController extends Controller
                 'approved_by_edp' => $userName,
                 'edp_decision' => 'APPROVED',
                 'status' => NooStatusEnum::APPROVED_EDP->value,
+                'is_ro' => true,
                 'edp_reviewed_at' => now(),
                 'updated_at' => now(),
             ]);
@@ -259,6 +304,64 @@ class EdpPortalController extends Controller
             return back()->with('success', "Toko {$submission->nama_noo} berhasil di-approve EDP dengan Kode Principal: {$codeNoo}");
         } catch (Throwable $e) {
             return back()->with('error', "Gagal approve EDP: {$e->getMessage()}");
+        }
+    }
+
+    public function toggleRoStatus(Request $request): RedirectResponse
+    {
+        $request->validate([
+            'request_id' => 'required|uuid',
+            'is_ro' => 'required|boolean',
+        ]);
+
+        try {
+            $requestId = $request->input('request_id');
+            $isRo = (bool) $request->input('is_ro');
+
+            $submission = DB::table('noo_submissions')->where('request_id', $requestId)->first();
+            if (!$submission) {
+                return back()->with('error', 'Data toko tidak ditemukan.');
+            }
+
+            DB::table('noo_submissions')->where('request_id', $requestId)->update([
+                'is_ro' => $isRo,
+                'updated_at' => now(),
+            ]);
+
+            $statusText = $isRo ? 'AKTIF (Registered Outlet)' : 'NON-AKTIF';
+            $this->logAction('TOGGLE_RO_STATUS', 'NOO_VERIFICATION', "Mengubah status RO toko {$submission->nama_noo} menjadi {$statusText}");
+
+            return back()->with('success', "Status RO toko {$submission->nama_noo} berhasil diubah menjadi {$statusText}");
+        } catch (Throwable $e) {
+            return back()->with('error', "Gagal mengubah status RO: {$e->getMessage()}");
+        }
+    }
+
+    public function bulkToggleRoStatus(Request $request): RedirectResponse
+    {
+        $request->validate([
+            'request_ids' => 'required|array',
+            'request_ids.*' => 'required|uuid',
+            'is_ro' => 'required|boolean',
+        ]);
+
+        try {
+            $requestIds = $request->input('request_ids');
+            $isRo = (bool) $request->input('is_ro');
+
+            $count = DB::table('noo_submissions')
+                ->whereIn('request_id', $requestIds)
+                ->update([
+                    'is_ro' => $isRo,
+                    'updated_at' => now(),
+                ]);
+
+            $statusText = $isRo ? 'AKTIF (Registered Outlet)' : 'NON-AKTIF';
+            $this->logAction('BULK_TOGGLE_RO_STATUS', 'NOO_VERIFICATION', "Mengubah status RO untuk {$count} toko menjadi {$statusText}");
+
+            return back()->with('success', "Berhasil mengubah status RO secara massal untuk {$count} toko menjadi {$statusText}");
+        } catch (Throwable $e) {
+            return back()->with('error', "Gagal mengubah status RO massal: {$e->getMessage()}");
         }
     }
 
@@ -522,35 +625,45 @@ class EdpPortalController extends Controller
         }
 
         if (!empty($startDate)) {
-            $query->whereRaw("COALESCE(edp_reviewed_at, updated_at, created_at)::date >= ?", [$startDate]);
+            $query->whereRaw("DATE(COALESCE(edp_reviewed_at, updated_at, created_at)) >= ?", [$startDate]);
         }
         if (!empty($endDate)) {
-            $query->whereRaw("COALESCE(edp_reviewed_at, updated_at, created_at)::date <= ?", [$endDate]);
+            $query->whereRaw("DATE(COALESCE(edp_reviewed_at, updated_at, created_at)) <= ?", [$endDate]);
         }
 
-        // Get available branches in this date range with region_code & region_name sorted ascending
+        // Available branches ONLY containing branches with >0 approved submissions in this date range
         $branchesQuery = clone $query;
-        $availableBranches = $branchesQuery
-            ->select('region_code', 'branch_id', 'branch_name')
+        $availableBranchIds = $branchesQuery
             ->whereNotNull('branch_id')
-            ->distinct()
-            ->orderBy('region_code', 'asc')
-            ->orderBy('branch_id', 'asc')
-            ->get()
-            ->map(function ($item) {
-                $regionName = DB::table('master_branches')
-                    ->where('region_code', $item->region_code)
-                    ->value('region_name');
-                return [
-                    'region_code' => $item->region_code ?? 'ALL',
-                    'region_name' => $regionName ?? $item->region_code ?? 'REGIONAL',
-                    'branch_id' => $item->branch_id,
-                    'branch_name' => $item->branch_name ?? $item->branch_id,
-                ];
-            });
+            ->where('branch_id', '!=', '')
+            ->pluck('branch_id')
+            ->unique()
+            ->filter()
+            ->values()
+            ->toArray();
+
+        $availableBranches = [];
+        if (!empty($availableBranchIds)) {
+            $availableBranches = DB::table('master_branches')
+                ->whereIn('branch_id', $availableBranchIds)
+                ->orderBy('region_code', 'asc')
+                ->orderBy('branch_id', 'asc')
+                ->get()
+                ->map(function ($item) {
+                    return [
+                        'region_code' => $item->region_code ?? 'ALL',
+                        'region_name' => $item->region_name ?? $item->region_code ?? 'REGIONAL',
+                        'branch_id' => $item->branch_id,
+                        'branch_name' => $item->branch_name ?? $item->branch_id,
+                    ];
+                });
+        }
 
         if (!empty($branchId)) {
-            $query->where('branch_id', $branchId);
+            $query->where(function ($q) use ($branchId) {
+                $q->where('branch_id', $branchId)
+                  ->orWhere('branch_name', 'ILIKE', "%{$branchId}%");
+            });
         }
 
         $submissions = $query->orderBy('created_at', 'desc')->get()->map(function ($item) {

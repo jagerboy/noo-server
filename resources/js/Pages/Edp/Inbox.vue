@@ -7,7 +7,7 @@
  * 3. Revisi Foto KTP Pemilik dibatasi Maksimal 1x (Button ter-disable dengan badge 🔒 Revisi Max (1x)).
  * 4. Refresh instan Foto KTP dengan Timestamp Cache-Buster.
  */
-import { ref, computed } from 'vue';
+import { ref, computed, onMounted, onUnmounted } from 'vue';
 import { useForm, Head, router } from '@inertiajs/vue3';
 import axios from 'axios';
 import EdpLayout from '@/Layouts/EdpLayout.vue';
@@ -35,7 +35,16 @@ const selectedRegion = ref(props.filters?.region_code || '');
 const selectedPrincipal = ref(props.filters?.principal || '');
 const selectedBranch = ref(props.filters?.branch_id || '');
 const selectedStatus = ref(props.filters?.status || '');
+const selectedEdpMonths = ref(
+  props.filters?.edp_months
+    ? String(props.filters.edp_months).split(',')
+    : (props.filters?.edp_month ? [String(props.filters.edp_month)] : [])
+);
+const selectedEdpYear = ref(props.filters?.edp_year ? String(props.filters.edp_year) : '');
 const search = ref(props.filters?.search || '');
+
+const isMonthDropdownOpen = ref(false);
+const monthDropdownRef = ref(null);
 
 const activeModalSubmission = ref(null);
 const isEditingStoreName = ref(false);
@@ -133,13 +142,13 @@ function onPrincipalChange() {
 }
 
 const statusOptions = [
-  { value: 'SE_SUBMITTED', label: 'SE Submisi Baru' },
-  { value: 'PUSHED_TO_SPV', label: 'Approved Admin (Menunggu SPV)' },
-  { value: 'APPROVED_SPV', label: 'Approved SPV (Menunggu EDP)' },
-  { value: 'REJECTED_ADMIN', label: 'Rejected Admin Distributor' },
-  { value: 'REJECTED_SPV', label: 'Rejected SPV Area' },
-  { value: 'APPROVED_EDP', label: 'Approved EDP (Final)' },
-  { value: 'REJECTED_EDP', label: 'Rejected EDP Principal' },
+  { value: 'SE_SUBMITTED', label: '1. Pending Admin' },
+  { value: 'PUSHED_TO_SPV', label: '2. Pushed to SPV (Pending SPV)' },
+  { value: 'APPROVED_SPV', label: '3. Approved SPV (Pending EDP)' },
+  { value: 'APPROVED_EDP', label: '4. Approved EDP (Final/Completed)' },
+  { value: 'REJECTED_ADMIN', label: '5. Ditolak Admin Distributor' },
+  { value: 'REJECTED_SPV', label: '6. Ditolak SPV Area' },
+  { value: 'REJECTED_EDP', label: '7. Ditolak EDP Principal' },
 ];
 
 const dayLabels = [
@@ -164,18 +173,130 @@ function sanitizePluscode(str) {
   return str.replace(/^[A-Z0-9]{4,8}\+[A-Z0-9]{2,4}(?:\s*,\s*|\s+)/i, '').trim();
 }
 
+const edpMonthOptions = [
+  { value: '1', label: 'Januari', short: 'Jan' },
+  { value: '2', label: 'Februari', short: 'Feb' },
+  { value: '3', label: 'Maret', short: 'Mar' },
+  { value: '4', label: 'April', short: 'Apr' },
+  { value: '5', label: 'Mei', short: 'Mei' },
+  { value: '6', label: 'Juni', short: 'Jun' },
+  { value: '7', label: 'Juli', short: 'Jul' },
+  { value: '8', label: 'Agustus', short: 'Agu' },
+  { value: '9', label: 'September', short: 'Sep' },
+  { value: '10', label: 'Oktober', short: 'Okt' },
+  { value: '11', label: 'November', short: 'Nov' },
+  { value: '12', label: 'Desember', short: 'Des' },
+];
+
+function toggleSelectAllMonths() {
+  if (selectedEdpMonths.value.length === 12) {
+    selectedEdpMonths.value = [];
+  } else {
+    selectedEdpMonths.value = ['1', '2', '3', '4', '5', '6', '7', '8', '9', '10', '11', '12'];
+  }
+}
+
+function selectQuarter(q) {
+  if (q === 1) selectedEdpMonths.value = ['1', '2', '3'];
+  else if (q === 2) selectedEdpMonths.value = ['4', '5', '6'];
+  else if (q === 3) selectedEdpMonths.value = ['7', '8', '9'];
+  else if (q === 4) selectedEdpMonths.value = ['10', '11', '12'];
+}
+
+function selectSemester(s) {
+  if (s === 1) selectedEdpMonths.value = ['1', '2', '3', '4', '5', '6'];
+  else if (s === 2) selectedEdpMonths.value = ['7', '8', '9', '10', '11', '12'];
+}
+
+const selectedEdpMonthsLabel = computed(() => {
+  const len = selectedEdpMonths.value.length;
+  if (len === 0) return '-- Semua Bulan Approval --';
+  if (len === 12) return 'Semua Bulan (12 Bulan)';
+  if (len === 1) {
+    const found = edpMonthOptions.find((m) => m.value === selectedEdpMonths.value[0]);
+    return found ? found.label : '1 Bulan';
+  }
+  const shorts = edpMonthOptions
+    .filter((m) => selectedEdpMonths.value.includes(m.value))
+    .map((m) => m.short)
+    .join(', ');
+  return `${len} Bulan (${shorts})`;
+});
+
+function handleClickOutsideMonth(event) {
+  if (monthDropdownRef.value && !monthDropdownRef.value.contains(event.target)) {
+    isMonthDropdownOpen.value = false;
+  }
+}
+
+onMounted(() => {
+  document.addEventListener('click', handleClickOutsideMonth);
+});
+onUnmounted(() => {
+  document.removeEventListener('click', handleClickOutsideMonth);
+});
+
+const edpYearSelectOptions = computed(() => {
+  const currentYear = new Date().getFullYear();
+  const yearsFromProps = props.filterOptions?.edpYears || [];
+  const years = yearsFromProps.length > 0 ? yearsFromProps : [currentYear, currentYear - 1, currentYear - 2];
+
+  return years.map((y) => ({
+    value: String(y),
+    label: `Tahun ${y}`,
+  }));
+});
+
+const showFilterModal = ref(false);
+const isLoadingFilters = ref(false);
+
+const activeFilterCount = computed(() => {
+  let count = 0;
+  if (selectedRegion.value) count++;
+  if (selectedPrincipal.value) count++;
+  if (selectedBranch.value) count++;
+  if (selectedStatus.value) count++;
+  if (selectedEdpMonths.value.length > 0) count++;
+  if (selectedEdpYear.value) count++;
+  if (search.value) count++;
+  return count;
+});
+
 function applyFilters() {
+  const queryParams = {};
+  if (selectedRegion.value) queryParams.region_code = selectedRegion.value;
+  if (selectedPrincipal.value) queryParams.principal = selectedPrincipal.value;
+  if (selectedBranch.value) queryParams.branch_id = selectedBranch.value;
+  if (selectedStatus.value) queryParams.status = selectedStatus.value;
+  if (selectedEdpMonths.value && selectedEdpMonths.value.length > 0) {
+    queryParams.edp_months = selectedEdpMonths.value.join(',');
+  }
+  if (selectedEdpYear.value) queryParams.edp_year = selectedEdpYear.value;
+  if (search.value) queryParams.search = search.value;
+
   router.get(
     route('edp.inbox'),
+    queryParams,
     {
-      region_code: selectedRegion.value,
-      principal: selectedPrincipal.value,
-      branch_id: selectedBranch.value,
-      status: selectedStatus.value,
-      search: search.value,
-    },
-    { preserveState: true, replace: true }
+      preserveScroll: true,
+      replace: true,
+      onStart: () => {
+        isLoadingFilters.value = true;
+      },
+      onFinish: () => {
+        isLoadingFilters.value = false;
+        // Clean URL to keep address bar clean
+        if (Object.keys(queryParams).length === 0) {
+          window.history.replaceState({}, '', route('edp.inbox'));
+        }
+      },
+    }
   );
+}
+
+function applyFilterModal() {
+  showFilterModal.value = false;
+  applyFilters();
 }
 
 function resetFilters() {
@@ -183,8 +304,28 @@ function resetFilters() {
   selectedPrincipal.value = '';
   selectedBranch.value = '';
   selectedStatus.value = '';
+  selectedEdpMonths.value = [];
+  selectedEdpYear.value = '';
   search.value = '';
+  showFilterModal.value = false;
   applyFilters();
+}
+
+function getRowStyle(sub) {
+  const isSelected = selectedRowIds.value.includes(sub.request_id);
+  if (isSelected) {
+    return 'bg-blue-50/90 hover:bg-blue-100/90 text-slate-900 font-medium';
+  }
+
+  const st = sub.status;
+  if (['APPROVED_EDP', 'EDP_APPROVED', 'INJECTED'].includes(st)) {
+    return 'bg-emerald-50/50 hover:bg-emerald-100/60 text-slate-900';
+  }
+  if (['REJECTED_EDP', 'EDP_REJECTED', 'REJECTED_SPV', 'REJECTED_ADMIN'].includes(st)) {
+    return 'bg-rose-50/50 hover:bg-rose-100/60 text-slate-900';
+  }
+  // Pending / Belum Approval
+  return 'bg-white hover:bg-slate-50 text-slate-900';
 }
 
 function openDetailModal(sub) {
@@ -263,6 +404,114 @@ function handleApprove() {
   );
 }
 
+const isProcessingToggleRo = ref(false);
+
+function handleToggleRoStatus(newStatus) {
+  if (!activeModalSubmission.value || isProcessingToggleRo.value) return;
+  const currentReqId = activeModalSubmission.value.request_id;
+
+  router.post(
+    route('edp.toggle_ro_status'),
+    {
+      request_id: currentReqId,
+      is_ro: newStatus,
+    },
+    {
+      preserveScroll: true,
+      onStart: () => {
+        isProcessingToggleRo.value = true;
+      },
+      onFinish: () => {
+        isProcessingToggleRo.value = false;
+      },
+      onSuccess: () => {
+        if (activeModalSubmission.value) {
+          activeModalSubmission.value.is_ro = newStatus;
+        }
+      },
+    }
+  );
+}
+
+const selectedRowIds = ref([]);
+const isProcessingBulkToggleRo = ref(false);
+
+const isAllSelected = computed(() => {
+  if (!sortedSubmissions.value || !sortedSubmissions.value.length) return false;
+  return selectedRowIds.value.length === sortedSubmissions.value.length;
+});
+
+function toggleSelectAll() {
+  if (isAllSelected.value) {
+    selectedRowIds.value = [];
+  } else {
+    selectedRowIds.value = sortedSubmissions.value.map((s) => s.request_id);
+  }
+}
+
+function handleToggleRoStatusRow(sub, newStatus) {
+  if (!sub || isProcessingToggleRo.value) return;
+
+  router.post(
+    route('edp.toggle_ro_status'),
+    {
+      request_id: sub.request_id,
+      is_ro: newStatus,
+    },
+    {
+      preserveScroll: true,
+      onStart: () => {
+        isProcessingToggleRo.value = true;
+      },
+      onFinish: () => {
+        isProcessingToggleRo.value = false;
+      },
+      onSuccess: () => {
+        sub.is_ro = newStatus;
+        if (activeModalSubmission.value && activeModalSubmission.value.request_id === sub.request_id) {
+          activeModalSubmission.value.is_ro = newStatus;
+        }
+      },
+    }
+  );
+}
+
+function handleBulkToggleRoStatus(newStatus) {
+  if (!selectedRowIds.value.length || isProcessingBulkToggleRo.value) return;
+
+  const actionName = newStatus ? 'Mengaktifkan' : 'Menonaktifkan';
+  if (!confirm(`Apakah Anda yakin ingin ${actionName} status Registered Outlet (RO) untuk ${selectedRowIds.value.length} toko terpilih?`)) {
+    return;
+  }
+
+  router.post(
+    route('edp.bulk_toggle_ro_status'),
+    {
+      request_ids: selectedRowIds.value,
+      is_ro: newStatus,
+    },
+    {
+      preserveScroll: true,
+      onStart: () => {
+        isProcessingBulkToggleRo.value = true;
+      },
+      onFinish: () => {
+        isProcessingBulkToggleRo.value = false;
+      },
+      onSuccess: () => {
+        const ids = [...selectedRowIds.value];
+        const list = sortedSubmissions.value;
+        list.forEach((sub) => {
+          if (ids.includes(sub.request_id)) {
+            sub.is_ro = newStatus;
+          }
+        });
+        selectedRowIds.value = [];
+      },
+    }
+  );
+}
+
 const showRejectModal = ref(false);
 const rejectNotesInput = ref('');
 
@@ -273,6 +522,7 @@ const exportBranch = ref('');
 const exportBranches = ref([]);
 const exportSubmissions = ref([]);
 const selectedExportIds = ref([]);
+const isLoadingExportBranches = ref(false);
 const isLoadingExportData = ref(false);
 const hasFetchedExport = ref(false);
 const isExportingExcel = ref(false);
@@ -359,9 +609,19 @@ function onExportDateChange() {
   fetchExportBranches();
 }
 
+function onExportBranchChange() {
+  if (exportBranch.value) {
+    fetchExportData();
+  } else {
+    exportSubmissions.value = [];
+    selectedExportIds.value = [];
+    hasFetchedExport.value = false;
+  }
+}
+
 async function fetchExportBranches() {
   if (!exportStartDate.value || !exportEndDate.value) return;
-  isLoadingExportData.value = true;
+  isLoadingExportBranches.value = true;
   try {
     const params = new URLSearchParams();
     params.append('start_date', exportStartDate.value);
@@ -370,18 +630,23 @@ async function fetchExportBranches() {
     const res = await fetch(route('edp.export_approved_data') + '?' + params.toString());
     const data = await res.json();
     exportBranches.value = data.branches || [];
+
+    // Auto-reset branch if currently selected branch is not in the filtered branches for this date range
+    if (exportBranch.value && !exportBranches.value.some((b) => b.branch_id === exportBranch.value)) {
+      exportBranch.value = '';
+      exportSubmissions.value = [];
+      selectedExportIds.value = [];
+      hasFetchedExport.value = false;
+    }
   } catch (e) {
     console.error('Gagal mengambil daftar distributor:', e);
   } finally {
-    isLoadingExportData.value = false;
+    isLoadingExportBranches.value = false;
   }
 }
 
 async function fetchExportData() {
-  if (!exportBranch.value) {
-    alert('Silakan pilih distributor terlebih dahulu.');
-    return;
-  }
+  if (!exportBranch.value) return;
 
   isLoadingExportData.value = true;
   hasFetchedExport.value = true;
@@ -760,14 +1025,19 @@ function handleResetEdpApproval() {
 const sortKey = ref('created_at');
 const sortDir = ref('desc');
 
-function handleSort(key) {
-  if (sortKey.value === key) {
-    sortDir.value = sortDir.value === 'asc' ? 'desc' : 'asc';
-  } else {
+const sortSelect = computed({
+  get() {
+    return `${sortKey.value}_${sortDir.value}`;
+  },
+  set(val) {
+    if (!val) return;
+    const parts = val.split('_');
+    const dir = parts.pop();
+    const key = parts.join('_');
     sortKey.value = key;
-    sortDir.value = 'asc';
-  }
-}
+    sortDir.value = dir;
+  },
+});
 
 const sortedSubmissions = computed(() => {
   const list = [...(props.submissions?.data || props.submissions || [])];
@@ -1060,10 +1330,10 @@ function getLineStyle(stepBefore, item) {
       <!-- Page Header -->
       <div class="flex flex-col lg:flex-row lg:items-center justify-between gap-5 bg-white p-6 sm:p-7 rounded-xl border border-[#E5E7EB] shadow-xs">
         <div class="space-y-1.5 max-w-3xl">
-          <h1 class="text-2xl sm:text-3xl font-extrabold text-[#111827] tracking-tight flex items-center gap-3">
+          <h1 class="text-xl md:text-[24px] font-semibold text-[#111827] tracking-tight leading-[1.4] flex items-center gap-3">
             <span>📋 NOO Verification</span>
           </h1>
-          <p class="text-xs sm:text-sm text-[#6B7280] leading-relaxed">
+          <p class="text-[14px] text-[#6B7280] leading-[1.5]">
             Verifikasi Final EDP Principal, Penerbitan Kode Customer Principal, & Rekapitulasi Approval. (Region Scope: <span class="font-semibold text-slate-800">{{ userRegion || 'Semua Region' }}</span>)
           </p>
         </div>
@@ -1086,129 +1356,135 @@ function getLineStyle(stepBefore, item) {
         </div>
       </div>
 
-      <!-- FILTER BAR DINAMIS BERBASIS PERAN (ROLE-BASED FILTER) -->
-      <div class="bg-white p-6 rounded-[10px] border border-[#E5E7EB] shadow-xs space-y-4">
-        <h2 class="text-[14px] font-semibold text-[#1F2937] uppercase tracking-wider flex items-center gap-2">
-          <svg class="w-4 h-4 text-[#2563EB]" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2.586a1 1 0 01-.293.707l-6.414 6.414a1 1 0 00-.293.707V17l-4 4v-6.586a1 1 0 00-.293-.707L3.293 7.293A1 1 0 013 6.586V4z"/></svg>
-          <span>Filter Data Verifikasi NOO</span>
-        </h2>
+      <!-- COMPACT TOOLBAR (FILTER MODAL TRIGGER & SEARCH) -->
+      <div class="bg-white p-4 rounded-xl border border-[#E5E7EB] shadow-xs flex flex-col sm:flex-row items-center justify-between gap-3">
+        <!-- Instant Search Box -->
+        <div class="relative w-full sm:w-96">
+          <input
+            type="text"
+            v-model="search"
+            @keyup.enter="applyFilters"
+            placeholder="Cari Nama Toko, CustCode, Salesman..."
+            class="w-full pl-10 pr-4 py-2.5 text-xs sm:text-sm font-medium text-slate-800 bg-slate-50 border border-slate-300 rounded-xl focus:bg-white focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 transition placeholder:text-slate-400"
+          />
+          <span class="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400 text-sm pointer-events-none">🔍</span>
+          <button
+            v-if="search"
+            @click="search = ''; applyFilters();"
+            class="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 text-xs"
+          >
+            ✕
+          </button>
+        </div>
 
-        <div :class="['grid grid-cols-1 sm:grid-cols-2 gap-4', userRole === 'SUPERADMIN' || userRole === 'ADMIN_PRINCIPAL' ? 'md:grid-cols-4' : 'md:grid-cols-3']">
-          <!-- REGION -->
-          <div v-if="userRole === 'SUPERADMIN' || userRole === 'ADMIN_PRINCIPAL'">
-            <label class="block text-[14px] font-medium text-[#4B5563] mb-1">REGION</label>
-            <SearchableSelect
-              v-model="selectedRegion"
-              :options="regionOptions"
-              placeholder="-- Semua Region --"
-              searchPlaceholder="Ketik Region Code / Nama..."
-              @change="onRegionChange"
-            />
+        <div class="flex items-center gap-2.5 w-full sm:w-auto justify-end flex-wrap sm:flex-nowrap">
+          <!-- Reset Filter Button (If any active filter) -->
+          <button
+            v-if="activeFilterCount > 0"
+            @click="resetFilters"
+            class="px-3.5 py-2.5 text-xs font-bold text-slate-600 hover:text-rose-700 hover:bg-rose-50 border border-slate-300 hover:border-rose-300 rounded-xl transition cursor-pointer flex items-center gap-1.5"
+          >
+            <span>🔄 Reset Filter</span>
+          </button>
+
+          <!-- OPEN FILTER & SORT MODAL BUTTON -->
+          <button
+            @click="showFilterModal = true"
+            class="px-4 py-2.5 text-xs sm:text-sm font-bold text-slate-800 bg-slate-100 hover:bg-slate-200 border border-slate-300 rounded-xl shadow-2xs transition flex items-center gap-2 cursor-pointer"
+          >
+            <span>🎛️ Filter & Urutkan Data</span>
+            <span
+              v-if="activeFilterCount > 0"
+              class="w-5 h-5 rounded-full bg-blue-600 text-white text-[10px] font-bold flex items-center justify-center"
+            >
+              {{ activeFilterCount }}
+            </span>
+          </button>
+        </div>
+      </div>
+
+      <!-- REVAMPED EXECUTIVE ACTION BAR FOR SELECTED ROWS -->
+      <div v-if="selectedRowIds.length > 0" class="bg-white border-2 border-blue-600 p-4 rounded-2xl shadow-xl flex flex-col sm:flex-row items-center justify-between gap-3 text-slate-900 transition-all duration-300">
+        <div class="flex items-center gap-3">
+          <div class="w-9 h-9 rounded-xl bg-blue-50 border border-blue-200 text-blue-700 flex items-center justify-center font-bold text-sm shrink-0">
+            ☑️
           </div>
-
-          <!-- ENTITY / PRINCIPAL -->
           <div>
-            <label class="block text-[14px] font-medium text-[#4B5563] mb-1">ENTITY / PRINCIPAL</label>
-            <SearchableSelect
-              v-model="selectedPrincipal"
-              :options="entityOptions"
-              placeholder="-- Semua Principal --"
-              searchPlaceholder="Ketik Kode / Nama Entity..."
-              @change="onPrincipalChange"
-            />
-          </div>
-
-          <!-- BRANCH (MENGIKUTI REGION TERPILIH) -->
-          <div>
-            <label class="block text-[14px] font-medium text-[#4B5563] mb-1">CABANG / BRANCH</label>
-            <SearchableSelect
-              v-model="selectedBranch"
-              :options="branchOptions"
-              placeholder="-- Semua Cabang --"
-              searchPlaceholder="Ketik ID atau Nama Cabang..."
-              @change="applyFilters"
-            />
-          </div>
-
-          <!-- STATUS -->
-          <div>
-            <label class="block text-[14px] font-medium text-[#4B5563] mb-1">STATUS</label>
-            <SearchableSelect
-              v-model="selectedStatus"
-              :options="statusOptions"
-              placeholder="-- Semua Status --"
-              searchPlaceholder="Cari Status..."
-              @change="applyFilters"
-            />
+            <div class="text-xs sm:text-sm font-extrabold text-slate-900 flex items-center gap-2">
+              <span>Ubah Status RO Toko Terpilih</span>
+              <span class="px-2.5 py-0.5 rounded-full text-[11px] font-bold bg-blue-100 text-blue-800 border border-blue-300">
+                {{ selectedRowIds.length }} Toko Terpilih
+              </span>
+            </div>
+            <p class="text-[11px] text-slate-500 mt-0.5">
+              Pilih status keaktifan Registered Outlet (RO) untuk toko yang dicentang.
+            </p>
           </div>
         </div>
 
-        <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pt-2">
-          <div class="w-full sm:w-80">
-            <input
-              type="text"
-              v-model="search"
-              @keyup.enter="applyFilters"
-              placeholder="Cari Nama Toko, CustCode, Salesman..."
-              class="w-full px-3.5 py-2.5 text-[16px] font-normal text-[#374151] bg-white border border-[#D1D5DB] hover:border-[#9CA3AF] focus:border-[#2563EB] rounded-[8px] placeholder-[#9CA3AF] transition"
-            />
-          </div>
+        <div class="flex items-center gap-2.5 flex-wrap shrink-0">
+          <button
+            type="button"
+            @click="handleBulkToggleRoStatus(true)"
+            :disabled="isProcessingBulkToggleRo"
+            class="px-4 py-2 text-xs sm:text-sm font-bold text-white bg-emerald-600 hover:bg-emerald-700 border border-emerald-700 rounded-xl shadow-sm hover:shadow transition-all flex items-center gap-2 cursor-pointer disabled:opacity-50"
+          >
+            <svg v-if="isProcessingBulkToggleRo" class="animate-spin h-4 w-4 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+              <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+              <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+            </svg>
+            <span>✅ Aktifkan RO</span>
+          </button>
 
-          <div class="flex items-center gap-2">
-            <button @click="resetFilters" class="px-4 py-2.5 text-[15px] font-semibold text-[#374151] bg-white border border-[#D1D5DB] hover:bg-[#F3F4F6] rounded-[8px] transition cursor-pointer">Reset Filter</button>
-            <button @click="applyFilters" class="px-5 py-2.5 text-[15px] font-semibold text-white bg-[#2563EB] hover:bg-[#1D4ED8] rounded-[8px] transition shadow-sm cursor-pointer">Cari & Filter</button>
-          </div>
+          <button
+            type="button"
+            @click="handleBulkToggleRoStatus(false)"
+            :disabled="isProcessingBulkToggleRo"
+            class="px-4 py-2 text-xs sm:text-sm font-bold text-white bg-rose-600 hover:bg-rose-700 border border-rose-700 rounded-xl shadow-sm hover:shadow transition-all flex items-center gap-2 cursor-pointer disabled:opacity-50"
+          >
+            <svg v-if="isProcessingBulkToggleRo" class="animate-spin h-4 w-4 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+              <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+              <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+            </svg>
+            <span>🚫 Nonaktifkan RO</span>
+          </button>
+
+          <button
+            type="button"
+            @click="selectedRowIds = []"
+            class="px-3.5 py-2 text-xs font-bold text-slate-500 hover:text-slate-800 hover:bg-slate-100 rounded-xl transition cursor-pointer"
+          >
+            ✕ Batal
+          </button>
         </div>
       </div>
 
       <!-- Table Submisi NOO -->
-      <div class="bg-white rounded-[10px] border border-[#E5E7EB] shadow-xs overflow-hidden">
+      <div class="bg-white rounded-[10px] border border-[#E5E7EB] shadow-xs overflow-hidden relative isolate min-h-[250px]" style="isolation: isolate;">
+        <!-- LOADING SPINNER OVERLAY (STRICTLY SCOPED INSIDE TABLE CARD) -->
+        <div v-if="isLoadingFilters" class="absolute inset-0 bg-white/85 z-20 flex flex-col items-center justify-center gap-3 transition-opacity">
+          <div class="w-9 h-9 border-4 border-blue-600 border-t-transparent rounded-full animate-spin"></div>
+          <span class="text-xs font-bold text-slate-700">Memuat & memfilter data toko...</span>
+        </div>
+
         <div class="overflow-x-auto">
           <table class="w-full text-[14px] text-left text-[#374151]">
             <thead class="bg-[#F3F4F6] border-b border-[#E5E7EB] font-semibold text-[#111827] uppercase tracking-wider select-none">
               <tr>
-                <th @click="handleSort('created_at')" class="p-4 cursor-pointer hover:bg-[#E5E7EB] transition">
-                  <div class="flex items-center gap-1">
-                    <span>Waktu Submit</span>
-                    <span v-if="sortKey === 'created_at'">{{ sortDir === 'asc' ? '▲' : '▼' }}</span>
-                    <span v-else class="opacity-30">↕</span>
-                  </div>
+                <th class="p-3 w-10 text-center">
+                  <input
+                    type="checkbox"
+                    :checked="isAllSelected"
+                    @change="toggleSelectAll"
+                    class="w-4 h-4 text-blue-600 rounded border-slate-300 focus:ring-blue-500 cursor-pointer"
+                    title="Pilih Semua Toko di Halaman Ini"
+                  />
                 </th>
-                <th @click="handleSort('branch_name')" class="p-4 cursor-pointer hover:bg-[#E5E7EB] transition">
-                  <div class="flex items-center gap-1">
-                    <span>Cabang / Salesman</span>
-                    <span v-if="sortKey === 'branch_name'">{{ sortDir === 'asc' ? '▲' : '▼' }}</span>
-                    <span v-else class="opacity-30">↕</span>
-                  </div>
-                </th>
-                <th @click="handleSort('nama_noo')" class="p-4 cursor-pointer hover:bg-[#E5E7EB] transition">
-                  <div class="flex items-center gap-1">
-                    <span>Nama Outlet & Pemilik</span>
-                    <span v-if="sortKey === 'nama_noo'">{{ sortDir === 'asc' ? '▲' : '▼' }}</span>
-                    <span v-else class="opacity-30">↕</span>
-                  </div>
-                </th>
-                <th @click="handleSort('custcode_distributor')" class="p-4 cursor-pointer hover:bg-[#E5E7EB] transition">
-                  <div class="flex items-center gap-1">
-                    <span>CustCode Dist</span>
-                    <span v-if="sortKey === 'custcode_distributor'">{{ sortDir === 'asc' ? '▲' : '▼' }}</span>
-                    <span v-else class="opacity-30">↕</span>
-                  </div>
-                </th>
-                <th @click="handleSort('code_noo_principal')" class="p-4 cursor-pointer hover:bg-[#E5E7EB] transition">
-                  <div class="flex items-center gap-1">
-                    <span>Customer Code Principal</span>
-                    <span v-if="sortKey === 'code_noo_principal'">{{ sortDir === 'asc' ? '▲' : '▼' }}</span>
-                    <span v-else class="opacity-30">↕</span>
-                  </div>
-                </th>
-                <th @click="handleSort('status')" class="p-4 cursor-pointer hover:bg-[#E5E7EB] transition">
-                  <div class="flex items-center gap-1">
-                    <span>Status</span>
-                    <span v-if="sortKey === 'status'">{{ sortDir === 'asc' ? '▲' : '▼' }}</span>
-                    <span v-else class="opacity-30">↕</span>
-                  </div>
-                </th>
+                <th class="p-4">Cabang / Salesman</th>
+                <th class="p-4">Nama Outlet & Pemilik</th>
+                <th class="p-4">CustCode Dist</th>
+                <th class="p-4">Customer Code Principal</th>
+                <th class="p-4">Status & Status RO</th>
                 <th class="p-4 text-center">Aksi</th>
               </tr>
             </thead>
@@ -1219,8 +1495,21 @@ function getLineStyle(stepBefore, item) {
                 </td>
               </tr>
 
-              <tr v-for="sub in sortedSubmissions" :key="sub.request_id" class="hover:bg-[#EFF6FF] transition">
-                <td class="p-4 text-[#6B7280] font-mono text-[13px]">{{ sub.submitted_at || sub.created_at }}</td>
+              <tr
+                v-for="sub in sortedSubmissions"
+                :key="sub.request_id"
+                class="transition border-b"
+                :class="getRowStyle(sub)"
+              >
+                <!-- CHECKBOX ROW SELECT -->
+                <td class="p-3 text-center">
+                  <input
+                    type="checkbox"
+                    :value="sub.request_id"
+                    v-model="selectedRowIds"
+                    class="w-4 h-4 text-blue-600 rounded border-slate-300 focus:ring-blue-500 cursor-pointer"
+                  />
+                </td>
                 <td class="p-4 font-medium text-[#111827]">
                   {{ sub.branch_name }} <br>
                   <span class="text-[12px] text-[#6B7280] font-normal">👤 {{ sub.salesman_name }}</span>
@@ -1243,11 +1532,44 @@ function getLineStyle(stepBefore, item) {
                     Belum tergenerate
                   </span>
                 </td>
+
+                <!-- STATUS & RO TOGGLE SWITCH COLUMN -->
                 <td class="p-4">
-                  <!-- BADGE STATUS NOO+ ARCHITECTURE -->
-                  <span class="px-2.5 py-1 text-[12px] font-semibold rounded-[8px] border inline-flex items-center gap-1" :class="getStatusBadgeStyle(sub.status)">
-                    {{ formatStatusLabel(sub.status) }}
-                  </span>
+                  <div class="space-y-2">
+                    <!-- BADGE STATUS WORKFLOW NOO -->
+                    <div>
+                      <span class="px-2.5 py-1 text-[12px] font-semibold rounded-[8px] border inline-flex items-center gap-1" :class="getStatusBadgeStyle(sub.status)">
+                        {{ formatStatusLabel(sub.status) }}
+                      </span>
+                    </div>
+
+                    <!-- TOGGLE SWITCH BUTTON RO (HANYA DITAMPILKAN JIKA STATUS NOO APPROVED EDP) -->
+                    <div
+                      v-if="sub.status === 'APPROVED_EDP' || sub.status === 'EDP_APPROVED' || sub.status === 'INJECTED'"
+                      class="pt-1 flex items-center gap-2"
+                    >
+                      <button
+                        type="button"
+                        @click="handleToggleRoStatusRow(sub, !(sub.is_ro !== false && sub.is_ro !== 0 && sub.is_ro !== '0'))"
+                        :disabled="isProcessingToggleRo"
+                        class="relative inline-flex h-5 w-9 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none shadow-xs disabled:opacity-50"
+                        :class="sub.is_ro !== false && sub.is_ro !== 0 && sub.is_ro !== '0' ? 'bg-[#16A34A]' : 'bg-[#9CA3AF]'"
+                        :title="sub.is_ro !== false && sub.is_ro !== 0 && sub.is_ro !== '0' ? 'Status RO: AKTIF (Klik untuk menonaktifkan)' : 'Status RO: NON-AKTIF (Klik untuk mengaktifkan)'"
+                      >
+                        <span
+                          class="pointer-events-none inline-block h-4 w-4 transform rounded-full bg-white shadow-md ring-0 transition duration-200 ease-in-out"
+                          :class="sub.is_ro !== false && sub.is_ro !== 0 && sub.is_ro !== '0' ? 'translate-x-4' : 'translate-x-0'"
+                        ></span>
+                      </button>
+
+                      <span
+                        class="text-[11px] font-bold"
+                        :class="sub.is_ro !== false && sub.is_ro !== 0 && sub.is_ro !== '0' ? 'text-[#15803D]' : 'text-[#6B7280]'"
+                      >
+                        {{ sub.is_ro !== false && sub.is_ro !== 0 && sub.is_ro !== '0' ? '🟢 RO Aktif' : '⚪ RO Off' }}
+                      </span>
+                    </div>
+                  </div>
                 </td>
                 <td class="p-4 text-center">
                   <button
@@ -1592,6 +1914,44 @@ function getLineStyle(stepBefore, item) {
                       <p class="whitespace-pre-line leading-relaxed">{{ activeModalSubmission.edp_notes }}</p>
                     </div>
                     <div v-else class="text-slate-400 italic text-[11px]">Tidak ada catatan EDP principal.</div>
+
+                    <!-- RO Status Control (Bisa dinonaktifkan/diaktifkan jika toko tidak melakukan orderan) -->
+                    <div v-if="activeModalSubmission.status === 'APPROVED_EDP' || activeModalSubmission.status === 'EDP_APPROVED' || activeModalSubmission.status === 'INJECTED'" class="mt-2.5 pt-2.5 border-t border-slate-200/80 flex items-center justify-between flex-wrap gap-2 bg-white p-2.5 rounded-lg border">
+                      <div class="flex items-center gap-2">
+                        <span class="font-semibold text-slate-700 text-xs">Status RO:</span>
+                        <span
+                          v-if="activeModalSubmission.is_ro !== false && activeModalSubmission.is_ro !== 0 && activeModalSubmission.is_ro !== '0'"
+                          class="px-2.5 py-0.5 text-[11px] font-bold text-emerald-800 bg-emerald-100 border border-emerald-300 rounded-full flex items-center gap-1.5"
+                        >
+                          <span class="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
+                          AKTIF (RO)
+                        </span>
+                        <span
+                          v-else
+                          class="px-2.5 py-0.5 text-[11px] font-bold text-rose-800 bg-rose-100 border border-rose-300 rounded-full flex items-center gap-1.5"
+                        >
+                          <span class="w-2 h-2 rounded-full bg-rose-500"></span>
+                          NON-AKTIF
+                        </span>
+                      </div>
+
+                      <button
+                        @click="handleToggleRoStatus(activeModalSubmission.is_ro === false || activeModalSubmission.is_ro === 0 || activeModalSubmission.is_ro === '0')"
+                        :disabled="isProcessingToggleRo"
+                        :class="[
+                          'px-3 py-1 text-xs font-bold rounded-lg transition shadow-2xs flex items-center gap-1.5 cursor-pointer disabled:opacity-50',
+                          (activeModalSubmission.is_ro !== false && activeModalSubmission.is_ro !== 0 && activeModalSubmission.is_ro !== '0')
+                            ? 'bg-rose-50 text-rose-700 border border-rose-300 hover:bg-rose-100'
+                            : 'bg-emerald-50 text-emerald-700 border border-emerald-300 hover:bg-emerald-100'
+                        ]"
+                      >
+                        <svg v-if="isProcessingToggleRo" class="animate-spin h-3.5 w-3.5" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                          <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                          <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                        </svg>
+                        <span>{{ (activeModalSubmission.is_ro !== false && activeModalSubmission.is_ro !== 0 && activeModalSubmission.is_ro !== '0') ? '🚫 Nonaktifkan Status RO' : '✅ Aktifkan Status RO' }}</span>
+                      </button>
+                    </div>
                   </div>
                 </div>
 
@@ -2069,7 +2429,7 @@ function getLineStyle(stepBefore, item) {
 
             <!-- Filter Card -->
             <div class="bg-[#F8FAFC] p-4 rounded-[12px] border border-[#E5E7EB] space-y-3">
-              <div class="grid grid-cols-1 sm:grid-cols-4 gap-3 items-end">
+              <div class="grid grid-cols-1 sm:grid-cols-3 gap-3 items-end">
                 <div>
                   <label class="block text-[13px] font-semibold text-[#4B5563] mb-1">Dari Tanggal</label>
                   <input
@@ -2094,9 +2454,14 @@ function getLineStyle(stepBefore, item) {
                   <label class="block text-[13px] font-semibold text-[#4B5563] mb-1">Filter Distributor</label>
                   <select
                     v-model="exportBranch"
-                    class="w-full px-3 py-2 text-[14px] bg-white border border-[#D1D5DB] rounded-[8px] focus:ring-2 focus:ring-[#2563EB]"
+                    @change="onExportBranchChange"
+                    :disabled="isLoadingExportBranches || exportBranches.length === 0"
+                    class="w-full px-3 py-2 text-[14px] bg-white border border-[#D1D5DB] rounded-[8px] focus:ring-2 focus:ring-[#2563EB] font-medium text-[#111827] disabled:bg-slate-100 disabled:text-slate-400 cursor-pointer disabled:cursor-not-allowed"
                   >
-                    <option value="" disabled selected>-- Pilih Distributor --</option>
+                    <option v-if="isLoadingExportBranches" value="" disabled selected>🔄 Memuat daftar distributor...</option>
+                    <option v-else-if="exportBranches.length === 0" value="" disabled selected>⚠️ Tidak Ada Distributor dengan Data Approved pada Tanggal Ini</option>
+                    <option v-else value="">-- Pilih Distributor ({{ exportBranches.length }} Tersedia) --</option>
+                    
                     <optgroup
                       v-for="(group, regionKey) in groupedExportBranches"
                       :key="regionKey"
@@ -2114,16 +2479,6 @@ function getLineStyle(stepBefore, item) {
                     </optgroup>
                   </select>
                 </div>
-                <div>
-                  <button
-                    @click="fetchExportData"
-                    :disabled="!exportBranch || isLoadingExportData"
-                    class="w-full py-2 px-4 text-[14px] font-semibold text-white bg-[#111827] hover:bg-[#1F2937] disabled:bg-[#9CA3AF] disabled:cursor-not-allowed rounded-[8px] transition cursor-pointer flex items-center justify-center gap-1.5"
-                  >
-                    <span v-if="isLoadingExportData" class="animate-pulse">Memuat...</span>
-                    <span v-else>Tampilkan Data</span>
-                  </button>
-                </div>
               </div>
             </div>
 
@@ -2131,10 +2486,22 @@ function getLineStyle(stepBefore, item) {
             <div class="space-y-2">
               <div class="flex items-center justify-between text-[13px] text-[#4B5563] font-medium">
                 <span>{{ exportSubmissions.length }} data Approved untuk {{ exportBranch ? exportBranch : 'distributor' }}.</span>
-                <span v-if="isLoadingExportData" class="text-[#2563EB] animate-pulse">Memuat data...</span>
+                <span v-if="isLoadingExportData" class="text-[#2563EB] font-bold animate-pulse">🔄 Memuat data...</span>
               </div>
 
-              <div class="border border-[#E5E7EB] rounded-[10px] overflow-x-auto max-h-72 overflow-y-auto">
+              <div class="border border-[#E5E7EB] rounded-[10px] overflow-x-auto max-h-72 overflow-y-auto relative isolate min-h-[220px]" style="isolation: isolate;">
+                <!-- PROMINENT EXECUTIVE LOADING OVERLAY -->
+                <div v-if="isLoadingExportData" class="absolute inset-0 bg-white/95 z-30 flex flex-col items-center justify-center gap-3 p-6 text-center transition-all">
+                  <div class="relative flex items-center justify-center">
+                    <div class="w-12 h-12 border-4 border-blue-600 border-t-transparent rounded-full animate-spin"></div>
+                    <div class="absolute w-6 h-6 bg-blue-100 rounded-full flex items-center justify-center text-blue-600 font-bold text-xs">⚡</div>
+                  </div>
+                  <div class="space-y-1">
+                    <span class="text-sm font-extrabold text-slate-800 block">🔄 Memuat Data NOO Approved...</span>
+                    <span class="text-xs text-slate-500 font-medium block">Sedang mengambil data toko untuk distributor <strong class="text-blue-600">{{ exportBranch }}</strong></span>
+                  </div>
+                </div>
+
                 <table class="w-full text-[13px] text-left text-[#374151]">
                   <thead class="bg-[#F3F4F6] border-b border-[#E5E7EB] font-semibold text-[#111827] sticky top-0 bg-[#F3F4F6]">
                     <tr>
@@ -2158,16 +2525,11 @@ function getLineStyle(stepBefore, item) {
                   <tbody>
                     <tr v-if="!exportBranch">
                       <td colspan="8" class="p-8 text-center text-[#4B5563]">
-                        <span class="text-[14px]">🏬 Silakan pilih <strong>Distributor</strong> terlebih dahulu, lalu klik <strong>Tampilkan Data</strong>.</span>
-                      </td>
-                    </tr>
-                    <tr v-else-if="!hasFetchedExport">
-                      <td colspan="8" class="p-8 text-center text-[#4B5563]">
-                        <span class="text-[14px]">📅 Klik <strong>Tampilkan Data</strong> untuk memuat list NOO Approved distributor <strong>{{ exportBranch }}</strong>.</span>
+                        <span class="text-[14px]">🏬 Silakan pilih <strong>Distributor</strong> terlebih dahulu untuk menampilkan data NOO Approved.</span>
                       </td>
                     </tr>
                     <tr v-else-if="exportSubmissions.length === 0">
-                      <td colspan="8" class="p-6 text-center text-[#9CA3AF]">Tidak ada data NOO Approved pada filter ini.</td>
+                      <td colspan="8" class="p-6 text-center text-[#9CA3AF]">Tidak ada data NOO Approved pada filter tanggal & distributor ini.</td>
                     </tr>
                     <tr
                       v-for="sub in exportSubmissions"
@@ -2356,6 +2718,211 @@ function getLineStyle(stepBefore, item) {
                 </span>
                 <span v-else>Export Rejected to Excel</span>
               </button>
+            </div>
+
+          </div>
+        </div>
+      </Teleport>
+
+      <!-- DEDICATED MODAL FILTER & SORT -->
+      <Teleport to="body">
+        <div v-if="showFilterModal" class="fixed inset-0 min-h-screen min-w-full w-full h-full bg-black/60 backdrop-blur-xs z-[99995] flex items-center justify-center p-4 overflow-y-auto">
+          <div class="bg-white rounded-2xl max-w-lg w-full p-6 space-y-5 shadow-2xl border border-slate-200 text-slate-800 my-auto">
+            
+            <!-- Modal Filter Header -->
+            <div class="flex items-center justify-between border-b border-slate-200 pb-3.5">
+              <div class="flex items-center gap-2.5">
+                <div class="w-8 h-8 rounded-xl bg-blue-50 text-blue-600 border border-blue-200 flex items-center justify-center font-bold text-sm">
+                  🎛️
+                </div>
+                <div>
+                  <h3 class="text-base font-black text-slate-900 tracking-tight">Filter & Urutkan Data Verifikasi</h3>
+                  <p class="text-xs text-slate-500">Sesuaikan kriteria filter & urutan tampilan tabel</p>
+                </div>
+              </div>
+              <button
+                @click="showFilterModal = false"
+                class="text-slate-400 hover:text-slate-700 text-lg font-bold p-1 rounded-lg hover:bg-slate-100 transition cursor-pointer"
+              >
+                ✕
+              </button>
+            </div>
+
+            <!-- Modal Filter Body -->
+            <div class="space-y-4 text-xs font-semibold">
+              <!-- REGION (IF SUPERADMIN / ADMIN PRINCIPAL) -->
+              <div v-if="userRole === 'SUPERADMIN' || userRole === 'ADMIN_PRINCIPAL'">
+                <label class="block text-xs font-bold text-slate-700 mb-1">Region / Wilayah Scope:</label>
+                <SearchableSelect
+                  v-model="selectedRegion"
+                  :options="regionOptions"
+                  placeholder="-- Semua Region --"
+                  searchPlaceholder="Ketik Region Code / Nama..."
+                  @change="onRegionChange"
+                />
+              </div>
+
+              <!-- ENTITY / PRINCIPAL -->
+              <div>
+                <label class="block text-xs font-bold text-slate-700 mb-1">Entity Principal:</label>
+                <SearchableSelect
+                  v-model="selectedPrincipal"
+                  :options="entityOptions"
+                  placeholder="-- Semua Principal --"
+                  searchPlaceholder="Ketik Kode / Nama Entity..."
+                  @change="onPrincipalChange"
+                />
+              </div>
+
+              <!-- BRANCH -->
+              <div>
+                <label class="block text-xs font-bold text-slate-700 mb-1">Cabang / Branch:</label>
+                <SearchableSelect
+                  v-model="selectedBranch"
+                  :options="branchOptions"
+                  placeholder="-- Semua Cabang --"
+                  searchPlaceholder="Ketik ID atau Nama Cabang..."
+                />
+              </div>
+
+              <!-- STATUS -->
+              <div>
+                <label class="block text-xs font-bold text-slate-700 mb-1">Status Submisi NOO:</label>
+                <SearchableSelect
+                  v-model="selectedStatus"
+                  :options="statusOptions"
+                  placeholder="-- Semua Status --"
+                  searchPlaceholder="Cari Status..."
+                />
+              </div>
+
+              <!-- BULAN & TAHUN APPROVAL EDP (MULTISELECT CHECKBOX DROPDOWN LIKE MONITORING RO) -->
+              <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <!-- BULAN MULTISELECT -->
+                <div class="relative" ref="monthDropdownRef">
+                  <label class="block text-xs font-bold text-slate-700 mb-1">Bulan Approval EDP:</label>
+                  
+                  <button
+                    type="button"
+                    @click="isMonthDropdownOpen = !isMonthDropdownOpen"
+                    class="w-full h-10 px-3 text-xs rounded-xl border border-slate-300 bg-white font-semibold text-slate-800 flex items-center justify-between shadow-2xs hover:border-blue-500 focus:outline-none transition cursor-pointer"
+                  >
+                    <span class="truncate pr-2">{{ selectedEdpMonthsLabel }}</span>
+                    <div class="flex items-center gap-1.5 shrink-0">
+                      <span
+                        v-if="selectedEdpMonths.length > 0 && selectedEdpMonths.length < 12"
+                        class="w-5 h-5 rounded-full bg-blue-600 text-white text-[10px] font-bold flex items-center justify-center"
+                      >
+                        {{ selectedEdpMonths.length }}
+                      </span>
+                      <span class="text-[10px] text-slate-500">▼</span>
+                    </div>
+                  </button>
+
+                  <!-- DROPDOWN OVERLAY WITH CHECKBOXES -->
+                  <div
+                    v-if="isMonthDropdownOpen"
+                    class="absolute left-0 top-full mt-1.5 w-72 bg-white rounded-2xl border border-slate-200 shadow-2xl z-50 p-3 space-y-2 text-xs"
+                  >
+
+                    <!-- CHECKBOX LIST 12 BULAN -->
+                    <div class="grid grid-cols-2 gap-1.5 max-h-48 overflow-y-auto pt-1">
+                      <label
+                        v-for="m in edpMonthOptions"
+                        :key="m.value"
+                        class="flex items-center gap-2 p-1.5 rounded-lg hover:bg-slate-50 cursor-pointer select-none text-slate-700"
+                      >
+                        <input
+                          type="checkbox"
+                          :value="m.value"
+                          v-model="selectedEdpMonths"
+                          class="w-3.5 h-3.5 text-blue-600 rounded border-slate-300 focus:ring-blue-500"
+                        />
+                        <span class="font-medium text-[11.5px]">{{ m.label }}</span>
+                      </label>
+                    </div>
+
+                    <div class="pt-2 border-t border-slate-100 flex justify-between items-center text-[11px]">
+                      <span class="text-slate-500 font-semibold">{{ selectedEdpMonths.length }} bulan terpilih</span>
+                      <button
+                        type="button"
+                        @click="isMonthDropdownOpen = false"
+                        class="text-blue-600 font-bold hover:underline cursor-pointer"
+                      >
+                        Selesai
+                      </button>
+                    </div>
+                  </div>
+                </div>
+
+                <!-- TAHUN APPROVAL EDP -->
+                <div>
+                  <label class="block text-xs font-bold text-slate-700 mb-1">Tahun Approval EDP:</label>
+                  <select
+                    v-model="selectedEdpYear"
+                    class="w-full h-10 px-3 text-xs font-semibold text-slate-800 bg-white border border-slate-300 rounded-xl focus:ring-2 focus:ring-blue-500 shadow-2xs cursor-pointer"
+                  >
+                    <option value="">-- Semua Tahun Approval --</option>
+                    <option v-for="y in edpYearSelectOptions" :key="y.value" :value="y.value">
+                      {{ y.label }}
+                    </option>
+                  </select>
+                </div>
+              </div>
+
+              <!-- SORT DROPDOWN -->
+              <div>
+                <label class="block text-xs font-bold text-slate-700 mb-1">Urutkan Tampilan Tabel (Sort):</label>
+                <div class="relative">
+                  <select
+                    v-model="sortSelect"
+                    class="w-full text-xs font-semibold p-3 pr-10 rounded-xl border border-slate-300 bg-white text-slate-800 focus:ring-2 focus:ring-blue-500 shadow-2xs cursor-pointer appearance-none"
+                  >
+                    <option value="created_at_desc">📅 Waktu Submit (Terbaru ➔ Terlama)</option>
+                    <option value="created_at_asc">📅 Waktu Submit (Terlama ➔ Terbaru)</option>
+                    <option value="nama_noo_asc">🏪 Nama Outlet (A ➔ Z)</option>
+                    <option value="nama_noo_desc">🏪 Nama Outlet (Z ➔ A)</option>
+                    <option value="branch_name_asc">🏢 Cabang Distributor (A ➔ Z)</option>
+                    <option value="status_asc">🏷️ Status Submisi (Asc)</option>
+                  </select>
+                  <div class="absolute right-3.5 top-1/2 -translate-y-1/2 pointer-events-none text-slate-500 text-xs font-bold">
+                    ▼
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <!-- Modal Filter Footer -->
+            <div class="pt-3 border-t border-slate-200 flex items-center justify-between gap-3">
+              <button
+                type="button"
+                @click="resetFilters"
+                class="px-4 py-2.5 text-xs font-bold text-rose-700 bg-rose-50 hover:bg-rose-100 border border-rose-200 rounded-xl transition cursor-pointer"
+              >
+                🔄 Reset All Filter
+              </button>
+
+              <div class="flex items-center gap-2">
+                <button
+                  type="button"
+                  @click="showFilterModal = false"
+                  class="px-4 py-2.5 text-xs font-semibold text-slate-600 hover:text-slate-800 hover:bg-slate-100 rounded-xl transition cursor-pointer"
+                >
+                  Batal
+                </button>
+                <button
+                  type="button"
+                  @click="applyFilterModal"
+                  :disabled="isLoadingFilters"
+                  class="px-5 py-2.5 text-xs font-bold text-white bg-blue-600 hover:bg-blue-700 rounded-xl shadow-sm transition cursor-pointer flex items-center gap-2 disabled:opacity-50"
+                >
+                  <svg v-if="isLoadingFilters" class="animate-spin h-3.5 w-3.5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                    <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                    <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                  </svg>
+                  <span>Terapkan Filter & Sort</span>
+                </button>
+              </div>
             </div>
 
           </div>
