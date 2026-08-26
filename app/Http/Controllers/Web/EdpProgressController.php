@@ -160,7 +160,22 @@ class EdpProgressController extends Controller
         $perPage = (int) $request->input('per_page', 15);
         if ($perPage <= 0) $perPage = 15;
 
-        $submissions = $query->orderBy('created_at', 'desc')->paginate($perPage)->withQueryString();
+        $sortKey = $request->input('sort_key', 'created_at');
+        $sortDir = strtolower($request->input('sort_dir', 'desc')) === 'asc' ? 'asc' : 'desc';
+
+        $allowedSortKeys = [
+            'nama_noo' => 'nama_noo',
+            'created_at' => 'created_at',
+            'submitted_at' => 'submitted_at',
+            'branch_id' => 'branch_id',
+            'status' => 'status',
+            'stage_code' => 'status',
+            'salesman_name' => 'salesman_name',
+        ];
+
+        $column = $allowedSortKeys[$sortKey] ?? 'created_at';
+
+        $submissions = $query->orderBy($column, $sortDir)->paginate($perPage)->withQueryString();
 
         $formatPhoto = function ($path) {
             if (empty($path)) return null;
@@ -184,10 +199,10 @@ class EdpProgressController extends Controller
                 $item->stage_label = 'Pending Verifikasi EDP';
                 $item->stage_code = 'PENDING_EDP';
             } elseif ($item->status === 'APPROVED_EDP') {
-                $item->stage_label = 'Selesai / Approved EDP';
+                $item->stage_label = 'Toko Disetujui EDP Principal';
                 $item->stage_code = 'COMPLETED';
             } else {
-                $item->stage_label = 'Ditolak / Rejected';
+                $item->stage_label = 'Submisi Ditolak';
                 $item->stage_code = 'REJECTED';
             }
 
@@ -199,7 +214,7 @@ class EdpProgressController extends Controller
             'metrics' => $metrics,
             'userRole' => $userRole,
             'canReset' => in_array($userRole, ['SUPERADMIN', 'ADMIN_PRINCIPAL']),
-            'filters' => $request->only(['search', 'region_code', 'branch_id', 'stage']),
+            'filters' => $request->only(['search', 'region_code', 'branch_id', 'stage', 'sort_key', 'sort_dir']),
             'filterOptions' => $this->getFilterOptions($user),
         ]);
     }

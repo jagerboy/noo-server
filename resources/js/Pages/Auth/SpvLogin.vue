@@ -45,9 +45,7 @@ function submitLogin() {
         <div>
           <!-- Header Brand dengan Shape Logo Pas & Lapang -->
           <div class="flex items-center gap-3.5 mb-4">
-            <div class="flex items-center justify-center px-3.5 h-11 rounded-xl bg-gradient-to-r from-[#542B85] via-[#1E2B7B] to-[#D9232A] shadow-sm text-white font-black text-xl tracking-wider border border-[#F59E0B]/40 shrink-0 whitespace-nowrap">
-              <span class="text-white">NOO</span><span class="text-[#F59E0B] ml-0.5">+</span>
-            </div>
+            <img src="/logo-noo-plus.png" alt="Logo NOO+" class="h-11 w-auto object-contain rounded-lg shrink-0 drop-shadow-xs" />
             <div>
               <h1 class="text-lg font-bold text-[#1E293B] tracking-tight leading-snug">Portal SPV Area</h1>
               <p class="text-[12px] text-[#64748B] font-medium flex items-center gap-1">

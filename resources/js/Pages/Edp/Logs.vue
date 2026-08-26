@@ -30,6 +30,18 @@ function handleSearch() {
   );
 }
 
+function formatRole(role) {
+  if (!role) return '-';
+  const roleMap = {
+    'SUPERADMIN': 'Superadmin',
+    'ADMIN_PRINCIPAL': 'Admin Principal',
+    'EDP_REGION': 'EDP Region',
+    'SPV_AREA': 'SPV Area',
+    'ADMIN_DISTRIBUTOR': 'Admin Distributor',
+  };
+  return roleMap[role] || role.replace(/_/g, ' ');
+}
+
 function getRoleBadgeStyle(role) {
   switch (role) {
     case 'SUPERADMIN':
@@ -87,7 +99,7 @@ function getRoleBadgeStyle(role) {
           >
             <option value="ALL">Semua Role</option>
             <option v-for="r in availableRoles" :key="r" :value="r">
-              {{ r }}
+              {{ formatRole(r) }}
             </option>
           </select>
         </div>
@@ -116,7 +128,7 @@ function getRoleBadgeStyle(role) {
                 <td class="px-4 py-3 font-bold text-[#111827]">{{ log.username }}</td>
                 <td class="px-4 py-3 font-semibold">
                   <span class="px-2 py-0.5 text-[10px] font-bold rounded border" :class="getRoleBadgeStyle(log.user_role)">
-                    {{ log.user_role }}
+                    {{ formatRole(log.user_role) }}
                   </span>
                 </td>
                 <td class="px-4 py-3">

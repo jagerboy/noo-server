@@ -26,9 +26,7 @@ const showingNavigationDropdown = ref(false);
           
           <!-- Left Brand & Title -->
           <div class="flex items-center space-x-3">
-            <div class="flex items-center justify-center px-3.5 py-1.5 min-w-[76px] rounded-xl bg-[#542B85] text-white font-black text-base tracking-wider shadow-sm border border-[#F59E0B]/60 shrink-0">
-              <span class="text-white">NOO</span><span class="text-[#F59E0B] ml-0.5">+</span>
-            </div>
+            <img src="/logo-noo-plus.png" alt="Logo NOO+" class="h-10 w-auto object-contain rounded-lg shrink-0 drop-shadow-xs" />
             <div>
               <div class="flex items-center space-x-2">
                 <h1 class="text-base font-bold tracking-wide text-white flex items-center gap-1.5">

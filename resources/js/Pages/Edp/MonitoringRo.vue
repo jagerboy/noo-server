@@ -146,11 +146,6 @@ function applyFilters() {
   router.get(route('edp.monitoring_ro'), queryParams, {
     preserveScroll: true,
     replace: true,
-    onSuccess: () => {
-      if (window.location.search) {
-        window.history.replaceState({}, '', window.location.pathname);
-      }
-    },
   });
 }
 

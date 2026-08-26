@@ -36,6 +36,18 @@ const props = defineProps({
   },
 });
 
+function formatRole(role) {
+  if (!role) return '-';
+  const roleMap = {
+    'SUPERADMIN': 'Superadmin',
+    'ADMIN_PRINCIPAL': 'Admin Principal',
+    'EDP_REGION': 'EDP Region',
+    'SPV_AREA': 'SPV Area',
+    'ADMIN_DISTRIBUTOR': 'Admin Distributor',
+  };
+  return roleMap[role] || role.replace(/_/g, ' ');
+}
+
 const selectedRegion = ref(props.filters?.region_code || '');
 const selectedPrincipal = ref(props.filters?.principal || '');
 const selectedBranch = ref(props.filters?.branch_id || '');
@@ -322,9 +334,6 @@ function applyFilters() {
       preserveScroll: true,
       onFinish: () => {
         isFiltering.value = false;
-        if (window.location.search) {
-          window.history.replaceState({}, '', window.location.pathname);
-        }
         animateNumbers();
       },
     }
@@ -982,7 +991,7 @@ function formatActionLabel(action) {
                 <td class="p-3">
                   <div class="font-semibold text-slate-800">{{ log.username || 'System' }}</div>
                   <span class="text-[9.5px] font-bold px-1.5 py-0.5 rounded bg-slate-100 text-slate-600 border border-slate-200">
-                    {{ log.role || 'USER' }}
+                    {{ formatRole(log.role || 'USER') }}
                   </span>
                 </td>
                 <td class="p-3 whitespace-nowrap">

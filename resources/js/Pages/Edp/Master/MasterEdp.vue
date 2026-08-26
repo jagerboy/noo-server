@@ -31,6 +31,18 @@ const regionOptions = computed(() => {
   });
 });
 
+function formatRole(role) {
+  if (!role) return '-';
+  const roleMap = {
+    'SUPERADMIN': 'Superadmin',
+    'ADMIN_PRINCIPAL': 'Admin Principal',
+    'EDP_REGION': 'EDP Region',
+    'SPV_AREA': 'SPV Area',
+    'ADMIN_DISTRIBUTOR': 'Admin Distributor',
+  };
+  return roleMap[role] || role.replace(/_/g, ' ');
+}
+
 // INSTANT CLIENT-SIDE COMPUTED FILTERING
 const rawEdpList = computed(() => {
   if (Array.isArray(props.edps)) return props.edps;
@@ -202,7 +214,7 @@ function deleteEdp(edp) {
                 <td class="px-4 py-3 font-semibold text-[#374151]">{{ edp.nama }}</td>
                 <td class="px-4 py-3 text-[#6B7280]">
                   <span class="px-2 py-0.5 rounded text-[10px] font-bold bg-blue-100 text-blue-800">
-                    {{ edp.role }}
+                    {{ formatRole(edp.role) }}
                   </span>
                 </td>
                 <td class="px-4 py-3 text-[#059669] font-bold">{{ edp.region_code || 'GLOBAL / ALL' }}</td>

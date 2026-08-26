@@ -137,6 +137,18 @@ function deleteAccount(acc) {
     router.delete(route('edp.account_management.destroy', acc.id));
   }
 }
+
+function formatRole(role) {
+  if (!role) return '-';
+  const roleMap = {
+    'SUPERADMIN': 'Superadmin',
+    'ADMIN_PRINCIPAL': 'Admin Principal',
+    'EDP_REGION': 'EDP Region',
+    'SPV_AREA': 'SPV Area',
+    'ADMIN_DISTRIBUTOR': 'Admin Distributor',
+  };
+  return roleMap[role] || role.replace(/_/g, ' ');
+}
 </script>
 
 <template>
@@ -230,10 +242,13 @@ function deleteAccount(acc) {
                       :class="[
                         'px-2.5 py-1 text-[10px] font-bold rounded-md uppercase tracking-wider',
                         acc.role === 'SUPERADMIN' ? 'bg-purple-100 text-purple-800 border border-purple-300' :
-                        acc.role === 'ADMIN_PRINCIPAL' ? 'bg-blue-100 text-blue-800 border border-blue-300' : 'bg-emerald-100 text-emerald-800 border border-emerald-300'
+                        acc.role === 'ADMIN_PRINCIPAL' ? 'bg-blue-100 text-blue-800 border border-blue-300' :
+                        acc.role === 'SPV_AREA' ? 'bg-amber-100 text-amber-900 border border-amber-300' :
+                        acc.role === 'ADMIN_DISTRIBUTOR' ? 'bg-emerald-100 text-emerald-900 border border-emerald-300' :
+                        'bg-emerald-100 text-emerald-800 border border-emerald-300'
                       ]"
                     >
-                      {{ acc.role || 'EDP_REGION' }}
+                      {{ formatRole(acc.role || 'EDP_REGION') }}
                     </span>
                   </td>
                   <td class="px-4 py-3 font-bold text-[#059669]">{{ acc.region_code || 'ALL REGIONS (GLOBAL)' }}</td>

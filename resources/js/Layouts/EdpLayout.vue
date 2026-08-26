@@ -32,7 +32,7 @@ const displayUserRole = computed(() => {
     if (reg.includes('INASUM') || username.includes('inasum')) return 'Admin Principal INA Sumatera';
     return user.value.region_code ? `Admin Principal (${user.value.region_code})` : 'Admin Principal';
   }
-  return role;
+  return (role || '').replace(/_/g, ' ');
 });
 
 const isFlashSuccessDismissed = ref(false);
@@ -108,9 +108,7 @@ function toggleMasterMenu() {
             </button>
 
             <Link :href="route('edp.dashboard')" class="flex items-center gap-3 group">
-              <div class="flex items-center justify-center px-3.5 py-1.5 min-w-[90px] rounded-lg bg-noo-primary border border-blue-800 text-white font-black text-base tracking-wider shadow-xs group-hover:bg-[#212a76] transition shrink-0">
-                <span class="text-white">NOO</span><span class="text-noo-accent ml-0.5">+</span>
-              </div>
+              <img src="/logo-noo-plus.png" alt="Logo NOO+" class="h-10 w-auto object-contain rounded-lg shrink-0 shadow-sm transition group-hover:scale-102" />
               <div class="flex flex-col">
                 <span class="text-[15px] font-heading font-bold text-white tracking-wide leading-tight flex items-center gap-2">
                   PORTAL PRINCIPAL

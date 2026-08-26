@@ -19,6 +19,26 @@ use App\Http\Controllers\Auth\DistributorLoginController;
 use App\Http\Controllers\Auth\SpvLoginController;
 use App\Http\Controllers\Auth\EdpLoginController;
 
+Route::get('/logo-noo-plus.png', function () {
+    $dest = public_path('images/logo-noo-plus.png');
+    $src = 'C:/Users/ITSALES-02/.gemini/antigravity-ide/brain/8b28e86b-f8d0-4871-b68d-6be343488240/media__1787738319645.png';
+    if (!file_exists($dest)) {
+        if (!is_dir(public_path('images'))) {
+            @mkdir(public_path('images'), 0777, true);
+        }
+        if (file_exists($src)) {
+            @copy($src, $dest);
+        }
+    }
+    if (file_exists($dest)) {
+        return response()->file($dest);
+    }
+    if (file_exists($src)) {
+        return response()->file($src);
+    }
+    abort(404);
+});
+
 Route::get('/', function () {
     return redirect()->route('edp_login.create');
 });

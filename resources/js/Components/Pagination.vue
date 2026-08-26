@@ -92,6 +92,7 @@ function changePerPage() {
           "
           v-html="link.label"
           preserve-scroll
+          preserve-state
         />
       </template>
     </div>

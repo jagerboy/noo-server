@@ -434,9 +434,6 @@ function applyFilters() {
       },
       onFinish: () => {
         isLoadingFilters.value = false;
-        if (window.location.search) {
-          window.history.replaceState({}, '', window.location.pathname);
-        }
       },
     }
   );

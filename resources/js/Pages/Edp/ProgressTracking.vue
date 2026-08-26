@@ -62,15 +62,13 @@ function applyFilters() {
       region_code: selectedRegion.value,
       branch_id: selectedBranch.value,
       stage: selectedStage.value,
+      sort_key: sortKey.value,
+      sort_dir: sortDir.value,
     },
     {
       preserveState: true,
+      preserveScroll: true,
       replace: true,
-      onFinish: () => {
-        if (window.location.search) {
-          window.history.replaceState({}, '', window.location.pathname);
-        }
-      },
     }
   );
 }
@@ -227,8 +225,8 @@ function isItemRejected(item) {
   return isRejectedAdmin(item) || isRejectedSpv(item) || isRejectedEdp(item);
 }
 
-const sortKey = ref('created_at');
-const sortDir = ref('desc');
+const sortKey = ref(props.filters?.sort_key || 'created_at');
+const sortDir = ref(props.filters?.sort_dir || 'desc');
 
 function handleSort(key) {
   if (sortKey.value === key) {
@@ -237,6 +235,7 @@ function handleSort(key) {
     sortKey.value = key;
     sortDir.value = 'asc';
   }
+  applyFilters();
 }
 
 const sortedSubmissions = computed(() => {
