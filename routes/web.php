@@ -23,6 +23,46 @@ Route::get('/', function () {
     return redirect()->route('edp_login.create');
 });
 
+// Dynamic Photo Stream Server Route (Guaranteed bypass of static public/storage folder checks)
+Route::get('/media-photo/{path}', function ($path) {
+    $cleanPath = ltrim(urldecode($path), '/');
+    if (str_starts_with($cleanPath, 'public/')) $cleanPath = substr($cleanPath, 7);
+    if (str_starts_with($cleanPath, 'storage/')) $cleanPath = substr($cleanPath, 8);
+    if (str_starts_with($cleanPath, 'media-photo/')) $cleanPath = substr($cleanPath, 12);
+
+    $fullPath = storage_path('app/public/' . $cleanPath);
+    if (!file_exists($fullPath)) {
+        $fullPathAlt = storage_path('app/' . $cleanPath);
+        if (file_exists($fullPathAlt)) {
+            $fullPath = $fullPathAlt;
+        } else {
+            abort(404);
+        }
+    }
+
+    $mime = @mime_content_type($fullPath);
+    if (!$mime || $mime === 'text/plain' || $mime === 'application/octet-stream') {
+        $handle = @fopen($fullPath, 'rb');
+        $bytes = $handle ? fread($handle, 4) : '';
+        if ($handle) fclose($handle);
+
+        if (str_starts_with($bytes, "\xFF\xD8\xFF")) {
+            $mime = 'image/jpeg';
+        } elseif (str_starts_with($bytes, "\x89PNG")) {
+            $mime = 'image/png';
+        } elseif (str_starts_with($bytes, "GIF")) {
+            $mime = 'image/gif';
+        } else {
+            $mime = 'image/jpeg';
+        }
+    }
+
+    return response()->file($fullPath, [
+        'Content-Type' => $mime,
+        'Cache-Control' => 'public, max-age=86400',
+    ]);
+})->where('path', '.*')->name('media.photo');
+
 // Rute Login Bertingkat khusus Admin Distributor
 Route::get('/distributor-login', [DistributorLoginController::class, 'create'])->name('distributor_login.create');
 Route::get('/distributor-login/bootstrap', [DistributorLoginController::class, 'getBootstrapData'])->name('distributor_login.bootstrap');
@@ -55,6 +95,7 @@ $adminGroup->group(function () {
     Route::get('/inbox', [AdminDistributorController::class, 'index'])->name('inbox');
     Route::post('/submit-spv', [AdminDistributorController::class, 'submitToSpv'])->name('submit_spv');
     Route::post('/reject', [AdminDistributorController::class, 'reject'])->name('reject');
+    Route::post('/update-nama-outlet', [AdminDistributorController::class, 'updateNamaOutlet'])->name('update_nama_outlet');
 });
 
 // 2. Rute Portal SPV Area (Domain Internal Server / Session-based)

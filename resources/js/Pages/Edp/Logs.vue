@@ -10,12 +10,41 @@ import Pagination from '@/Components/Pagination.vue';
 const props = defineProps({
   logs: Object,
   filters: Object,
+  availableRoles: {
+    type: Array,
+    default: () => [],
+  },
 });
 
 const search = ref(props.filters?.search || '');
+const selectedRole = ref(props.filters?.role || 'ALL');
 
 function handleSearch() {
-  router.get(route('edp.logs'), { search: search.value }, { preserveState: true, replace: true });
+  router.get(
+    route('edp.logs'),
+    {
+      search: search.value,
+      role: selectedRole.value,
+    },
+    { preserveState: true, replace: true }
+  );
+}
+
+function getRoleBadgeStyle(role) {
+  switch (role) {
+    case 'SUPERADMIN':
+      return 'bg-purple-100 text-purple-800 border-purple-200';
+    case 'ADMIN_PRINCIPAL':
+      return 'bg-blue-100 text-blue-800 border-blue-200';
+    case 'EDP_REGION':
+      return 'bg-indigo-100 text-indigo-800 border-indigo-200';
+    case 'SPV_AREA':
+      return 'bg-amber-100 text-amber-900 border-amber-300';
+    case 'ADMIN_DISTRIBUTOR':
+      return 'bg-emerald-100 text-emerald-900 border-emerald-300';
+    default:
+      return 'bg-slate-100 text-slate-800 border-slate-200';
+  }
 }
 </script>
 
@@ -33,16 +62,35 @@ function handleSearch() {
         </p>
       </div>
 
-      <!-- Search Bar -->
-      <div class="bg-white p-4 rounded-xl border border-[#E5E7EB] flex items-center gap-3">
-        <input
-          type="text"
-          v-model="search"
-          @keyup.enter="handleSearch"
-          placeholder="Cari Username, Modul, atau Aktivitas..."
-          class="w-full max-w-md px-3.5 py-2 text-xs bg-white border border-[#D1D5DB] rounded-lg focus:ring-2 focus:ring-[#10B981]"
-        />
-        <button @click="handleSearch" class="px-4 py-2 text-xs font-semibold text-white bg-[#374151] rounded-lg">Cari</button>
+      <!-- Search Bar & Role Filter -->
+      <div class="bg-white p-4 rounded-xl border border-[#E5E7EB] flex flex-wrap items-center justify-between gap-3">
+        <div class="flex items-center gap-3 flex-1 min-w-[300px]">
+          <input
+            type="text"
+            v-model="search"
+            @keyup.enter="handleSearch"
+            placeholder="Cari Username, Modul, atau Aktivitas..."
+            class="w-full max-w-md px-3.5 py-2 text-xs bg-white border border-[#D1D5DB] rounded-lg focus:ring-2 focus:ring-[#10B981] outline-none"
+          />
+          <button @click="handleSearch" class="px-4 py-2 text-xs font-semibold text-white bg-[#374151] hover:bg-slate-800 rounded-lg cursor-pointer transition">
+            Cari
+          </button>
+        </div>
+
+        <!-- Role Filter Dropdown -->
+        <div class="flex items-center gap-2 shrink-0">
+          <label class="text-xs font-bold text-slate-700">Filter Role:</label>
+          <select
+            v-model="selectedRole"
+            @change="handleSearch"
+            class="px-3.5 py-2 text-xs font-semibold bg-slate-50 border border-slate-300 rounded-lg focus:ring-2 focus:ring-[#10B981] text-slate-800 cursor-pointer shadow-2xs"
+          >
+            <option value="ALL">Semua Role</option>
+            <option v-for="r in availableRoles" :key="r" :value="r">
+              {{ r }}
+            </option>
+          </select>
+        </div>
       </div>
 
       <!-- Table Audit Logs -->
@@ -66,7 +114,11 @@ function handleSearch() {
                   {{ new Date(log.created_at).toLocaleString('id-ID') }}
                 </td>
                 <td class="px-4 py-3 font-bold text-[#111827]">{{ log.username }}</td>
-                <td class="px-4 py-3 font-semibold text-[#059669]">{{ log.user_role }}</td>
+                <td class="px-4 py-3 font-semibold">
+                  <span class="px-2 py-0.5 text-[10px] font-bold rounded border" :class="getRoleBadgeStyle(log.user_role)">
+                    {{ log.user_role }}
+                  </span>
+                </td>
                 <td class="px-4 py-3">
                   <span class="px-2 py-0.5 text-[10px] font-bold bg-gray-100 text-gray-800 rounded">
                     {{ log.action }}

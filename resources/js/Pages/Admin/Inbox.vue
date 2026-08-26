@@ -3,7 +3,7 @@
  * Halaman Inbox Portal Web Admin Distributor (NOO+ v2.0).
  * Vue 3 Composition API + Light Mode Theme Design System Specification.
  */
-import { ref, computed } from 'vue';
+import { ref, computed, onMounted, onUnmounted } from 'vue';
 import { useForm } from '@inertiajs/vue3';
 import AdminLayout from '@/Layouts/AdminLayout.vue';
 import BaseButton from '@/Components/BaseButton.vue';
@@ -44,6 +44,42 @@ const rejectForm = useForm({
   request_id: '',
   reject_reason: '',
 });
+
+// State & Form Edit Nama Outlet
+const isEditingNamaOutlet = ref(false);
+const editNamaForm = useForm({
+  request_id: '',
+  nama_noo: '',
+});
+
+function startEditNamaOutlet() {
+  if (!selectedSubmission.value) return;
+  editNamaForm.request_id = selectedSubmission.value.request_id;
+  editNamaForm.nama_noo = selectedSubmission.value.nama_noo || '';
+  isEditingNamaOutlet.value = true;
+}
+
+function cancelEditNamaOutlet() {
+  isEditingNamaOutlet.value = false;
+  editNamaForm.reset();
+}
+
+function submitUpdateNamaOutlet() {
+  if (!editNamaForm.nama_noo.trim()) return;
+  editNamaForm.post(route('admin.update_nama_outlet'), {
+    preserveScroll: true,
+    onSuccess: () => {
+      if (selectedSubmission.value) {
+        selectedSubmission.value.nama_noo = editNamaForm.nama_noo.trim();
+      }
+      const targetSub = props.submissions.find(s => s.request_id === editNamaForm.request_id);
+      if (targetSub) {
+        targetSub.nama_noo = editNamaForm.nama_noo.trim();
+      }
+      isEditingNamaOutlet.value = false;
+    },
+  });
+}
 
 // Filter Submisi Data Toko
 const filteredSubmissions = computed(() => {
@@ -118,6 +154,14 @@ const stats = computed(() => {
   return { total, pendingSe, pushedSpv, rejected, approved };
 });
 
+// Helper Resolusi URL Foto (/media-photo/ Streaming Route)
+function getPhotoUrl(pathOrUrl) {
+  if (!pathOrUrl) return null;
+  if (pathOrUrl.includes('/media-photo/')) return pathOrUrl;
+  const cleanPath = pathOrUrl.replace(/^https?:\/\/[^\/]+\/storage\//, '').replace(/^\/?storage\//, '');
+  return `/media-photo/${cleanPath}`;
+}
+
 // Helper Format Tanggal
 function formatDate(dtString) {
   if (!dtString) return '-';
@@ -131,6 +175,31 @@ function formatDate(dtString) {
   });
 }
 
+function handleEscKeydown(e) {
+  if (e.key === 'Escape') {
+    if (activePhotoZoom.value) {
+      activePhotoZoom.value = null;
+      return;
+    }
+    if (showRejectModal.value) {
+      showRejectModal.value = false;
+      return;
+    }
+    if (showDetailModal.value) {
+      showDetailModal.value = false;
+      selectedSubmission.value = null;
+      return;
+    }
+  }
+}
+
+onMounted(() => {
+  window.addEventListener('keydown', handleEscKeydown);
+});
+onUnmounted(() => {
+  window.removeEventListener('keydown', handleEscKeydown);
+});
+
 // Buka Modal Detail Toko
 function openDetailModal(item) {
   selectedSubmission.value = item;
@@ -138,6 +207,7 @@ function openDetailModal(item) {
   detailForm.custcode_distributor = item.custcode_distributor || '';
   detailForm.admin_notes = item.admin_notes || '';
   showCustCodeWarning.value = false;
+  isEditingNamaOutlet.value = false;
   showDetailModal.value = true;
 }
 
@@ -537,7 +607,7 @@ function getRowStyle(item) {
                 <th class="w-[20%] px-4 py-3.5">Toko & Tipe Outlet</th>
                 <th class="w-[22%] px-4 py-3.5">Alamat & Wilayah</th>
                 <th class="w-[18%] px-4 py-3.5">Salesman & Tanggal</th>
-                <th class="w-[16%] px-4 py-3.5">Status & Foto</th>
+                <th class="w-[16%] px-4 py-3.5">Status</th>
                 <th class="w-[11%] px-4 py-3.5">Cust Code Dist.</th>
                 <th class="w-[11%] px-4 py-3.5">Cust Code Principal</th>
                 <th class="w-[12%] px-4 py-3.5 text-center">Aksi</th>
@@ -586,22 +656,11 @@ function getRowStyle(item) {
                   </div>
                 </td>
 
-                <!-- Status & Foto (Badge Status 13px / 600) -->
+                <!-- Status -->
                 <td class="px-4 py-3.5">
-                  <div class="flex flex-col space-y-1 items-start">
-                    <span class="px-2.5 py-0.5 rounded-full text-[12px] font-semibold border" :class="getStatusBadgeStyle(item.status)">
-                      {{ formatStatusLabel(item.status) }}
-                    </span>
-                    <span
-                      v-if="item.photo_status === 'READY'"
-                      class="px-2 py-0.5 rounded-full text-[11px] font-semibold bg-[#DCFCE7] text-[#15803D] border border-[#86EFAC]"
-                    >
-                      ✓ 3 Foto
-                    </span>
-                    <span v-else class="px-2 py-0.5 rounded-full text-[11px] font-semibold bg-[#FEF3C7] text-[#B45309] border border-[#FCD34D]">
-                      ⏳ Pending Foto
-                    </span>
-                  </div>
+                  <span class="inline-block px-2.5 py-0.5 rounded-full text-[12px] font-semibold border" :class="getStatusBadgeStyle(item.status)">
+                    {{ formatStatusLabel(item.status) }}
+                  </span>
                 </td>
 
                 <!-- Cust Code Distributor -->
@@ -641,21 +700,65 @@ function getRowStyle(item) {
 
     <!-- MODAL SLIDE-OVER PREVIEW DETAIL & FORM INPUT LANGSUNG (LEVEL 1 Z-INDEX 99990) -->
     <Teleport to="body">
-      <div v-if="showDetailModal && selectedSubmission" class="fixed inset-0 min-h-screen min-w-full w-full h-full z-[99990] overflow-y-auto bg-black/60 backdrop-blur-xs flex items-center justify-center p-4 sm:p-6">
+      <div v-if="showDetailModal && selectedSubmission" class="fixed inset-0 min-h-screen min-w-full w-full h-full z-[99990] overflow-y-auto bg-black/60 backdrop-blur-xs flex items-center justify-center p-4 sm:p-6" @click.self="showDetailModal = false">
       <div class="bg-white rounded-xl max-w-4xl w-full max-h-[85vh] flex flex-col shadow-[0_15px_40px_rgba(0,0,0,0.18)] border border-[#E5E7EB] overflow-hidden text-[#374151]">
         
         <!-- Header Modal (Section Title 22px / 600) -->
         <div class="px-6 py-4 bg-[#1E3A8A] text-white flex items-center justify-between shrink-0">
           <div>
-            <div class="flex items-center space-x-3">
-              <h3 class="text-[22px] font-semibold leading-[28px] text-white">{{ selectedSubmission.nama_noo }}</h3>
-              <span class="px-2.5 py-0.5 rounded text-xs font-semibold bg-white/20 text-white border border-white/30">
+            <div class="flex items-center space-x-2.5 flex-wrap gap-y-1">
+              <!-- Edit Mode Nama Outlet -->
+              <div v-if="isEditingNamaOutlet" class="flex items-center gap-2">
+                <input
+                  v-model="editNamaForm.nama_noo"
+                  type="text"
+                  class="px-3 py-1 text-sm font-bold text-slate-900 bg-white border-2 border-amber-400 rounded-lg focus:ring-2 focus:ring-amber-300 outline-none w-64 sm:w-80 shadow-md"
+                  placeholder="Masukkan Nama Outlet..."
+                  @keydown.enter="submitUpdateNamaOutlet"
+                  @keydown.esc.stop="cancelEditNamaOutlet"
+                />
+                <button
+                  type="button"
+                  @click="submitUpdateNamaOutlet"
+                  :disabled="editNamaForm.processing || !editNamaForm.nama_noo.trim()"
+                  class="px-2.5 py-1 rounded-lg bg-emerald-500 hover:bg-emerald-600 text-white font-bold text-xs shadow-sm transition disabled:opacity-50 flex items-center gap-1 cursor-pointer"
+                  title="Simpan Nama Outlet"
+                >
+                  <svg v-if="editNamaForm.processing" class="animate-spin h-3.5 w-3.5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg>
+                  <span>Simpan</span>
+                </button>
+                <button
+                  type="button"
+                  @click="cancelEditNamaOutlet"
+                  class="px-2 py-1 rounded-lg bg-slate-600 hover:bg-slate-500 text-white font-bold text-xs transition cursor-pointer"
+                  title="Batal"
+                >
+                  Batal
+                </button>
+              </div>
+
+              <!-- Normal Display Nama Outlet + Pencil Edit Button -->
+              <div v-else class="flex items-center space-x-2">
+                <h3 class="text-[22px] font-semibold leading-[28px] text-white">{{ selectedSubmission.nama_noo }}</h3>
+                <button
+                  type="button"
+                  @click="startEditNamaOutlet"
+                  title="Edit Nama Outlet"
+                  class="p-1.5 rounded-lg bg-blue-700/70 hover:bg-blue-600 text-blue-100 hover:text-white transition flex items-center justify-center cursor-pointer border border-blue-400/40"
+                >
+                  <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" />
+                  </svg>
+                </button>
+              </div>
+
+              <span class="px-2.5 py-0.5 rounded text-xs font-semibold bg-white/20 text-white border border-white/30 shrink-0">
                 {{ selectedSubmission.type_outlet_code }} - {{ selectedSubmission.type_outlet_desc }}
               </span>
             </div>
             <p class="text-xs text-blue-200 mt-0.5">Request ID: {{ selectedSubmission.request_id }} | Branch: {{ selectedSubmission.branch_id }}</p>
           </div>
-          <button @click="showDetailModal = false" class="text-blue-200 hover:text-white text-xl font-bold p-1 hover:bg-blue-800 rounded-lg">
+          <button @click="showDetailModal = false" class="text-blue-200 hover:text-white text-xl font-bold p-1 hover:bg-blue-800 rounded-lg cursor-pointer">
             ✕
           </button>
         </div>
@@ -748,10 +851,10 @@ function getRowStyle(item) {
               <!-- Foto Depan -->
               <div class="bg-white p-2.5 rounded-xl border border-[#E5E7EB] text-center relative select-none shadow-sm">
                 <span class="text-[12px] font-semibold text-[#4B5563] block mb-2">1. FOTO DEPAN</span>
-                <div v-if="selectedSubmission.photo_depan_url" class="relative group cursor-pointer overflow-hidden rounded-lg" @click="activePhotoZoom = selectedSubmission.photo_depan_url">
+                <div v-if="getPhotoUrl(selectedSubmission.photo_depan_url || selectedSubmission.photo_depan_path)" class="relative group cursor-pointer overflow-hidden rounded-lg" @click="activePhotoZoom = getPhotoUrl(selectedSubmission.photo_depan_url || selectedSubmission.photo_depan_path)">
                   <!-- Image Protection -->
                   <img
-                    :src="selectedSubmission.photo_depan_url"
+                    :src="getPhotoUrl(selectedSubmission.photo_depan_url || selectedSubmission.photo_depan_path)"
                     alt="Foto Depan"
                     class="w-full h-44 object-cover rounded-lg shadow-md pointer-events-none select-none"
                     draggable="false"
@@ -771,10 +874,10 @@ function getRowStyle(item) {
               <!-- Foto Dalam -->
               <div class="bg-white p-2.5 rounded-xl border border-[#E5E7EB] text-center relative select-none shadow-sm">
                 <span class="text-[12px] font-semibold text-[#4B5563] block mb-2">2. FOTO DALAM</span>
-                <div v-if="selectedSubmission.photo_dalam_url" class="relative group cursor-pointer overflow-hidden rounded-lg" @click="activePhotoZoom = selectedSubmission.photo_dalam_url">
+                <div v-if="getPhotoUrl(selectedSubmission.photo_dalam_url || selectedSubmission.photo_dalam_path)" class="relative group cursor-pointer overflow-hidden rounded-lg" @click="activePhotoZoom = getPhotoUrl(selectedSubmission.photo_dalam_url || selectedSubmission.photo_dalam_path)">
                   <!-- Image Protection -->
                   <img
-                    :src="selectedSubmission.photo_dalam_url"
+                    :src="getPhotoUrl(selectedSubmission.photo_dalam_url || selectedSubmission.photo_dalam_path)"
                     alt="Foto Dalam"
                     class="w-full h-44 object-cover rounded-lg shadow-md pointer-events-none select-none"
                     draggable="false"
@@ -794,10 +897,10 @@ function getRowStyle(item) {
               <!-- Foto KTP -->
               <div class="bg-white p-2.5 rounded-xl border border-[#E5E7EB] text-center relative select-none shadow-sm">
                 <span class="text-[12px] font-semibold text-[#4B5563] block mb-2">3. FOTO KTP</span>
-                <div v-if="selectedSubmission.photo_ktp_url" class="relative group cursor-pointer overflow-hidden rounded-lg" @click="activePhotoZoom = selectedSubmission.photo_ktp_url">
+                <div v-if="getPhotoUrl(selectedSubmission.photo_ktp_url || selectedSubmission.photo_ktp_path)" class="relative group cursor-pointer overflow-hidden rounded-lg" @click="activePhotoZoom = getPhotoUrl(selectedSubmission.photo_ktp_url || selectedSubmission.photo_ktp_path)">
                   <!-- Image Protection -->
                   <img
-                    :src="selectedSubmission.photo_ktp_url"
+                    :src="getPhotoUrl(selectedSubmission.photo_ktp_url || selectedSubmission.photo_ktp_path)"
                     alt="Foto KTP"
                     class="w-full h-44 object-cover rounded-lg shadow-md pointer-events-none select-none"
                     draggable="false"
@@ -1082,7 +1185,7 @@ function getRowStyle(item) {
 
     <!-- MODAL REJECT TOKO (LEVEL 2 Z-INDEX 999999) -->
     <Teleport to="body">
-      <div v-if="showRejectModal" class="fixed inset-0 min-h-screen min-w-full w-full h-full z-[999999] overflow-y-auto bg-black/60 backdrop-blur-xs flex items-center justify-center p-4">
+      <div v-if="showRejectModal" class="fixed inset-0 min-h-screen min-w-full w-full h-full z-[999999] overflow-y-auto bg-black/60 backdrop-blur-xs flex items-center justify-center p-4" @click.self="showRejectModal = false">
         <div class="bg-white rounded-xl max-w-md w-full shadow-[0_15px_40px_rgba(0,0,0,0.18)] p-6 border border-[#E5E7EB] space-y-4 text-[#374151] my-auto">
           <h3 class="text-[22px] font-semibold text-[#DC2626]">Tolak Submisi Toko</h3>
           <p class="text-[14px] text-[#6B7280]">

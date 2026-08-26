@@ -3,7 +3,7 @@
  * Halaman Progress Tracking Submisi NOO & Reset Inputan Admin / SPV / EDP.
  * Menampilkan Vertical Stepper Timeline modern dan kontrol reset bertingkat.
  */
-import { ref, computed } from 'vue';
+import { ref, computed, onMounted, onUnmounted } from 'vue';
 import { Head, useForm, router } from '@inertiajs/vue3';
 import EdpLayout from '@/Layouts/EdpLayout.vue';
 import SearchableSelect from '@/Components/SearchableSelect.vue';
@@ -63,7 +63,15 @@ function applyFilters() {
       branch_id: selectedBranch.value,
       stage: selectedStage.value,
     },
-    { preserveState: true, replace: true }
+    {
+      preserveState: true,
+      replace: true,
+      onFinish: () => {
+        if (window.location.search) {
+          window.history.replaceState({}, '', window.location.pathname);
+        }
+      },
+    }
   );
 }
 
@@ -95,6 +103,26 @@ function closeResetModal() {
   resetModalState.value.isOpen = false;
   resetModalState.value.submission = null;
 }
+
+function handleEscKeydown(e) {
+  if (e.key === 'Escape') {
+    if (resetModalState.value.isOpen) {
+      closeResetModal();
+      return;
+    }
+    if (activeSubmissionModal.value) {
+      activeSubmissionModal.value = null;
+      return;
+    }
+  }
+}
+
+onMounted(() => {
+  window.addEventListener('keydown', handleEscKeydown);
+});
+onUnmounted(() => {
+  window.removeEventListener('keydown', handleEscKeydown);
+});
 
 function submitReset() {
   if (!resetModalState.value.submission) return;
@@ -561,7 +589,7 @@ const sortedSubmissions = computed(() => {
 
     <!-- MODAL DETAIL TIMELINE STEPPER (LEVEL 1 Z-INDEX 99990) -->
     <Teleport to="body">
-      <div v-if="activeSubmissionModal" class="fixed inset-0 min-h-screen min-w-full w-full h-full z-[99990] bg-black/60 backdrop-blur-xs flex items-center justify-center p-4 overflow-y-auto">
+      <div v-if="activeSubmissionModal" class="fixed inset-0 min-h-screen min-w-full w-full h-full z-[99990] bg-black/60 backdrop-blur-xs flex items-center justify-center p-4 overflow-y-auto" @click.self="activeSubmissionModal = null">
         <div class="bg-white rounded-2xl max-w-2xl w-full max-h-[90vh] flex flex-col shadow-2xl relative my-auto overflow-hidden border border-gray-200">
           <!-- Sticky Header Modal -->
           <div class="sticky top-0 z-20 bg-white px-6 py-4 border-b border-gray-200 flex items-center justify-between shrink-0 shadow-2xs">
@@ -843,7 +871,7 @@ const sortedSubmissions = computed(() => {
 
     <!-- MODAL CONFIRMATION RESET INPUT (LEVEL 2 Z-INDEX 999999) -->
     <Teleport to="body">
-      <div v-if="resetModalState.isOpen" class="fixed inset-0 min-h-screen min-w-full w-full h-full z-[999999] bg-black/60 backdrop-blur-xs flex items-center justify-center p-4 overflow-y-auto">
+      <div v-if="resetModalState.isOpen" class="fixed inset-0 min-h-screen min-w-full w-full h-full z-[999999] bg-black/60 backdrop-blur-xs flex items-center justify-center p-4 overflow-y-auto" @click.self="closeResetModal">
         <div class="bg-white rounded-2xl max-w-md w-full p-6 space-y-4 shadow-2xl relative my-auto">
           <button @click="closeResetModal" class="absolute top-4 right-4 text-gray-400 hover:text-gray-700 font-bold">✕</button>
 

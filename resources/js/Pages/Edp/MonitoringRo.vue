@@ -6,7 +6,7 @@
  * - Alert Peringatan bila Target RO Distributor belum di-upload untuk bulan terpilih.
  * - Redesigned Vertical Stacked Bar Chart per Distributor dengan Tooltip Interactive Salesman Breakdown.
  */
-import { ref, computed, watch, onMounted } from 'vue';
+import { ref, computed, watch, onMounted, onUnmounted } from 'vue';
 import { Head, router, useForm, usePage } from '@inertiajs/vue3';
 import EdpLayout from '@/Layouts/EdpLayout.vue';
 import SearchableSelect from '@/Components/SearchableSelect.vue';
@@ -146,6 +146,11 @@ function applyFilters() {
   router.get(route('edp.monitoring_ro'), queryParams, {
     preserveScroll: true,
     replace: true,
+    onSuccess: () => {
+      if (window.location.search) {
+        window.history.replaceState({}, '', window.location.pathname);
+      }
+    },
   });
 }
 
@@ -403,33 +408,22 @@ const filteredSummary = computed(() => {
       <!-- WARNING ALERT BANNER BILA TARGET BULAN INI BELUM DI-UPLOAD UNTUK DISTRIBUTOR TERPAUT -->
       <div
         v-if="missingTargetBranches && missingTargetBranches.length > 0"
-        class="bg-amber-50 border-2 border-amber-300 rounded-2xl p-4 sm:p-5 shadow-xs flex flex-col sm:flex-row sm:items-center justify-between gap-4"
+        class="bg-amber-50 border-2 border-amber-300 rounded-2xl p-4 sm:p-5 shadow-xs flex items-center gap-3"
       >
-        <div class="flex items-start gap-3">
-          <div class="w-10 h-10 rounded-xl bg-amber-100 border border-amber-300 text-amber-700 flex items-center justify-center shrink-0 font-bold text-lg">
-            ⚠️
-          </div>
-          <div class="space-y-1">
-            <h3 class="text-sm font-black text-amber-900">
-              Peringatan: Target RO Bulan {{ selectedMonthName }} {{ selectedYear }} Belum Lengkap!
-            </h3>
-            <p class="text-xs text-amber-800 font-medium leading-relaxed">
-              Target RO dari <strong>{{ missingTargetBranches.length }} distributor</strong> di bawah belum diupload oleh EDP untuk bulan {{ selectedMonthName }} {{ selectedYear }}:
-              <span class="font-bold text-amber-950">
-                {{ missingTargetBranches.map(b => b.branch_name).slice(0, 5).join(', ') }}{{ missingTargetBranches.length > 5 ? ` dan ${missingTargetBranches.length - 5} distributor lainnya` : '' }}
-              </span>.
-            </p>
-          </div>
+        <div class="w-10 h-10 rounded-xl bg-amber-100 border border-amber-300 text-amber-700 flex items-center justify-center shrink-0 font-bold text-lg">
+          ⚠️
         </div>
-
-        <button
-          type="button"
-          @click="openUploadModal(selectedMonth, selectedYear)"
-          class="px-4 py-2.5 rounded-xl bg-amber-600 hover:bg-amber-700 text-white font-bold text-xs transition shadow-sm cursor-pointer shrink-0 self-start sm:self-center flex items-center gap-1.5"
-        >
-          <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12"/></svg>
-          <span>Upload Target RO {{ selectedMonthName }}</span>
-        </button>
+        <div class="space-y-1">
+          <h3 class="text-sm font-black text-amber-900">
+            Peringatan: Target RO Bulan {{ selectedMonthName }} {{ selectedYear }} Belum Lengkap!
+          </h3>
+          <p class="text-xs text-amber-800 font-medium leading-relaxed">
+            Target RO dari <strong>{{ missingTargetBranches.length }} distributor</strong> di bawah belum diupload oleh EDP untuk bulan {{ selectedMonthName }} {{ selectedYear }}:
+            <span class="font-bold text-amber-950">
+              {{ missingTargetBranches.map(b => b.branch_name).slice(0, 5).join(', ') }}{{ missingTargetBranches.length > 5 ? ` dan ${missingTargetBranches.length - 5} distributor lainnya` : '' }}
+            </span>.
+          </p>
+        </div>
       </div>
 
       <!-- FILTER BAR (MONTH, YEAR, REGION, PRINCIPAL, BRANCH) -->
@@ -571,7 +565,7 @@ const filteredSummary = computed(() => {
                   :key="b.branch_id"
                   @mouseenter="handleChartBarHover($event, b)"
                   @mouseleave="handleChartBarLeave"
-                  @click="handleChartBarClick($event, b)"
+                  @click="handleChartBarClick(b)"
                   class="flex flex-col items-center gap-2 group cursor-pointer relative"
                   style="width: 85px;"
                   title="Klik untuk mengunci detail salesman distributor ini"
@@ -679,123 +673,126 @@ const filteredSummary = computed(() => {
       </div>
 
       <!-- DETAIL SALESMAN MODAL DIALOG ON BAR CLICK -->
-      <div
-        v-if="detailModalBranch"
-        class="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-xs flex items-center justify-center p-4"
-      >
-        <div class="bg-white rounded-2xl max-w-xl w-full border border-slate-200 shadow-2xl overflow-hidden animate-in fade-in zoom-in-95 duration-200">
-          <!-- MODAL HEADER -->
-          <div class="bg-slate-900 text-white p-4 sm:p-5 flex items-center justify-between gap-3">
-            <div>
-              <div class="flex items-center gap-2 flex-wrap">
-                <h3 class="text-base font-black text-white">{{ detailModalBranch.branch_name }}</h3>
-                <span class="font-mono text-xs font-bold px-2 py-0.5 rounded bg-blue-500/30 border border-blue-400/40 text-blue-200">
-                  {{ detailModalBranch.branch_id }}
-                </span>
-                <span class="text-xs text-slate-300 font-medium">({{ detailModalBranch.region_code }})</span>
+      <Teleport to="body">
+        <div
+          v-if="detailModalBranch"
+          class="fixed inset-0 min-h-screen min-w-full w-full h-full z-[999999] bg-slate-950/80 backdrop-blur-md flex items-center justify-center p-4 overflow-y-auto"
+          @click.self="closeDetailModal"
+        >
+          <div class="bg-white rounded-2xl max-w-xl w-full border border-slate-200 shadow-2xl overflow-hidden animate-in fade-in zoom-in-95 duration-200 my-auto">
+            <!-- MODAL HEADER -->
+            <div class="bg-slate-900 text-white p-4 sm:p-5 flex items-center justify-between gap-3">
+              <div>
+                <div class="flex items-center gap-2 flex-wrap">
+                  <h3 class="text-base font-black text-white">{{ detailModalBranch.branch_name }}</h3>
+                  <span class="font-mono text-xs font-bold px-2 py-0.5 rounded bg-blue-500/30 border border-blue-400/40 text-blue-200">
+                    {{ detailModalBranch.branch_id }}
+                  </span>
+                  <span class="text-xs text-slate-300 font-medium">({{ detailModalBranch.region_code }})</span>
+                </div>
+                <p class="text-xs text-slate-400 mt-1">
+                  Rincian capaian {{ detailModalBranch.total_salesmen_count }} salesman pada periode {{ selectedMonthName }} {{ selectedYear }}.
+                </p>
               </div>
-              <p class="text-xs text-slate-400 mt-1">
-                Rincian capaian {{ detailModalBranch.total_salesmen_count }} salesman pada periode {{ selectedMonthName }} {{ selectedYear }}.
-              </p>
-            </div>
 
-            <button
-              type="button"
-              @click="closeDetailModal"
-              class="w-8 h-8 rounded-full bg-slate-800 hover:bg-slate-700 text-slate-400 hover:text-white flex items-center justify-center font-bold text-sm transition cursor-pointer shrink-0"
-            >
-              ✕
-            </button>
-          </div>
-
-          <!-- MODAL BODY -->
-          <div class="p-5 space-y-4 max-h-[70vh] overflow-y-auto custom-scrollbar">
-            <!-- SUMMARY TILES -->
-            <div class="grid grid-cols-2 sm:grid-cols-3 gap-3">
-              <div class="p-3 rounded-xl bg-slate-50 border border-slate-200 text-center">
-                <div class="text-[10px] font-bold text-slate-500 uppercase">Salesman</div>
-                <div class="text-sm font-black text-slate-900 mt-0.5">{{ detailModalBranch.total_salesmen_count }} Orang</div>
-              </div>
-              <div class="p-3 rounded-xl bg-emerald-50 border border-emerald-200 text-center">
-                <div class="text-[10px] font-bold text-emerald-700 uppercase">Achieved</div>
-                <div class="text-sm font-black text-emerald-800 mt-0.5">{{ detailModalBranch.achieved_salesmen_count }} Salesman</div>
-              </div>
-              <div class="p-3 rounded-xl bg-blue-50 border border-blue-200 text-center col-span-2 sm:col-span-1">
-                <div class="text-[10px] font-bold text-blue-700 uppercase">Total Approved RO</div>
-                <div class="text-sm font-black text-blue-900 mt-0.5">{{ detailModalBranch.total_approved_ro }} / {{ detailModalBranch.total_target_ro > 0 ? detailModalBranch.total_target_ro : '-' }}</div>
-              </div>
-            </div>
-
-            <!-- SALESMEN LIST -->
-            <div class="space-y-2.5">
-              <div
-                v-for="s in detailModalBranch.salesmen"
-                :key="s.salesman_code"
-                class="p-3 rounded-xl border transition"
-                :class="s.is_custom_target && s.is_achieved ? 'bg-emerald-50/40 border-emerald-200' : 'bg-slate-50/70 border-slate-200'"
+              <button
+                type="button"
+                @click="closeDetailModal"
+                class="w-8 h-8 rounded-full bg-slate-800 hover:bg-slate-700 text-slate-400 hover:text-white flex items-center justify-center font-bold text-sm transition cursor-pointer shrink-0"
               >
-                <div class="flex items-center justify-between gap-2">
-                  <div>
-                    <div class="font-bold text-slate-900 text-xs">{{ s.salesman_name }}</div>
-                    <div class="text-[10.5px] font-mono text-slate-500 mt-0.5">Kode: {{ s.salesman_code }}</div>
-                  </div>
+                ✕
+              </button>
+            </div>
 
-                  <div class="flex items-center gap-2 shrink-0">
-                    <span
-                      v-if="s.is_custom_target && s.visit_type"
-                      class="text-[10px] font-extrabold px-2 py-0.5 rounded border uppercase"
-                      :class="s.visit_type === 'F4' ? 'bg-indigo-100 text-indigo-800 border-indigo-200' : 'bg-purple-100 text-purple-800 border-purple-200'"
-                    >
-                      {{ s.visit_type }}
-                    </span>
-                    <span
-                      v-if="s.is_custom_target && s.is_achieved"
-                      class="text-[10px] font-bold px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-800 border border-emerald-300"
-                    >
-                      Achieved
-                    </span>
-                    <span
-                      v-else-if="s.is_custom_target"
-                      class="text-[10px] font-bold px-2 py-0.5 rounded-full bg-slate-200 text-slate-700"
-                    >
-                      Sisa {{ Math.max(0, s.target_ro - s.approved_ro) }} RO
-                    </span>
-                    <span v-else class="text-[10px] font-medium px-2 py-0.5 rounded-full bg-slate-100 text-slate-500 border border-slate-200">
-                      Target Belum Set
-                    </span>
-                  </div>
+            <!-- MODAL BODY -->
+            <div class="p-5 space-y-4 max-h-[70vh] overflow-y-auto custom-scrollbar">
+              <!-- SUMMARY TILES -->
+              <div class="grid grid-cols-2 sm:grid-cols-3 gap-3">
+                <div class="p-3 rounded-xl bg-slate-50 border border-slate-200 text-center">
+                  <div class="text-[10px] font-bold text-slate-500 uppercase">Salesman</div>
+                  <div class="text-sm font-black text-slate-900 mt-0.5">{{ detailModalBranch.total_salesmen_count }} Orang</div>
                 </div>
+                <div class="p-3 rounded-xl bg-emerald-50 border border-emerald-200 text-center">
+                  <div class="text-[10px] font-bold text-emerald-700 uppercase">Achieved</div>
+                  <div class="text-sm font-black text-emerald-800 mt-0.5">{{ detailModalBranch.achieved_salesmen_count }} Salesman</div>
+                </div>
+                <div class="p-3 rounded-xl bg-blue-50 border border-blue-200 text-center col-span-2 sm:col-span-1">
+                  <div class="text-[10px] font-bold text-blue-700 uppercase">Total Approved RO</div>
+                  <div class="text-sm font-black text-blue-900 mt-0.5">{{ detailModalBranch.total_approved_ro }} / {{ detailModalBranch.total_target_ro > 0 ? detailModalBranch.total_target_ro : '-' }}</div>
+                </div>
+              </div>
 
-                <!-- PROGRESS BAR IN MODAL -->
-                <div v-if="s.is_custom_target && s.target_ro > 0" class="mt-2 space-y-1">
-                  <div class="flex items-center justify-between text-[10.5px] font-mono text-slate-600">
-                    <span>Realisasi: <strong>{{ s.approved_ro }}</strong> / {{ s.target_ro }} RO</span>
-                    <span class="font-bold" :class="s.is_achieved ? 'text-emerald-700' : 'text-slate-700'">{{ s.percentage }}%</span>
+              <!-- SALESMEN LIST -->
+              <div class="space-y-2.5">
+                <div
+                  v-for="s in detailModalBranch.salesmen"
+                  :key="s.salesman_code"
+                  class="p-3 rounded-xl border transition"
+                  :class="s.is_custom_target && s.is_achieved ? 'bg-emerald-50/40 border-emerald-200' : 'bg-slate-50/70 border-slate-200'"
+                >
+                  <div class="flex items-center justify-between gap-2">
+                    <div>
+                      <div class="font-bold text-slate-900 text-xs">{{ s.salesman_name }}</div>
+                      <div class="text-[10.5px] font-mono text-slate-500 mt-0.5">Kode: {{ s.salesman_code }}</div>
+                    </div>
+
+                    <div class="flex items-center gap-2 shrink-0">
+                      <span
+                        v-if="s.is_custom_target && s.visit_type"
+                        class="text-[10px] font-extrabold px-2 py-0.5 rounded border uppercase"
+                        :class="s.visit_type === 'F4' ? 'bg-indigo-100 text-indigo-800 border-indigo-200' : 'bg-purple-100 text-purple-800 border-purple-200'"
+                      >
+                        {{ s.visit_type }}
+                      </span>
+                      <span
+                        v-if="s.is_custom_target && s.is_achieved"
+                        class="text-[10px] font-bold px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-800 border border-emerald-300"
+                      >
+                        Achieved
+                      </span>
+                      <span
+                        v-else-if="s.is_custom_target"
+                        class="text-[10px] font-bold px-2 py-0.5 rounded-full bg-slate-200 text-slate-700"
+                      >
+                        Sisa {{ Math.max(0, s.target_ro - s.approved_ro) }} RO
+                      </span>
+                      <span v-else class="text-[10px] font-medium px-2 py-0.5 rounded-full bg-slate-100 text-slate-500 border border-slate-200">
+                        Target Belum Set
+                      </span>
+                    </div>
                   </div>
-                  <div class="w-full bg-slate-200 h-2 rounded-full overflow-hidden">
-                    <div
-                      class="h-full rounded-full transition-all duration-500"
-                      :class="s.is_achieved ? 'bg-gradient-to-r from-emerald-500 to-teal-400' : 'bg-gradient-to-r from-blue-500 to-indigo-500'"
-                      :style="{ width: `${Math.min(100, s.percentage)}%` }"
-                    ></div>
+
+                  <!-- PROGRESS BAR IN MODAL -->
+                  <div v-if="s.is_custom_target && s.target_ro > 0" class="mt-2 space-y-1">
+                    <div class="flex items-center justify-between text-[10.5px] font-mono text-slate-600">
+                      <span>Realisasi: <strong>{{ s.approved_ro }}</strong> / {{ s.target_ro }} RO</span>
+                      <span class="font-bold" :class="s.is_achieved ? 'text-emerald-700' : 'text-slate-700'">{{ s.percentage }}%</span>
+                    </div>
+                    <div class="w-full bg-slate-200 h-2 rounded-full overflow-hidden">
+                      <div
+                        class="h-full rounded-full transition-all duration-500"
+                        :class="s.is_achieved ? 'bg-gradient-to-r from-emerald-500 to-teal-400' : 'bg-gradient-to-r from-blue-500 to-indigo-500'"
+                        :style="{ width: `${Math.min(100, s.percentage)}%` }"
+                      ></div>
+                    </div>
                   </div>
                 </div>
               </div>
             </div>
-          </div>
 
-          <!-- MODAL FOOTER -->
-          <div class="bg-slate-50 p-4 border-t border-slate-200 flex justify-end">
-            <button
-              type="button"
-              @click="closeDetailModal"
-              class="px-4 py-2 rounded-xl bg-slate-800 hover:bg-slate-900 text-white font-bold text-xs shadow-xs transition cursor-pointer"
-            >
-              Tutup
-            </button>
+            <!-- MODAL FOOTER -->
+            <div class="bg-slate-50 p-4 border-t border-slate-200 flex justify-end">
+              <button
+                type="button"
+                @click="closeDetailModal"
+                class="px-4 py-2 rounded-xl bg-slate-800 hover:bg-slate-900 text-white font-bold text-xs shadow-xs transition cursor-pointer"
+              >
+                Tutup
+              </button>
+            </div>
           </div>
         </div>
-      </div>
+      </Teleport>
 
       <!-- REDESIGNED EXECUTIVE DATA TABLE SECTION -->
       <div class="space-y-4">
@@ -999,143 +996,146 @@ const filteredSummary = computed(() => {
       </div>
 
       <!-- MODAL UPLOAD TARGET RO (DRAG & DROP / CLICK UPLOAD, DOWNLOAD TEMPLATE, INPUT BULAN & TAHUN) -->
-      <div
-        v-if="showUploadModal"
-        class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-xs transition-opacity"
-      >
-        <div class="bg-white rounded-3xl border border-slate-200 shadow-2xl max-w-lg w-full p-6 space-y-5 animate-in fade-in zoom-in-95 duration-200">
-          <!-- MODAL HEADER -->
-          <div class="flex items-center justify-between border-b border-slate-100 pb-3">
-            <div class="space-y-0.5">
-              <h3 class="text-lg font-black text-slate-900">Upload Target RO Salesman</h3>
-              <p class="text-xs text-slate-500 font-medium">Unggah berkas target RO bulanan (.xls, .xlsx, .csv)</p>
-            </div>
-            <button
-              @click="closeUploadModal"
-              class="w-8 h-8 rounded-full bg-slate-100 text-slate-500 hover:bg-slate-200 flex items-center justify-center font-bold text-sm cursor-pointer transition"
-            >
-              ✕
-            </button>
-          </div>
-
-          <!-- INPUT FORM -->
-          <div class="space-y-4">
-            <!-- INPUT BULAN & TAHUN -->
-            <div class="grid grid-cols-2 gap-3">
-              <div>
-                <label class="block text-xs font-bold text-slate-700 mb-1">Target Bulan:</label>
-                <select
-                  v-model="uploadMonth"
-                  class="w-full text-xs p-2.5 rounded-xl border border-slate-300 focus:ring-2 focus:ring-blue-500 font-semibold bg-white"
-                >
-                  <option v-for="m in monthOptions" :key="m.value" :value="m.value">
-                    {{ m.label }}
-                  </option>
-                </select>
-              </div>
-
-              <div>
-                <label class="block text-xs font-bold text-slate-700 mb-1">Target Tahun:</label>
-                <select
-                  v-model="uploadYear"
-                  class="w-full text-xs p-2.5 rounded-xl border border-slate-300 focus:ring-2 focus:ring-blue-500 font-semibold bg-white"
-                >
-                  <option v-for="y in yearOptions" :key="y.value" :value="y.value">
-                    {{ y.label }}
-                  </option>
-                </select>
-              </div>
-            </div>
-
-            <!-- DRAG & DROP FILE ZONE -->
-            <div>
-              <label class="block text-xs font-bold text-slate-700 mb-1">Berkas Excel / CSV Target RO:</label>
-              
-              <div
-                @dragover.prevent="dragActive = true"
-                @dragleave.prevent="dragActive = false"
-                @drop.prevent="handleDrop"
-                class="border-2 border-dashed rounded-2xl p-6 text-center transition cursor-pointer flex flex-col items-center justify-center gap-2"
-                :class="dragActive ? 'border-blue-500 bg-blue-50/60' : (selectedUploadFile ? 'border-emerald-400 bg-emerald-50/40' : 'border-slate-300 bg-slate-50/50 hover:bg-slate-100/60')"
-                @click="$refs.fileInput.click()"
-              >
-                <input
-                  ref="fileInput"
-                  type="file"
-                  accept=".xls,.xlsx,.csv"
-                  class="hidden"
-                  @change="handleFileSelect"
-                />
-
-                <div v-if="selectedUploadFile" class="space-y-1">
-                  <div class="w-12 h-12 rounded-2xl bg-emerald-100 text-emerald-700 border border-emerald-300 flex items-center justify-center mx-auto text-xl font-bold">
-                    📊
-                  </div>
-                  <div class="text-xs font-bold text-emerald-900 truncate max-w-xs">
-                    {{ selectedUploadFile.name }}
-                  </div>
-                  <div class="text-[10px] text-emerald-700 font-mono">
-                    {{ (selectedUploadFile.size / 1024).toFixed(1) }} KB
-                  </div>
-                  <span class="text-[11px] text-blue-600 font-bold hover:underline block pt-1">Klik untuk mengganti berkas</span>
-                </div>
-
-                <div v-else class="space-y-1">
-                  <div class="w-12 h-12 rounded-2xl bg-blue-100 text-blue-700 border border-blue-200 flex items-center justify-center mx-auto text-xl font-bold">
-                    📁
-                  </div>
-                  <div class="text-xs font-bold text-slate-800">
-                    Drag & drop berkas Excel di sini, atau <span class="text-blue-600 underline">klik untuk cari</span>
-                  </div>
-                  <div class="text-[10.5px] text-slate-500 font-medium">
-                    Format didukung: .xlsx, .xls, .csv (Maksimal 10 MB)
-                  </div>
-                </div>
-              </div>
-            </div>
-
-            <!-- BUTTON DOWNLOAD TEMPLATE EXCEL -->
-            <div class="pt-1 flex items-center justify-between bg-slate-50 p-3 rounded-xl border border-slate-200">
-              <div class="text-xs text-slate-600 font-medium">
-                Belum memiliki format file? Download template resmi Excel di sini:
+      <Teleport to="body">
+        <div
+          v-if="showUploadModal"
+          class="fixed inset-0 min-h-screen min-w-full w-full h-full z-[999999] bg-slate-950/80 backdrop-blur-md flex items-center justify-center p-4 overflow-y-auto"
+          @click.self="closeUploadModal"
+        >
+          <div class="bg-white rounded-3xl border border-slate-200 shadow-2xl max-w-lg w-full p-6 space-y-5 animate-in fade-in zoom-in-95 duration-200 my-auto">
+            <!-- MODAL HEADER -->
+            <div class="flex items-center justify-between border-b border-slate-100 pb-3">
+              <div class="space-y-0.5">
+                <h3 class="text-lg font-black text-slate-900">Upload Target RO Salesman</h3>
+                <p class="text-xs text-slate-500 font-medium">Unggah berkas target RO bulanan (.xls, .xlsx, .csv)</p>
               </div>
               <button
-                type="button"
-                @click="downloadTemplate"
-                class="px-3 py-1.5 rounded-lg bg-white border border-slate-300 hover:bg-slate-100 text-slate-800 text-xs font-bold shadow-2xs transition flex items-center gap-1.5 cursor-pointer shrink-0"
+                @click="closeUploadModal"
+                class="w-8 h-8 rounded-full bg-slate-100 text-slate-500 hover:bg-slate-200 flex items-center justify-center font-bold text-sm cursor-pointer transition"
               >
-                <span>Download Template</span>
+                ✕
               </button>
             </div>
 
-            <!-- ERROR ALERT -->
-            <div v-if="uploadForm.errors.file" class="text-xs font-bold text-rose-600 bg-rose-50 p-2.5 rounded-xl border border-rose-200">
-              {{ uploadForm.errors.file }}
+            <!-- INPUT FORM -->
+            <div class="space-y-4">
+              <!-- INPUT BULAN & TAHUN -->
+              <div class="grid grid-cols-2 gap-3">
+                <div>
+                  <label class="block text-xs font-bold text-slate-700 mb-1">Target Bulan:</label>
+                  <select
+                    v-model="uploadMonth"
+                    class="w-full text-xs p-2.5 rounded-xl border border-slate-300 focus:ring-2 focus:ring-blue-500 font-semibold bg-white cursor-pointer"
+                  >
+                    <option v-for="m in monthOptions" :key="m.value" :value="m.value">
+                      {{ m.label }}
+                    </option>
+                  </select>
+                </div>
+
+                <div>
+                  <label class="block text-xs font-bold text-slate-700 mb-1">Target Tahun:</label>
+                  <select
+                    v-model="uploadYear"
+                    class="w-full text-xs p-2.5 rounded-xl border border-slate-300 focus:ring-2 focus:ring-blue-500 font-semibold bg-white cursor-pointer"
+                  >
+                    <option v-for="y in yearOptions" :key="y.value" :value="y.value">
+                      {{ y.label }}
+                    </option>
+                  </select>
+                </div>
+              </div>
+
+              <!-- DRAG & DROP FILE ZONE -->
+              <div>
+                <label class="block text-xs font-bold text-slate-700 mb-1">Berkas Excel / CSV Target RO:</label>
+                
+                <div
+                  @dragover.prevent="dragActive = true"
+                  @dragleave.prevent="dragActive = false"
+                  @drop.prevent="handleDrop"
+                  class="border-2 border-dashed rounded-2xl p-6 text-center transition cursor-pointer flex flex-col items-center justify-center gap-2"
+                  :class="dragActive ? 'border-blue-500 bg-blue-50/60' : (selectedUploadFile ? 'border-emerald-400 bg-emerald-50/40' : 'border-slate-300 bg-slate-50/50 hover:bg-slate-100/60')"
+                  @click="$refs.fileInput.click()"
+                >
+                  <input
+                    ref="fileInput"
+                    type="file"
+                    accept=".xls,.xlsx,.csv"
+                    class="hidden"
+                    @change="handleFileSelect"
+                  />
+
+                  <div v-if="selectedUploadFile" class="space-y-1">
+                    <div class="w-12 h-12 rounded-2xl bg-emerald-100 text-emerald-700 border border-emerald-300 flex items-center justify-center mx-auto text-xl font-bold">
+                      📊
+                    </div>
+                    <div class="text-xs font-bold text-emerald-900 truncate max-w-xs">
+                      {{ selectedUploadFile.name }}
+                    </div>
+                    <div class="text-[10px] text-emerald-700 font-mono">
+                      {{ (selectedUploadFile.size / 1024).toFixed(1) }} KB
+                    </div>
+                    <span class="text-[11px] text-blue-600 font-bold hover:underline block pt-1">Klik untuk mengganti berkas</span>
+                  </div>
+
+                  <div v-else class="space-y-1">
+                    <div class="w-12 h-12 rounded-2xl bg-blue-100 text-blue-700 border border-blue-200 flex items-center justify-center mx-auto text-xl font-bold">
+                      📁
+                    </div>
+                    <div class="text-xs font-bold text-slate-800">
+                      Drag & drop berkas Excel di sini, atau <span class="text-blue-600 underline">klik untuk cari</span>
+                    </div>
+                    <div class="text-[10.5px] text-slate-500 font-medium">
+                      Format didukung: .xlsx, .xls, .csv (Maksimal 10 MB)
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <!-- BUTTON DOWNLOAD TEMPLATE EXCEL -->
+              <div class="pt-1 flex items-center justify-between bg-slate-50 p-3 rounded-xl border border-slate-200">
+                <div class="text-xs text-slate-600 font-medium">
+                  Belum memiliki format file? Download template resmi Excel di sini:
+                </div>
+                <button
+                  type="button"
+                  @click="downloadTemplate"
+                  class="px-3 py-1.5 rounded-lg bg-white border border-slate-300 hover:bg-slate-100 text-slate-800 text-xs font-bold shadow-2xs transition flex items-center gap-1.5 cursor-pointer shrink-0"
+                >
+                  <span>Download Template</span>
+                </button>
+              </div>
+
+              <!-- ERROR ALERT -->
+              <div v-if="uploadForm.errors.file" class="text-xs font-bold text-rose-600 bg-rose-50 p-2.5 rounded-xl border border-rose-200">
+                {{ uploadForm.errors.file }}
+              </div>
+            </div>
+
+            <!-- MODAL ACTIONS -->
+            <div class="pt-3 border-t border-slate-100 flex items-center justify-end gap-3">
+              <button
+                type="button"
+                @click="closeUploadModal"
+                class="px-4 py-2.5 rounded-xl text-xs font-bold text-slate-600 hover:bg-slate-100 border border-slate-200 transition cursor-pointer"
+              >
+                Batal
+              </button>
+
+              <button
+                type="button"
+                @click="submitUploadTarget"
+                :disabled="uploadForm.processing || !selectedUploadFile"
+                class="px-5 py-2.5 rounded-xl bg-blue-600 hover:bg-blue-700 text-white font-bold text-xs shadow-md transition disabled:opacity-50 flex items-center gap-2 cursor-pointer"
+              >
+                <svg v-if="uploadForm.processing" class="animate-spin h-4 w-4 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg>
+                <span>Simpan & Aplikasikan</span>
+              </button>
             </div>
           </div>
-
-          <!-- MODAL ACTIONS -->
-          <div class="pt-3 border-t border-slate-100 flex items-center justify-end gap-3">
-            <button
-              type="button"
-              @click="closeUploadModal"
-              class="px-4 py-2.5 rounded-xl text-xs font-bold text-slate-600 hover:bg-slate-100 border border-slate-200 transition cursor-pointer"
-            >
-              Batal
-            </button>
-
-            <button
-              type="button"
-              @click="submitUploadTarget"
-              :disabled="uploadForm.processing || !selectedUploadFile"
-              class="px-5 py-2.5 rounded-xl bg-blue-600 hover:bg-blue-700 text-white font-bold text-xs shadow-md transition disabled:opacity-50 flex items-center gap-2 cursor-pointer"
-            >
-              <svg v-if="uploadForm.processing" class="animate-spin h-4 w-4 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg>
-              <span>Simpan & Aplikasikan</span>
-            </button>
-          </div>
         </div>
-      </div>
+      </Teleport>
 
     </div>
   </EdpLayout>

@@ -37,7 +37,6 @@ const selectedRegion = ref(props.filters?.region_code || '');
 const selectedPrincipal = ref(props.filters?.principal || '');
 const selectedBranch = ref(props.filters?.branch_id || '');
 const selectedStatus = ref(props.filters?.status || '');
-const selectedRoStatus = ref(props.filters?.is_ro || '');
 const selectedEdpMonths = ref(
   props.filters?.edp_months
     ? String(props.filters.edp_months).split(',')
@@ -120,28 +119,85 @@ const branchOptions = computed(() => {
   });
 });
 
-function onRegionChange() {
-  if (selectedRegion.value) {
-    const isValidEntity = entityOptions.value.some((e) => e.value === selectedPrincipal.value);
-    if (!isValidEntity) {
-      selectedPrincipal.value = '';
-    }
-    const isValidBranch = branchOptions.value.some((b) => b.value === selectedBranch.value);
-    if (!isValidBranch) {
-      selectedBranch.value = '';
-    }
-  }
-  applyFilters();
+// Modal Filter Draft State (Only commits when user clicks Terapkan Filter & Sort)
+const modalRegion = ref(props.filters?.region_code || '');
+const modalPrincipal = ref(props.filters?.principal || '');
+const modalBranch = ref(props.filters?.branch_id || '');
+const modalStatus = ref(props.filters?.status || '');
+const modalEdpMonths = ref(
+  props.filters?.edp_months
+    ? String(props.filters.edp_months).split(',')
+    : (props.filters?.edp_month ? [String(props.filters.edp_month)] : [])
+);
+const modalEdpYear = ref(props.filters?.edp_year ? String(props.filters.edp_year) : '');
+
+function openFilterModal() {
+  modalRegion.value = selectedRegion.value;
+  modalPrincipal.value = selectedPrincipal.value;
+  modalBranch.value = selectedBranch.value;
+  modalStatus.value = selectedStatus.value;
+  modalEdpMonths.value = [...selectedEdpMonths.value];
+  modalEdpYear.value = selectedEdpYear.value;
+  showFilterModal.value = true;
 }
 
-function onPrincipalChange() {
-  if (selectedPrincipal.value) {
-    const isValidBranch = branchOptions.value.some((b) => b.value === selectedBranch.value);
+const entityOptionsModal = computed(() => {
+  let list = props.filterOptions?.entities || [];
+  if (modalRegion.value) {
+    list = list.filter((e) => e.region_code === modalRegion.value);
+  }
+  return list.map((e) => {
+    if (typeof e === 'object' && e !== null) {
+      return {
+        value: e.entity_code_principal || e.entity_name_principal || e.value,
+        label: e.entity_name_principal ? `${e.entity_code_principal || ''} - ${e.entity_name_principal}` : String(e.value || e),
+      };
+    }
+    return { value: e, label: String(e) };
+  });
+});
+
+const branchOptionsModal = computed(() => {
+  let list = props.filterOptions?.branches || [];
+  if (modalRegion.value) {
+    list = list.filter((b) => (b.region_code || b.value) === modalRegion.value);
+  }
+  if (modalPrincipal.value) {
+    list = list.filter((b) => (b.entity_code_principal || b.entity_name_principal) === modalPrincipal.value);
+  }
+  return list.map((b) => {
+    if (typeof b === 'object' && b !== null) {
+      return {
+        value: b.branch_id || b.value,
+        label: b.branch_name ? `${b.branch_id} - ${b.branch_name}` : String(b.value || b),
+      };
+    }
+    return { value: b, label: String(b) };
+  });
+});
+
+function onModalRegionChange() {
+  if (modalRegion.value) {
+    const isValidEntity = entityOptionsModal.value.some((e) => e.value === modalPrincipal.value);
+    if (!isValidEntity) {
+      modalPrincipal.value = '';
+    }
+    const isValidBranch = branchOptionsModal.value.some((b) => b.value === modalBranch.value);
     if (!isValidBranch) {
-      selectedBranch.value = '';
+      modalBranch.value = '';
     }
   }
-  applyFilters();
+  // Data is NOT loaded here!
+}
+
+function onModalPrincipalChange() {
+  if (modalPrincipal.value) {
+    const isValidBranch = branchOptionsModal.value.some((b) => b.value === modalBranch.value);
+    if (!isValidBranch) {
+      modalBranch.value = '';
+    }
+  }
+  // Data is NOT loaded here!
 }
 
 const statusOptions = [
@@ -199,6 +255,16 @@ function toggleSelectAllMonths() {
   }
 }
 
+function getPhotoUrl(urlOrPath) {
+  if (!urlOrPath) return null;
+  if (urlOrPath.startsWith('http://') || urlOrPath.startsWith('https://')) return urlOrPath;
+  let clean = urlOrPath.replace(/^\/+/, '');
+  if (clean.startsWith('public/')) clean = clean.substring(7);
+  if (clean.startsWith('storage/')) clean = clean.substring(8);
+  if (clean.startsWith('media-photo/')) clean = clean.substring(12);
+  return `/media-photo/${clean}`;
+}
+
 function selectQuarter(q) {
   if (q === 1) selectedEdpMonths.value = ['1', '2', '3'];
   else if (q === 2) selectedEdpMonths.value = ['4', '5', '6'];
@@ -232,11 +298,42 @@ function handleClickOutsideMonth(event) {
   }
 }
 
+function handleEscKeydown(e) {
+  if (e.key === 'Escape') {
+    if (previewImageModal.value) {
+      previewImageModal.value = null;
+      return;
+    }
+    if (showKtpModal.value) {
+      showKtpModal.value = false;
+      return;
+    }
+    if (showFilterModal.value) {
+      showFilterModal.value = false;
+      return;
+    }
+    if (showExportModal.value) {
+      showExportModal.value = false;
+      return;
+    }
+    if (showExportRejectedModal.value) {
+      showExportRejectedModal.value = false;
+      return;
+    }
+    if (activeModalSubmission.value) {
+      activeModalSubmission.value = null;
+      return;
+    }
+  }
+}
+
 onMounted(() => {
   document.addEventListener('click', handleClickOutsideMonth);
+  window.addEventListener('keydown', handleEscKeydown);
 });
 onUnmounted(() => {
   document.removeEventListener('click', handleClickOutsideMonth);
+  window.removeEventListener('keydown', handleEscKeydown);
 });
 
 const edpYearSelectOptions = computed(() => {
@@ -259,12 +356,60 @@ const activeFilterCount = computed(() => {
   if (selectedPrincipal.value) count++;
   if (selectedBranch.value) count++;
   if (selectedStatus.value) count++;
-  if (selectedRoStatus.value) count++;
   if (selectedEdpMonths.value.length > 0) count++;
   if (selectedEdpYear.value) count++;
   if (search.value) count++;
   return count;
 });
+
+const activeFilterChips = computed(() => {
+  const chips = [];
+  if (selectedRegion.value) {
+    const found = regionOptions.value.find((r) => r.value === selectedRegion.value);
+    chips.push({ key: 'region', label: `Region: ${found ? found.label : selectedRegion.value}` });
+  }
+  if (selectedPrincipal.value) {
+    const found = entityOptions.value.find((e) => e.value === selectedPrincipal.value);
+    chips.push({ key: 'principal', label: `Entity: ${found ? found.label : selectedPrincipal.value}` });
+  }
+  if (selectedBranch.value) {
+    const found = branchOptions.value.find((b) => b.value === selectedBranch.value);
+    chips.push({ key: 'branch', label: `Cabang: ${found ? found.label : selectedBranch.value}` });
+  }
+  if (selectedStatus.value) {
+    if (selectedStatus.value === 'PENDING_EDP') {
+      chips.push({ key: 'status', label: 'Status Principal: ⏳ Belum Diproses' });
+    } else if (selectedStatus.value === 'APPROVED_EDP') {
+      chips.push({ key: 'status', label: 'Status Principal: ✔ Disetujui' });
+    } else if (selectedStatus.value === 'REJECTED_EDP') {
+      chips.push({ key: 'status', label: 'Status Principal: ✖ Ditolak' });
+    } else {
+      const found = statusOptions.find((s) => s.value === selectedStatus.value);
+      chips.push({ key: 'status', label: `Status: ${found ? found.label : selectedStatus.value}` });
+    }
+  }
+  if (selectedEdpMonths.value && selectedEdpMonths.value.length > 0) {
+    chips.push({ key: 'months', label: `Bulan: ${selectedEdpMonths.value.length} bulan terpilih` });
+  }
+  if (selectedEdpYear.value) {
+    chips.push({ key: 'year', label: `Tahun: ${selectedEdpYear.value}` });
+  }
+  if (search.value) {
+    chips.push({ key: 'search', label: `Pencarian: "${search.value}"` });
+  }
+  return chips;
+});
+
+function removeChip(key) {
+  if (key === 'region') selectedRegion.value = '';
+  if (key === 'principal') selectedPrincipal.value = '';
+  if (key === 'branch') selectedBranch.value = '';
+  if (key === 'status') selectedStatus.value = '';
+  if (key === 'months') selectedEdpMonths.value = [];
+  if (key === 'year') selectedEdpYear.value = '';
+  if (key === 'search') search.value = '';
+  applyFilters();
+}
 
 function applyFilters() {
   const queryParams = {};
@@ -272,7 +417,6 @@ function applyFilters() {
   if (selectedPrincipal.value) queryParams.principal = selectedPrincipal.value;
   if (selectedBranch.value) queryParams.branch_id = selectedBranch.value;
   if (selectedStatus.value) queryParams.status = selectedStatus.value;
-  if (selectedRoStatus.value) queryParams.is_ro = selectedRoStatus.value;
   if (selectedEdpMonths.value && selectedEdpMonths.value.length > 0) {
     queryParams.edp_months = selectedEdpMonths.value.join(',');
   }
@@ -290,9 +434,8 @@ function applyFilters() {
       },
       onFinish: () => {
         isLoadingFilters.value = false;
-        // Clean URL to keep address bar clean
-        if (Object.keys(queryParams).length === 0) {
-          window.history.replaceState({}, '', route('edp.inbox'));
+        if (window.location.search) {
+          window.history.replaceState({}, '', window.location.pathname);
         }
       },
     }
@@ -300,6 +443,12 @@ function applyFilters() {
 }
 
 function applyFilterModal() {
+  selectedRegion.value = modalRegion.value;
+  selectedPrincipal.value = modalPrincipal.value;
+  selectedBranch.value = modalBranch.value;
+  selectedStatus.value = modalStatus.value;
+  selectedEdpMonths.value = [...modalEdpMonths.value];
+  selectedEdpYear.value = modalEdpYear.value;
   showFilterModal.value = false;
   applyFilters();
 }
@@ -309,10 +458,15 @@ function resetFilters() {
   selectedPrincipal.value = '';
   selectedBranch.value = '';
   selectedStatus.value = '';
-  selectedRoStatus.value = '';
   selectedEdpMonths.value = [];
   selectedEdpYear.value = '';
   search.value = '';
+  modalRegion.value = '';
+  modalPrincipal.value = '';
+  modalBranch.value = '';
+  modalStatus.value = '';
+  modalEdpMonths.value = [];
+  modalEdpYear.value = '';
   showFilterModal.value = false;
   applyFilters();
 }
@@ -1368,50 +1522,108 @@ function getLineStyle(stepBefore, item) {
         </div>
       </div>
 
-      <!-- COMPACT TOOLBAR (FILTER MODAL TRIGGER & SEARCH) -->
-      <div class="bg-white p-4 rounded-xl border border-[#E5E7EB] shadow-xs flex flex-col sm:flex-row items-center justify-between gap-3">
-        <!-- Instant Search Box -->
-        <div class="relative w-full sm:w-96">
-          <input
-            type="text"
-            v-model="search"
-            @keyup.enter="applyFilters"
-            placeholder="Cari Nama Toko, CustCode, Salesman..."
-            class="w-full pl-9 pr-4 py-2 text-xs sm:text-sm font-medium text-slate-800 bg-slate-50 border border-slate-300 rounded-lg focus:bg-white focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 transition placeholder:text-slate-400"
-          />
-          <svg class="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/></svg>
-          <button
-            v-if="search"
-            @click="search = ''; applyFilters();"
-            class="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 text-xs cursor-pointer"
-          >
-            ✕
-          </button>
+      <!-- INLINE FILTER TOOLBAR & ACTIVE CHIPS (DESIGN REFERENCE STYLED) -->
+      <div class="bg-white p-4 rounded-2xl border border-[#E5E7EB] shadow-xs space-y-3">
+        
+        <!-- ROW 1: SEARCH BAR + QUICK FILTER DROPDOWNS + MODAL TRIGGER -->
+        <div class="flex flex-col lg:flex-row items-stretch lg:items-center justify-between gap-3">
+          
+          <!-- Instant Search Input -->
+          <div class="relative w-full lg:w-80 shrink-0">
+            <input
+              type="text"
+              v-model="search"
+              @keyup.enter="applyFilters"
+              placeholder="Search by name, code, salesman..."
+              class="w-full pl-9 pr-8 py-2 text-xs font-semibold text-slate-800 bg-slate-50 border border-slate-300 rounded-xl focus:bg-white focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 transition placeholder:text-slate-400 shadow-2xs"
+            />
+            <svg class="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/></svg>
+            <button
+              v-if="search"
+              @click="search = ''; applyFilters();"
+              class="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 text-xs font-bold cursor-pointer"
+            >
+              ✕
+            </button>
+          </div>
+
+          <!-- Inline Quick Filter Dropdowns Row -->
+          <div class="flex items-center gap-2 overflow-x-auto pb-1 lg:pb-0 flex-wrap lg:flex-nowrap">
+            
+            <!-- Quick Principal Status Filter (Belum diproses, Disetujui, Ditolak EDP) -->
+            <div class="relative inline-flex items-center shrink-0">
+              <select
+                v-model="selectedStatus"
+                @change="applyFilters"
+                class="pl-3.5 pr-9 py-2 text-xs font-bold rounded-xl border border-slate-300 bg-slate-50 hover:bg-white text-slate-700 focus:ring-2 focus:ring-blue-500 cursor-pointer shadow-2xs transition appearance-none max-w-[210px] truncate"
+                style="-webkit-appearance: none; -moz-appearance: none; appearance: none; background-image: none;"
+              >
+                <option value="">Status Principal: Semua</option>
+                <option value="PENDING_EDP">⏳ Belum Diproses (Pending EDP)</option>
+                <option value="APPROVED_EDP">✔ Disetujui (Approved EDP)</option>
+                <option value="REJECTED_EDP">✖ Ditolak (Rejected EDP)</option>
+              </select>
+              <svg class="w-3.5 h-3.5 absolute right-3 pointer-events-none text-slate-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/></svg>
+            </div>
+
+
+            <!-- Quick Sort Select -->
+            <div class="relative inline-flex items-center shrink-0">
+              <select
+                v-model="sortSelect"
+                @change="applyFilters"
+                class="pl-3.5 pr-9 py-2 text-xs font-bold rounded-xl border border-slate-300 bg-slate-50 hover:bg-white text-slate-700 focus:ring-2 focus:ring-blue-500 cursor-pointer shadow-2xs transition appearance-none max-w-[220px] truncate"
+                style="-webkit-appearance: none; -moz-appearance: none; appearance: none; background-image: none;"
+              >
+                <option value="created_at_desc">Sort: Waktu Submit Terbaru</option>
+                <option value="created_at_asc">Sort: Waktu Submit Terlama</option>
+                <option value="nama_noo_asc">Sort: Nama Outlet (A-Z)</option>
+                <option value="branch_name_asc">Sort: Cabang (A-Z)</option>
+              </select>
+              <svg class="w-3.5 h-3.5 absolute right-3 pointer-events-none text-slate-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/></svg>
+            </div>
+
+            <!-- Filter & Sort Dialog Button -->
+            <button
+              @click="showFilterModal = true"
+              class="px-3.5 py-1.5 text-xs font-bold text-slate-800 bg-white hover:bg-slate-100 border border-slate-300 rounded-xl shadow-2xs transition flex items-center gap-1.5 cursor-pointer shrink-0"
+            >
+              <svg class="w-3.5 h-3.5 text-slate-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2.586a1 1 0 01-.293.707l-6.414 6.414a1 1 0 00-.293.707V17l-4 4v-6.586a1 1 0 00-.293-.707L3.293 7.293A1 1 0 013 6.586V4z"/></svg>
+              <span>Filters & Scope</span>
+              <span
+                v-if="activeFilterCount > 0"
+                class="w-4 h-4 rounded-full bg-blue-600 text-white text-[10px] font-bold flex items-center justify-center ml-0.5"
+              >
+                {{ activeFilterCount }}
+              </span>
+            </button>
+          </div>
         </div>
 
-        <div class="flex items-center gap-2.5 w-full sm:w-auto justify-end flex-wrap sm:flex-nowrap">
-          <!-- Reset Filter Button (If any active filter) -->
-          <button
-            v-if="activeFilterCount > 0"
-            @click="resetFilters"
-            class="px-3.5 py-2 text-xs font-semibold text-slate-600 hover:text-rose-700 hover:bg-rose-50 border border-slate-300 hover:border-rose-300 rounded-lg transition cursor-pointer flex items-center gap-1.5"
+        <!-- ROW 2: ACTIVE FILTER CHIPS (PILLS WITH REMOVE X BUTTON) -->
+        <div v-if="activeFilterChips.length > 0" class="flex items-center gap-2 flex-wrap pt-2 border-t border-slate-100 text-xs">
+          <span class="text-[11px] font-bold uppercase tracking-wider text-slate-400 mr-1">Active Filters:</span>
+          
+          <div
+            v-for="chip in activeFilterChips"
+            :key="chip.key"
+            class="px-2.5 py-1 rounded-lg bg-indigo-50 border border-indigo-200 text-indigo-900 font-bold text-[11px] flex items-center gap-1.5 shadow-2xs hover:bg-indigo-100 transition"
           >
-            <span>Reset Filter</span>
-          </button>
-
-          <!-- OPEN FILTER & SORT MODAL BUTTON -->
-          <button
-            @click="showFilterModal = true"
-            class="px-4 py-2 text-xs sm:text-sm font-semibold text-slate-800 bg-slate-100 hover:bg-slate-200 border border-slate-300 rounded-lg shadow-2xs transition flex items-center gap-2 cursor-pointer"
-          >
-            <svg class="w-4 h-4 text-slate-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2.586a1 1 0 01-.293.707l-6.414 6.414a1 1 0 00-.293.707V17l-4 4v-6.586a1 1 0 00-.293-.707L3.293 7.293A1 1 0 013 6.586V4z"/></svg>
-            <span>Filter & Urutkan Data</span>
-            <span
-              v-if="activeFilterCount > 0"
-              class="w-5 h-5 rounded-full bg-blue-600 text-white text-[10px] font-bold flex items-center justify-center"
+            <span>{{ chip.label }}</span>
+            <button
+              type="button"
+              @click="removeChip(chip.key)"
+              class="w-3.5 h-3.5 rounded-full bg-indigo-200 hover:bg-indigo-300 text-indigo-800 flex items-center justify-center text-[9px] font-black cursor-pointer"
             >
-              {{ activeFilterCount }}
-            </span>
+              ✕
+            </button>
+          </div>
+
+          <button
+            @click="resetFilters"
+            class="px-2.5 py-1 text-[11px] font-bold text-rose-600 hover:text-rose-800 hover:underline cursor-pointer ml-1"
+          >
+            Reset All Filters
           </button>
         </div>
       </div>
@@ -1504,7 +1716,7 @@ function getLineStyle(stepBefore, item) {
 
       <!-- MODAL DETAIL KOMPREHENSIF (FULL SCREEN BACKDROP VIA TELEPORT - LEVEL 1 MODAL) -->
       <Teleport to="body">
-        <div v-if="activeModalSubmission" class="fixed inset-0 min-h-screen min-w-full w-full h-full z-[99990] overflow-y-auto bg-black/60 backdrop-blur-xs flex items-center justify-center p-4 sm:p-6">
+        <div v-if="activeModalSubmission" class="fixed inset-0 min-h-screen min-w-full w-full h-full z-[99990] overflow-y-auto bg-slate-950/75 backdrop-blur-md flex items-center justify-center p-4 sm:p-6" @click.self="activeModalSubmission = null">
         <div class="bg-white rounded-xl max-w-4xl w-full max-h-[85vh] flex flex-col shadow-[0_15px_40px_rgba(0,0,0,0.18)] border border-[#E5E7EB] overflow-hidden text-[#374151]">
           
           <!-- Modal Header -->
@@ -1643,7 +1855,7 @@ function getLineStyle(stepBefore, item) {
             <!-- SECTION 3: HIRARKI CABANG & SALESMAN -->
             <div class="space-y-3">
               <h3 class="text-[14px] font-semibold text-[#1F2937] uppercase tracking-wider border-b border-[#E5E7EB] pb-2">🏢 Hirarki Cabang & Salesman</h3>
-              <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4 text-[14px]">
+              <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-5 gap-4 text-[14px]">
                 <div>
                   <span class="text-[#6B7280] block text-[13px]">Region Code</span>
                   <span class="font-bold text-[#1D4ED8]">{{ activeModalSubmission.region_code || '-' }}</span>
@@ -1659,6 +1871,12 @@ function getLineStyle(stepBefore, item) {
                 <div>
                   <span class="text-[#6B7280] block text-[13px]">Sales Executive (SE)</span>
                   <span class="font-bold text-[#111827]">{{ activeModalSubmission.salesman_code }} - {{ activeModalSubmission.salesman_name }}</span>
+                </div>
+                <div>
+                  <span class="text-[#6B7280] block text-[13px]">Tanggal Submit SE</span>
+                  <span class="font-bold text-[#059669]">
+                    {{ activeModalSubmission.submitted_at ? new Date(activeModalSubmission.submitted_at).toLocaleString('id-ID', { dateStyle: 'medium', timeStyle: 'short' }) : (activeModalSubmission.created_at ? new Date(activeModalSubmission.created_at).toLocaleString('id-ID', { dateStyle: 'medium', timeStyle: 'short' }) : '-') }}
+                  </span>
                 </div>
               </div>
             </div>
@@ -1824,43 +2042,6 @@ function getLineStyle(stepBefore, item) {
                     </div>
                     <div v-else class="text-slate-400 italic text-[11px]">Tidak ada catatan EDP principal.</div>
 
-                    <!-- RO Status Control (Bisa dinonaktifkan/diaktifkan jika toko tidak melakukan orderan) -->
-                    <div v-if="activeModalSubmission.status === 'APPROVED_EDP' || activeModalSubmission.status === 'EDP_APPROVED' || activeModalSubmission.status === 'INJECTED'" class="mt-2.5 pt-2.5 border-t border-slate-200/80 flex items-center justify-between flex-wrap gap-2 bg-white p-2.5 rounded-lg border">
-                      <div class="flex items-center gap-2">
-                        <span class="font-semibold text-slate-700 text-xs">Status RO:</span>
-                        <span
-                          v-if="activeModalSubmission.is_ro !== false && activeModalSubmission.is_ro !== 0 && activeModalSubmission.is_ro !== '0'"
-                          class="px-2.5 py-0.5 text-[11px] font-bold text-emerald-800 bg-emerald-100 border border-emerald-300 rounded-full flex items-center gap-1.5"
-                        >
-                          <span class="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
-                          AKTIF (RO)
-                        </span>
-                        <span
-                          v-else
-                          class="px-2.5 py-0.5 text-[11px] font-bold text-rose-800 bg-rose-100 border border-rose-300 rounded-full flex items-center gap-1.5"
-                        >
-                          <span class="w-2 h-2 rounded-full bg-rose-500"></span>
-                          NON-AKTIF
-                        </span>
-                      </div>
-
-                      <button
-                        @click="handleToggleRoStatus(activeModalSubmission.is_ro === false || activeModalSubmission.is_ro === 0 || activeModalSubmission.is_ro === '0')"
-                        :disabled="isProcessingToggleRo"
-                        :class="[
-                          'px-3 py-1 text-xs font-bold rounded-lg transition shadow-2xs flex items-center gap-1.5 cursor-pointer disabled:opacity-50',
-                          (activeModalSubmission.is_ro !== false && activeModalSubmission.is_ro !== 0 && activeModalSubmission.is_ro !== '0')
-                            ? 'bg-rose-50 text-rose-700 border border-rose-300 hover:bg-rose-100'
-                            : 'bg-emerald-50 text-emerald-700 border border-emerald-300 hover:bg-emerald-100'
-                        ]"
-                      >
-                        <svg v-if="isProcessingToggleRo" class="animate-spin h-3.5 w-3.5" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                          <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
-                          <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                        </svg>
-                        <span>{{ (activeModalSubmission.is_ro !== false && activeModalSubmission.is_ro !== 0 && activeModalSubmission.is_ro !== '0') ? '🚫 Nonaktifkan Status RO' : '✅ Aktifkan Status RO' }}</span>
-                      </button>
-                    </div>
                   </div>
                 </div>
 
@@ -1951,9 +2132,9 @@ function getLineStyle(stepBefore, item) {
                   <div class="h-6 flex items-center">
                     <span class="text-[13px] font-medium text-[#4B5563]">1. Foto Depan Toko</span>
                   </div>
-                  <div v-if="activeModalSubmission.photo_depan_url" class="relative group cursor-pointer overflow-hidden rounded-[8px]" @click="previewImageModal = activeModalSubmission.photo_depan_url">
+                  <div v-if="getPhotoUrl(activeModalSubmission.photo_depan_url || activeModalSubmission.photo_depan_path)" class="relative group cursor-pointer overflow-hidden rounded-[8px]" @click="previewImageModal = getPhotoUrl(activeModalSubmission.photo_depan_url || activeModalSubmission.photo_depan_path)">
                     <img
-                      :src="activeModalSubmission.photo_depan_url"
+                      :src="getPhotoUrl(activeModalSubmission.photo_depan_url || activeModalSubmission.photo_depan_path)"
                       class="w-full h-44 object-cover rounded-[8px] border border-[#E5E7EB] pointer-events-none select-none shadow-xs"
                       draggable="false"
                       oncontextmenu="return false;"
@@ -1976,9 +2157,9 @@ function getLineStyle(stepBefore, item) {
                   <div class="h-6 flex items-center">
                     <span class="text-[13px] font-medium text-[#4B5563]">2. Foto Dalam Toko</span>
                   </div>
-                  <div v-if="activeModalSubmission.photo_dalam_url" class="relative group cursor-pointer overflow-hidden rounded-[8px]" @click="previewImageModal = activeModalSubmission.photo_dalam_url">
+                  <div v-if="getPhotoUrl(activeModalSubmission.photo_dalam_url || activeModalSubmission.photo_dalam_path)" class="relative group cursor-pointer overflow-hidden rounded-[8px]" @click="previewImageModal = getPhotoUrl(activeModalSubmission.photo_dalam_url || activeModalSubmission.photo_dalam_path)">
                     <img
-                      :src="activeModalSubmission.photo_dalam_url"
+                      :src="getPhotoUrl(activeModalSubmission.photo_dalam_url || activeModalSubmission.photo_dalam_path)"
                       class="w-full h-44 object-cover rounded-[8px] border border-[#E5E7EB] pointer-events-none select-none shadow-xs"
                       draggable="false"
                       oncontextmenu="return false;"
@@ -2032,9 +2213,9 @@ function getLineStyle(stepBefore, item) {
                   </div>
 
                   <div>
-                    <div v-if="activeModalSubmission.photo_ktp_url" class="relative group cursor-pointer overflow-hidden rounded-[8px]" @click="previewImageModal = activeModalSubmission.photo_ktp_url">
+                    <div v-if="getPhotoUrl(activeModalSubmission.photo_ktp_url || activeModalSubmission.photo_ktp_path)" class="relative group cursor-pointer overflow-hidden rounded-[8px]" @click="previewImageModal = getPhotoUrl(activeModalSubmission.photo_ktp_url || activeModalSubmission.photo_ktp_path)">
                       <img
-                        :src="activeModalSubmission.photo_ktp_url"
+                        :src="getPhotoUrl(activeModalSubmission.photo_ktp_url || activeModalSubmission.photo_ktp_path)"
                         class="w-full h-44 object-cover rounded-[8px] border border-[#93C5FD] pointer-events-none select-none shadow-xs"
                         draggable="false"
                         oncontextmenu="return false;"
@@ -2635,7 +2816,7 @@ function getLineStyle(stepBefore, item) {
 
       <!-- DEDICATED MODAL FILTER & SORT -->
       <Teleport to="body">
-        <div v-if="showFilterModal" class="fixed inset-0 min-h-screen min-w-full w-full h-full bg-black/60 backdrop-blur-xs z-[99995] flex items-center justify-center p-4 overflow-y-auto">
+        <div v-if="showFilterModal" class="fixed inset-0 min-h-screen min-w-full w-full h-full bg-black/60 backdrop-blur-xs z-[99995] flex items-center justify-center p-4 overflow-y-auto" @click.self="showFilterModal = false">
           <div class="bg-white rounded-2xl max-w-lg w-full p-6 space-y-5 shadow-2xl border border-slate-200 text-slate-800 my-auto">
             
             <!-- Modal Filter Header -->
@@ -2658,11 +2839,11 @@ function getLineStyle(stepBefore, item) {
               <div v-if="userRole === 'SUPERADMIN' || userRole === 'ADMIN_PRINCIPAL'">
                 <label class="block text-xs font-bold text-slate-700 mb-1">Region / Wilayah Scope:</label>
                 <SearchableSelect
-                  v-model="selectedRegion"
+                  v-model="modalRegion"
                   :options="regionOptions"
                   placeholder="-- Semua Region --"
                   searchPlaceholder="Ketik Region Code / Nama..."
-                  @change="onRegionChange"
+                  @change="onModalRegionChange"
                 />
               </div>
 
@@ -2670,11 +2851,11 @@ function getLineStyle(stepBefore, item) {
               <div>
                 <label class="block text-xs font-bold text-slate-700 mb-1">Entity Principal:</label>
                 <SearchableSelect
-                  v-model="selectedPrincipal"
-                  :options="entityOptions"
+                  v-model="modalPrincipal"
+                  :options="entityOptionsModal"
                   placeholder="-- Semua Principal --"
                   searchPlaceholder="Ketik Kode / Nama Entity..."
-                  @change="onPrincipalChange"
+                  @change="onModalPrincipalChange"
                 />
               </div>
 
@@ -2682,8 +2863,8 @@ function getLineStyle(stepBefore, item) {
               <div>
                 <label class="block text-xs font-bold text-slate-700 mb-1">Cabang / Branch:</label>
                 <SearchableSelect
-                  v-model="selectedBranch"
-                  :options="branchOptions"
+                  v-model="modalBranch"
+                  :options="branchOptionsModal"
                   placeholder="-- Semua Cabang --"
                   searchPlaceholder="Ketik ID atau Nama Cabang..."
                 />
@@ -2693,24 +2874,11 @@ function getLineStyle(stepBefore, item) {
               <div>
                 <label class="block text-xs font-bold text-slate-700 mb-1">Status Submisi NOO:</label>
                 <SearchableSelect
-                  v-model="selectedStatus"
+                  v-model="modalStatus"
                   :options="statusOptions"
                   placeholder="-- Semua Status --"
                   searchPlaceholder="Cari Status..."
                 />
-              </div>
-
-              <!-- STATUS RO (REGISTERED OUTLET) -->
-              <div>
-                <label class="block text-xs font-bold text-slate-700 mb-1">Status RO (Registered Outlet):</label>
-                <select
-                  v-model="selectedRoStatus"
-                  class="w-full h-10 px-3 text-xs font-semibold text-slate-800 bg-white border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 shadow-2xs cursor-pointer"
-                >
-                  <option value="">-- Semua Status RO --</option>
-                  <option value="active">RO Aktif</option>
-                  <option value="inactive">RO Nonaktif</option>
-                </select>
               </div>
 
               <!-- BULAN & TAHUN APPROVAL EDP (MULTISELECT CHECKBOX DROPDOWN LIKE MONITORING RO) -->
@@ -2724,13 +2892,13 @@ function getLineStyle(stepBefore, item) {
                     @click="isMonthDropdownOpen = !isMonthDropdownOpen"
                     class="w-full h-10 px-3 text-xs rounded-lg border border-slate-300 bg-white font-semibold text-slate-800 flex items-center justify-between shadow-2xs hover:border-blue-500 focus:outline-none transition cursor-pointer"
                   >
-                    <span class="truncate pr-2">{{ selectedEdpMonthsLabel }}</span>
+                    <span class="truncate pr-2">{{ modalEdpMonths.length === 0 ? '-- Semua Bulan --' : `${modalEdpMonths.length} Bulan` }}</span>
                     <div class="flex items-center gap-1.5 shrink-0">
                       <span
-                        v-if="selectedEdpMonths.length > 0 && selectedEdpMonths.length < 12"
+                        v-if="modalEdpMonths.length > 0 && modalEdpMonths.length < 12"
                         class="w-5 h-5 rounded-full bg-blue-600 text-white text-[10px] font-bold flex items-center justify-center"
                       >
-                        {{ selectedEdpMonths.length }}
+                        {{ modalEdpMonths.length }}
                       </span>
                       <span class="text-[10px] text-slate-500">▼</span>
                     </div>
@@ -2752,7 +2920,7 @@ function getLineStyle(stepBefore, item) {
                         <input
                           type="checkbox"
                           :value="m.value"
-                          v-model="selectedEdpMonths"
+                          v-model="modalEdpMonths"
                           class="w-3.5 h-3.5 text-blue-600 rounded border-slate-300 focus:ring-blue-500"
                         />
                         <span class="font-medium text-[11.5px]">{{ m.label }}</span>
@@ -2760,7 +2928,7 @@ function getLineStyle(stepBefore, item) {
                     </div>
 
                     <div class="pt-2 border-t border-slate-100 flex justify-between items-center text-[11px]">
-                      <span class="text-slate-500 font-semibold">{{ selectedEdpMonths.length }} bulan terpilih</span>
+                      <span class="text-slate-500 font-semibold">{{ modalEdpMonths.length }} bulan terpilih</span>
                       <button
                         type="button"
                         @click="isMonthDropdownOpen = false"
@@ -2775,15 +2943,18 @@ function getLineStyle(stepBefore, item) {
                 <!-- TAHUN APPROVAL EDP -->
                 <div>
                   <label class="block text-xs font-bold text-slate-700 mb-1">Tahun Approval EDP:</label>
-                  <select
-                    v-model="selectedEdpYear"
-                    class="w-full h-10 px-3 text-xs font-semibold text-slate-800 bg-white border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 shadow-2xs cursor-pointer"
-                  >
-                    <option value="">-- Semua Tahun Approval --</option>
-                    <option v-for="y in edpYearSelectOptions" :key="y.value" :value="y.value">
-                      {{ y.label }}
-                    </option>
-                  </select>
+                  <div class="relative">
+                    <select
+                      v-model="modalEdpYear"
+                      class="w-full h-10 pl-3 pr-8 text-xs font-semibold text-slate-800 bg-white border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 shadow-2xs cursor-pointer appearance-none"
+                    >
+                      <option value="">-- Semua Tahun Approval --</option>
+                      <option v-for="y in edpYearSelectOptions" :key="y.value" :value="y.value">
+                        {{ y.label }}
+                      </option>
+                    </select>
+                    <svg class="w-3.5 h-3.5 absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/></svg>
+                  </div>
                 </div>
               </div>
 
@@ -2792,8 +2963,8 @@ function getLineStyle(stepBefore, item) {
                 <label class="block text-xs font-bold text-slate-700 mb-1">Urutkan Tampilan Tabel (Sort):</label>
                 <div class="relative">
                   <select
-                    v-model="sortSelect"
-                    class="w-full text-xs font-semibold p-2.5 pr-10 rounded-lg border border-slate-300 bg-white text-slate-800 focus:ring-2 focus:ring-blue-500 shadow-2xs cursor-pointer appearance-none"
+                    v-model="modalSort"
+                    class="w-full text-xs font-semibold p-2.5 pr-8 rounded-lg border border-slate-300 bg-white text-slate-800 focus:ring-2 focus:ring-blue-500 shadow-2xs cursor-pointer appearance-none"
                   >
                     <option value="created_at_desc">Waktu Submit (Terbaru ke Terlama)</option>
                     <option value="created_at_asc">Waktu Submit (Terlama ke Terbaru)</option>
@@ -2802,9 +2973,7 @@ function getLineStyle(stepBefore, item) {
                     <option value="branch_name_asc">Cabang Distributor (A - Z)</option>
                     <option value="status_asc">Status Submisi</option>
                   </select>
-                  <div class="absolute right-3.5 top-1/2 -translate-y-1/2 pointer-events-none text-slate-500 text-xs font-bold">
-                    ▼
-                  </div>
+                  <svg class="w-3.5 h-3.5 absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/></svg>
                 </div>
               </div>
             </div>

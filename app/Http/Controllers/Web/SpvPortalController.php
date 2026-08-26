@@ -62,10 +62,16 @@ class SpvPortalController extends Controller
             $query->whereRaw('1 = 0');
         }
 
-        $submissions = $query->orderBy('created_at', 'desc')->get()->map(function ($item) {
-            $item->photo_depan_url = $item->photo_depan_path ? asset('storage/' . $item->photo_depan_path) : null;
-            $item->photo_dalam_url = $item->photo_dalam_path ? asset('storage/' . $item->photo_dalam_path) : null;
-            $item->photo_ktp_url = $item->photo_ktp_path ? asset('storage/' . $item->photo_ktp_path) : null;
+        $formatPhoto = function ($path) {
+            if (empty($path)) return null;
+            $cleanPath = ltrim(str_replace('storage/', '', $path), '/');
+            return url('/media-photo/' . $cleanPath);
+        };
+
+        $submissions = $query->orderBy('created_at', 'desc')->get()->map(function ($item) use ($formatPhoto) {
+            $item->photo_depan_url = $formatPhoto($item->photo_depan_path ?? null);
+            $item->photo_dalam_url = $formatPhoto($item->photo_dalam_path ?? null);
+            $item->photo_ktp_url = $formatPhoto($item->photo_ktp_path ?? null);
             return $item;
         });
 
@@ -132,6 +138,17 @@ class SpvPortalController extends Controller
                 'updated_at' => now(),
             ]);
 
+            DB::table('activity_logs')->insert([
+                'username' => $userName,
+                'user_role' => 'SPV_AREA',
+                'action' => 'APPROVE_SPV',
+                'module' => 'SPV_PORTAL',
+                'description' => "Supervisor Area {$userName} menyetujui rute & mendorong toko {$submission->nama_noo} ke EDP Principal.",
+                'ip_address' => $request->ip(),
+                'created_at' => now(),
+                'updated_at' => now(),
+            ]);
+
             return back()->with('success', "Data toko {$submission->nama_noo} berhasil disetujui & didorong ke Portal EDP.");
         } catch (Throwable $e) {
             return back()->with('error', "Gagal approve SPV: {$e->getMessage()}");
@@ -179,7 +196,18 @@ class SpvPortalController extends Controller
                 'updated_at' => now(),
             ]);
 
-            return back()->with('success', "Data toko {$submission->nama_noo} telah ditolak oleh SPV Area.");
+            DB::table('activity_logs')->insert([
+                'username' => $userName,
+                'user_role' => 'SPV_AREA',
+                'action' => 'REJECT_SPV',
+                'module' => 'SPV_PORTAL',
+                'description' => "Supervisor Area {$userName} menolak toko {$submission->nama_noo} (Alasan: {$rejectReason}).",
+                'ip_address' => $request->ip(),
+                'created_at' => now(),
+                'updated_at' => now(),
+            ]);
+
+            return back()->with('success', "Data toko {$submission->nama_noo} telah ditolak oleh Supervisor Area.");
         } catch (Throwable $e) {
             return back()->with('error', "Gagal menolak toko: {$e->getMessage()}");
         }

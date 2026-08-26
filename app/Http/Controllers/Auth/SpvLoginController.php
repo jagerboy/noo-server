@@ -81,11 +81,37 @@ class SpvLoginController extends Controller
 
         $request->session()->regenerate();
 
+        // Audit Log Activity
+        DB::table('activity_logs')->insert([
+            'username' => $spvFirst->nama ?? $username,
+            'user_role' => 'SPV_AREA',
+            'action' => 'LOGIN',
+            'module' => 'AUTHENTICATION',
+            'description' => "Pengguna SPV Area {$spvFirst->nama} ({$username}) berhasil login ke Portal SPV.",
+            'ip_address' => $request->ip(),
+            'created_at' => now(),
+            'updated_at' => now(),
+        ]);
+
         return redirect()->intended(route('spv.inbox'));
     }
 
     public function destroy(Request $request): RedirectResponse
     {
+        $spvUser = session('spv_user');
+        if ($spvUser) {
+            DB::table('activity_logs')->insert([
+                'username' => $spvUser->name ?? $spvUser->nama ?? 'SPV Area',
+                'user_role' => 'SPV_AREA',
+                'action' => 'LOGOUT',
+                'module' => 'AUTHENTICATION',
+                'description' => "Pengguna SPV Area " . ($spvUser->name ?? '') . " logout dari sistem.",
+                'ip_address' => $request->ip(),
+                'created_at' => now(),
+                'updated_at' => now(),
+            ]);
+        }
+
         $request->session()->forget('spv_user');
         $request->session()->invalidate();
         $request->session()->regenerateToken();

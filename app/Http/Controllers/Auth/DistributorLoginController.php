@@ -233,6 +233,18 @@ class DistributorLoginController extends Controller
 
         $request->session()->regenerate();
 
+        // Audit Log Activity
+        DB::table('activity_logs')->insert([
+            'username' => $branch->branch_name ?? $branchId,
+            'user_role' => 'ADMIN_DISTRIBUTOR',
+            'action' => 'LOGIN',
+            'module' => 'AUTHENTICATION',
+            'description' => "Pengguna Admin Distributor {$branch->branch_name} ({$branchId}) berhasil login ke Portal Admin Distributor.",
+            'ip_address' => $request->ip(),
+            'created_at' => now(),
+            'updated_at' => now(),
+        ]);
+
         return redirect()->intended(route('admin.inbox'));
     }
 
@@ -244,6 +256,20 @@ class DistributorLoginController extends Controller
      */
     public function destroy(Request $request): RedirectResponse
     {
+        $distUser = session('distributor_user');
+        if ($distUser) {
+            DB::table('activity_logs')->insert([
+                'username' => $distUser->name ?? $distUser->branch_id ?? 'Admin Distributor',
+                'user_role' => 'ADMIN_DISTRIBUTOR',
+                'action' => 'LOGOUT',
+                'module' => 'AUTHENTICATION',
+                'description' => "Pengguna Admin Distributor " . ($distUser->name ?? '') . " logout dari sistem.",
+                'ip_address' => $request->ip(),
+                'created_at' => now(),
+                'updated_at' => now(),
+            ]);
+        }
+
         session()->forget('distributor_user');
         $request->session()->invalidate();
         $request->session()->regenerateToken();

@@ -1,12 +1,25 @@
 import '../css/app.css';
 import './bootstrap';
 
-import { createInertiaApp } from '@inertiajs/vue3';
+import { createInertiaApp, router } from '@inertiajs/vue3';
 import { resolvePageComponent } from 'laravel-vite-plugin/inertia-helpers';
 import { createApp, h } from 'vue';
 import { ZiggyVue } from '../../vendor/tightenco/ziggy';
 
 const appName = import.meta.env.VITE_APP_NAME || 'Laravel';
+
+// Clean address bar URL globally on initial load & after any filter / navigation completes
+const cleanUrlAddressBar = () => {
+    if (typeof window !== 'undefined' && window.location.search) {
+        window.history.replaceState({}, '', window.location.pathname);
+    }
+};
+
+cleanUrlAddressBar();
+
+router.on('finish', () => {
+    cleanUrlAddressBar();
+});
 
 createInertiaApp({
     title: (title) => `${title} - ${appName}`,

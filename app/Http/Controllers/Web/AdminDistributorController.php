@@ -42,10 +42,16 @@ class AdminDistributorController extends Controller
             $query->whereRaw('1 = 0');
         }
 
-        $submissions = $query->orderBy('created_at', 'desc')->get()->map(function ($item) {
-            $item->photo_depan_url = $item->photo_depan_path ? asset('storage/' . $item->photo_depan_path) : null;
-            $item->photo_dalam_url = $item->photo_dalam_path ? asset('storage/' . $item->photo_dalam_path) : null;
-            $item->photo_ktp_url = $item->photo_ktp_path ? asset('storage/' . $item->photo_ktp_path) : null;
+        $formatPhoto = function ($path) {
+            if (empty($path)) return null;
+            $cleanPath = ltrim(str_replace('storage/', '', $path), '/');
+            return url('/media-photo/' . $cleanPath);
+        };
+
+        $submissions = $query->orderBy('created_at', 'desc')->get()->map(function ($item) use ($formatPhoto) {
+            $item->photo_depan_url = $formatPhoto($item->photo_depan_path ?? null);
+            $item->photo_dalam_url = $formatPhoto($item->photo_dalam_path ?? null);
+            $item->photo_ktp_url = $formatPhoto($item->photo_ktp_path ?? null);
             return $item;
         });
 
@@ -100,6 +106,17 @@ class AdminDistributorController extends Controller
                 'updated_at' => now(),
             ]);
 
+            DB::table('activity_logs')->insert([
+                'username' => $userName,
+                'user_role' => 'ADMIN_DISTRIBUTOR',
+                'action' => 'SUBMIT_TO_SPV',
+                'module' => 'DISTRIBUTOR_PORTAL',
+                'description' => "Admin Distributor {$userName} mengirimkan submisi toko {$submission->nama_noo} (Cust Code: " . $request->input('custcode_distributor') . ") ke SPV Area.",
+                'ip_address' => $request->ip(),
+                'created_at' => now(),
+                'updated_at' => now(),
+            ]);
+
             return back()->with('success', "Data toko {$submission->nama_noo} berhasil disubmit ke Portal SPV Area.");
         } catch (Throwable $e) {
             return back()->with('error', "Gagal submit ke SPV: {$e->getMessage()}");
@@ -141,9 +158,68 @@ class AdminDistributorController extends Controller
                 'updated_at' => now(),
             ]);
 
+            DB::table('activity_logs')->insert([
+                'username' => $userName,
+                'user_role' => 'ADMIN_DISTRIBUTOR',
+                'action' => 'REJECT_ADMIN',
+                'module' => 'DISTRIBUTOR_PORTAL',
+                'description' => "Admin Distributor {$userName} menolak submisi toko {$submission->nama_noo} (Alasan: {$rejectReason}).",
+                'ip_address' => $request->ip(),
+                'created_at' => now(),
+                'updated_at' => now(),
+            ]);
+
             return back()->with('success', "Data toko {$submission->nama_noo} telah ditolak oleh Admin Distributor.");
         } catch (Throwable $e) {
             return back()->with('error', "Gagal menolak toko: {$e->getMessage()}");
+        }
+    }
+
+    /**
+     * Memproses update Nama Outlet (nama_noo) oleh Admin Distributor.
+     *
+     * @param Request $request Request berisi request_id & nama_noo
+     * @return RedirectResponse Redirect dengan pesan flash
+     */
+    public function updateNamaOutlet(Request $request): RedirectResponse
+    {
+        $request->validate([
+            'request_id' => 'required|uuid',
+            'nama_noo' => 'required|string|max:255',
+        ]);
+
+        try {
+            $requestId = $request->input('request_id');
+            $namaNoo = trim((string) $request->input('nama_noo'));
+
+            $submission = DB::table('noo_submissions')->where('request_id', $requestId)->first();
+
+            if (!$submission) {
+                return back()->with('error', 'Data toko tidak ditemukan.');
+            }
+
+            $user = session('distributor_user') ?? $request->user();
+            $userName = $user->name ?? $user->branch_name ?? 'Admin Distributor';
+
+            DB::table('noo_submissions')->where('request_id', $requestId)->update([
+                'nama_noo' => $namaNoo,
+                'updated_at' => now(),
+            ]);
+
+            DB::table('activity_logs')->insert([
+                'username' => $userName,
+                'user_role' => 'ADMIN_DISTRIBUTOR',
+                'action' => 'UPDATE_NAMA_OUTLET',
+                'module' => 'DISTRIBUTOR_PORTAL',
+                'description' => "Admin Distributor {$userName} memperbarui nama outlet {$submission->nama_noo} menjadi: {$namaNoo}.",
+                'ip_address' => $request->ip(),
+                'created_at' => now(),
+                'updated_at' => now(),
+            ]);
+
+            return back()->with('success', "Nama outlet berhasil diperbarui menjadi: {$namaNoo}");
+        } catch (Throwable $e) {
+            return back()->with('error', "Gagal memperbarui nama outlet: {$e->getMessage()}");
         }
     }
 }

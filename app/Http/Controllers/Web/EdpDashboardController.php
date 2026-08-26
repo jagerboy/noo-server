@@ -338,13 +338,40 @@ class EdpDashboardController extends Controller
         }
 
         if ($userRole === 'ADMIN_PRINCIPAL' && !empty($userEntity)) {
-            $entitiesQuery->where('entity_code_principal', $userEntity);
-            $branchesQuery->where('entity_code_principal', $userEntity);
+            $entitiesQuery->where(function ($q) use ($userEntity) {
+                $q->where('entity_code_principal', $userEntity)
+                  ->orWhere('entity_name_principal', 'ILIKE', "%{$userEntity}%")
+                  ->orWhereRaw("? ILIKE '%' || entity_code_principal || '%'", [$userEntity]);
+            });
+            $branchesQuery->where(function ($q) use ($userEntity) {
+                $q->where('entity_code_principal', $userEntity)
+                  ->orWhereRaw("? ILIKE '%' || entity_code_principal || '%'", [$userEntity]);
+            });
         }
 
         $regions = $regionsQuery->orderBy('region_code')->get();
         $entities = $entitiesQuery->orderBy('entity_code_principal')->get();
         $branches = $branchesQuery->orderBy('branch_id', 'asc')->get();
+
+        if ($entities->isEmpty()) {
+            $fallbackEntities = DB::table('master_branches')
+                ->select('entity_code_principal', 'entity_name_principal', 'region_code')
+                ->distinct()
+                ->whereNotNull('entity_code_principal');
+            if ($userRole !== 'SUPERADMIN' && !empty($userRegion)) {
+                $fallbackEntities->where('region_code', 'LIKE', "{$userRegion}%");
+            }
+            $entities = $fallbackEntities->orderBy('entity_code_principal')->get();
+        }
+
+        if ($branches->isEmpty()) {
+            $fallbackBranches = DB::table('master_branches')
+                ->select('branch_id', 'branch_name', 'region_code', 'entity_code_principal');
+            if ($userRole !== 'SUPERADMIN' && !empty($userRegion)) {
+                $fallbackBranches->where('region_code', 'LIKE', "{$userRegion}%");
+            }
+            $branches = $fallbackBranches->orderBy('branch_id', 'asc')->get();
+        }
 
         return Inertia::render('Edp/Dashboard', [
             'metrics' => [

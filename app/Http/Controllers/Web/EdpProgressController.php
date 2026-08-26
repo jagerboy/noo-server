@@ -162,10 +162,16 @@ class EdpProgressController extends Controller
 
         $submissions = $query->orderBy('created_at', 'desc')->paginate($perPage)->withQueryString();
 
-        $submissions->getCollection()->transform(function ($item) {
-            $item->photo_depan_url = $item->photo_depan_path ? asset('storage/' . $item->photo_depan_path) : null;
-            $item->photo_dalam_url = $item->photo_dalam_path ? asset('storage/' . $item->photo_dalam_path) : null;
-            $item->photo_ktp_url = $item->photo_ktp_path ? asset('storage/' . $item->photo_ktp_path) : null;
+        $formatPhoto = function ($path) {
+            if (empty($path)) return null;
+            $cleanPath = ltrim(str_replace('storage/', '', $path), '/');
+            return url('/media-photo/' . $cleanPath);
+        };
+
+        $submissions->getCollection()->transform(function ($item) use ($formatPhoto) {
+            $item->photo_depan_url = $formatPhoto($item->photo_depan_path ?? null);
+            $item->photo_dalam_url = $formatPhoto($item->photo_dalam_path ?? null);
+            $item->photo_ktp_url = $formatPhoto($item->photo_ktp_path ?? null);
 
             // Kategori Tahapan Progress Workflow
             if ($item->status === 'SE_SUBMITTED') {

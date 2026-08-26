@@ -93,7 +93,16 @@ class EdpPortalController extends Controller
             });
         }
         if ($request->filled('status')) {
-            $query->where('status', $request->input('status'));
+            $st = $request->input('status');
+            if ($st === 'PENDING_EDP' || $st === 'PENDING') {
+                $query->whereIn('status', ['APPROVED_SPV', 'PUSHED_TO_EDP']);
+            } elseif ($st === 'APPROVED_EDP' || $st === 'APPROVED') {
+                $query->whereIn('status', ['APPROVED_EDP', 'EDP_APPROVED', 'INJECTED']);
+            } elseif ($st === 'REJECTED_EDP' || $st === 'REJECTED') {
+                $query->whereIn('status', ['REJECTED_EDP', 'EDP_REJECTED']);
+            } else {
+                $query->where('status', $st);
+            }
         }
         if ($request->filled('is_ro')) {
             $roVal = $request->input('is_ro');
@@ -139,16 +148,23 @@ class EdpPortalController extends Controller
         }
 
         $submissions = $query->orderBy('created_at', 'desc')->paginate($perPage)->withQueryString()->through(function ($item) use ($outletTypes) {
-            $item->photo_depan_url = !empty($item->photo_depan_path)
-                ? (str_starts_with($item->photo_depan_path, 'http') ? $item->photo_depan_path : asset('storage/' . $item->photo_depan_path))
-                : null;
-            $item->photo_dalam_url = !empty($item->photo_dalam_path)
-                ? (str_starts_with($item->photo_dalam_path, 'http') ? $item->photo_dalam_path : asset('storage/' . $item->photo_dalam_path))
-                : null;
+            $formatPhoto = function ($path) {
+                if (empty($path)) return null;
+                if (str_starts_with($path, 'http://') || str_starts_with($path, 'https://')) {
+                    return $path;
+                }
+                $clean = ltrim($path, '/');
+                if (str_starts_with($clean, 'public/')) $clean = substr($clean, 7);
+                if (str_starts_with($clean, 'storage/')) $clean = substr($clean, 8);
+                if (str_starts_with($clean, 'media-photo/')) $clean = substr($clean, 12);
+                return asset('media-photo/' . $clean);
+            };
+
+            $item->photo_depan_url = $formatPhoto($item->photo_depan_path ?? null);
+            $item->photo_dalam_url = $formatPhoto($item->photo_dalam_path ?? null);
             $updatedTs = strtotime((string)($item->updated_at ?? now()));
-            $item->photo_ktp_url = !empty($item->photo_ktp_path)
-                ? (str_starts_with($item->photo_ktp_path, 'http') ? $item->photo_ktp_path : asset('storage/' . $item->photo_ktp_path) . '?v=' . $updatedTs)
-                : null;
+            $ktpUrl = $formatPhoto($item->photo_ktp_path ?? null);
+            $item->photo_ktp_url = $ktpUrl ? ($ktpUrl . (str_contains($ktpUrl, '?') ? '&' : '?') . 'v=' . $updatedTs) : null;
 
             $item->is_ktp_revised = ($item->is_ktp_revised ?? false) || str_contains((string)($item->flags ?? ''), 'REVISI_KTP_EDP');
             $item->alamat_noo = \App\Services\NooSubmissionService::sanitizeAddress($item->alamat_noo ?? '');
@@ -171,13 +187,41 @@ class EdpPortalController extends Controller
         }
 
         if ($userRole === 'ADMIN_PRINCIPAL' && !empty($user->entity_code_principal)) {
-            $entitiesQuery->where('entity_code_principal', $user->entity_code_principal);
-            $branchesQuery->where('entity_code_principal', $user->entity_code_principal);
+            $uEntity = $user->entity_code_principal;
+            $entitiesQuery->where(function ($q) use ($uEntity) {
+                $q->where('entity_code_principal', $uEntity)
+                  ->orWhere('entity_name_principal', 'ILIKE', "%{$uEntity}%")
+                  ->orWhereRaw("? ILIKE '%' || entity_code_principal || '%'", [$uEntity]);
+            });
+            $branchesQuery->where(function ($q) use ($uEntity) {
+                $q->where('entity_code_principal', $uEntity)
+                  ->orWhereRaw("? ILIKE '%' || entity_code_principal || '%'", [$uEntity]);
+            });
         }
 
         $regions = $regionsQuery->orderBy('region_code')->get();
         $entities = $entitiesQuery->orderBy('entity_code_principal')->get();
         $branches = $branchesQuery->orderBy('branch_id', 'asc')->get();
+
+        if ($entities->isEmpty()) {
+            $fallbackEntities = DB::table('master_branches')
+                ->select('entity_code_principal', 'entity_name_principal', 'region_code')
+                ->distinct()
+                ->whereNotNull('entity_code_principal');
+            if ($userRole !== 'SUPERADMIN' && !empty($regionCode)) {
+                $fallbackEntities->where('region_code', 'LIKE', "{$regionCode}%");
+            }
+            $entities = $fallbackEntities->orderBy('entity_code_principal')->get();
+        }
+
+        if ($branches->isEmpty()) {
+            $fallbackBranches = DB::table('master_branches')
+                ->select('branch_id', 'branch_name', 'region_code', 'entity_code_principal');
+            if ($userRole !== 'SUPERADMIN' && !empty($regionCode)) {
+                $fallbackBranches->where('region_code', 'LIKE', "{$regionCode}%");
+            }
+            $branches = $fallbackBranches->orderBy('branch_id', 'asc')->get();
+        }
 
         $edpYears = DB::table('noo_submissions')
             ->selectRaw("DISTINCT EXTRACT(YEAR FROM COALESCE(edp_reviewed_at, updated_at)) as yr")

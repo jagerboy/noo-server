@@ -180,9 +180,11 @@ watch(
 const regionOptions = computed(() => {
   return (props.filterOptions?.regions || []).map((r) => {
     if (typeof r === 'object' && r !== null) {
+      const code = r.region_code || r.value;
+      const name = r.region_name;
       return {
-        value: r.region_code || r.value,
-        label: r.region_name ? `${r.region_code} - ${r.region_name}` : String(r.region_code || r.value),
+        value: code,
+        label: name ? `${code} - ${name}` : String(code),
       };
     }
     return { value: r, label: String(r) };
@@ -190,11 +192,22 @@ const regionOptions = computed(() => {
 });
 
 const entityOptions = computed(() => {
-  return (props.filterOptions?.entities || []).map((e) => {
+  const allEntities = props.filterOptions?.entities || [];
+  let list = allEntities;
+  if (selectedRegion.value) {
+    const filtered = list.filter((e) => e.region_code === selectedRegion.value || (e.region_code && selectedRegion.value.startsWith(e.region_code)));
+    if (filtered.length > 0) {
+      list = filtered;
+    }
+  }
+  return list.map((e) => {
     if (typeof e === 'object' && e !== null) {
+      const code = e.entity_code_principal || e.value || '';
+      const name = e.entity_name_principal || e.label || '';
       return {
-        value: e.entity_code_principal || e.entity_name_principal || e.value,
-        label: e.entity_name_principal ? `${e.entity_code_principal || ''} - ${e.entity_name_principal}` : String(e.value || e),
+        value: code,
+        label: name ? `${code} - ${name}` : String(code),
+        region_code: e.region_code,
       };
     }
     return { value: e, label: String(e) };
@@ -202,15 +215,49 @@ const entityOptions = computed(() => {
 });
 
 const branchOptions = computed(() => {
-  return (props.filterOptions?.branches || []).map((b) => {
+  const allBranches = props.filterOptions?.branches || [];
+  let list = allBranches;
+  if (selectedRegion.value) {
+    const filtered = list.filter((b) => b.region_code === selectedRegion.value || (b.region_code && selectedRegion.value.startsWith(b.region_code)));
+    if (filtered.length > 0) {
+      list = filtered;
+    }
+  }
+  if (selectedPrincipal.value) {
+    const filteredByPrinc = list.filter((b) => b.entity_code_principal === selectedPrincipal.value || b.principal_code === selectedPrincipal.value);
+    if (filteredByPrinc.length > 0) {
+      list = filteredByPrinc;
+    }
+  }
+  return list.map((b) => {
     if (typeof b === 'object' && b !== null) {
       return {
         value: b.branch_id,
         label: `${b.branch_id} - ${b.branch_name}`,
+        region_code: b.region_code,
+        entity_code_principal: b.entity_code_principal,
       };
     }
     return { value: b, label: String(b) };
   });
+});
+
+watch(selectedRegion, () => {
+  if (selectedPrincipal.value) {
+    const valid = entityOptions.value.some((e) => e.value === selectedPrincipal.value);
+    if (!valid) selectedPrincipal.value = '';
+  }
+  if (selectedBranch.value) {
+    const valid = branchOptions.value.some((b) => b.value === selectedBranch.value);
+    if (!valid) selectedBranch.value = '';
+  }
+});
+
+watch(selectedPrincipal, () => {
+  if (selectedBranch.value) {
+    const valid = branchOptions.value.some((b) => b.value === selectedBranch.value);
+    if (!valid) selectedBranch.value = '';
+  }
 });
 
 const monthOptions = [
@@ -273,9 +320,11 @@ function applyFilters() {
       preserveState: true,
       replace: true,
       preserveScroll: true,
-      only: ['metrics', 'charts', 'filters'],
       onFinish: () => {
         isFiltering.value = false;
+        if (window.location.search) {
+          window.history.replaceState({}, '', window.location.pathname);
+        }
         animateNumbers();
       },
     }

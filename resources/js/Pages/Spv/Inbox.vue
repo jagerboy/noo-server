@@ -5,7 +5,7 @@
  * Menampilkan daftar submisi toko dari Admin Distributor, pengisian rute H1-H7 & M1-M4,
  * persetujuan SPV (Approve & Pushed ke EDP), dan penolakan SPV.
  */
-import { ref, computed } from 'vue';
+import { ref, computed, onMounted, onUnmounted } from 'vue';
 import { useForm, Head } from '@inertiajs/vue3';
 import SpvLayout from '@/Layouts/SpvLayout.vue';
 import BaseButton from '@/Components/BaseButton.vue';
@@ -221,6 +221,39 @@ const isRouteValid = computed(() => {
   const hasDay = ['h1', 'h2', 'h3', 'h4', 'h5', 'h6', 'h7'].some((k) => approveForm[k] === 'Y');
   const hasWeek = ['m1', 'm2', 'm3', 'm4'].some((k) => approveForm[k] === 'Y');
   return hasDay && hasWeek && selectedVisitPattern.value !== '';
+});
+
+// Helper Resolusi URL Foto (/media-photo/ Streaming Route)
+function getPhotoUrl(pathOrUrl) {
+  if (!pathOrUrl) return null;
+  if (pathOrUrl.includes('/media-photo/')) return pathOrUrl;
+  const cleanPath = pathOrUrl.replace(/^https?:\/\/[^\/]+\/storage\//, '').replace(/^\/?storage\//, '');
+  return `/media-photo/${cleanPath}`;
+}
+
+function handleEscKeydown(e) {
+  if (e.key === 'Escape') {
+    if (activePhotoZoom.value) {
+      activePhotoZoom.value = null;
+      return;
+    }
+    if (showRejectModal.value) {
+      showRejectModal.value = false;
+      return;
+    }
+    if (showDetailModal.value) {
+      showDetailModal.value = false;
+      selectedSubmission.value = null;
+      return;
+    }
+  }
+}
+
+onMounted(() => {
+  window.addEventListener('keydown', handleEscKeydown);
+});
+onUnmounted(() => {
+  window.removeEventListener('keydown', handleEscKeydown);
 });
 
 // Buka Modal Detail & Pengisian Rute Toko
@@ -755,7 +788,7 @@ function getRowStyle(item) {
 
     <!-- MODAL SLIDE-OVER PREVIEW DETAIL & PENGATURAN RUTE SPV (LEVEL 1 Z-INDEX 99990) -->
     <Teleport to="body">
-      <div v-if="showDetailModal && selectedSubmission" class="fixed inset-0 min-h-screen min-w-full w-full h-full z-[99990] overflow-y-auto bg-black/60 backdrop-blur-xs flex items-center justify-center p-2 sm:p-4 md:p-6">
+      <div v-if="showDetailModal && selectedSubmission" class="fixed inset-0 min-h-screen min-w-full w-full h-full z-[99990] overflow-y-auto bg-black/60 backdrop-blur-xs flex items-center justify-center p-2 sm:p-4 md:p-6" @click.self="closeDetailModal">
       <div class="bg-white rounded-xl max-w-4xl w-full max-h-[92vh] sm:max-h-[85vh] flex flex-col shadow-[0_15px_40px_rgba(0,0,0,0.18)] border border-[#E5E7EB] overflow-hidden text-[#374151]">
         
         <!-- Header Modal -->
@@ -1070,9 +1103,9 @@ function getRowStyle(item) {
               <!-- Foto Depan -->
               <div class="bg-white p-2.5 rounded-xl border border-[#E5E7EB] text-center relative select-none shadow-sm">
                 <span class="text-[12px] font-semibold text-[#4B5563] block mb-2">1. FOTO DEPAN</span>
-                <div v-if="selectedSubmission.photo_depan_url" class="relative group cursor-pointer overflow-hidden rounded-lg" @click="activePhotoZoom = selectedSubmission.photo_depan_url">
+                <div v-if="getPhotoUrl(selectedSubmission.photo_depan_url || selectedSubmission.photo_depan_path)" class="relative group cursor-pointer overflow-hidden rounded-lg" @click="activePhotoZoom = getPhotoUrl(selectedSubmission.photo_depan_url || selectedSubmission.photo_depan_path)">
                   <img
-                    :src="selectedSubmission.photo_depan_url"
+                    :src="getPhotoUrl(selectedSubmission.photo_depan_url || selectedSubmission.photo_depan_path)"
                     alt="Foto Depan"
                     class="w-full h-44 object-cover rounded-lg shadow-md pointer-events-none select-none"
                     draggable="false"
@@ -1094,9 +1127,9 @@ function getRowStyle(item) {
               <!-- Foto Dalam -->
               <div class="bg-white p-2.5 rounded-xl border border-[#E5E7EB] text-center relative select-none shadow-sm">
                 <span class="text-[12px] font-semibold text-[#4B5563] block mb-2">2. FOTO DALAM</span>
-                <div v-if="selectedSubmission.photo_dalam_url" class="relative group cursor-pointer overflow-hidden rounded-lg" @click="activePhotoZoom = selectedSubmission.photo_dalam_url">
+                <div v-if="getPhotoUrl(selectedSubmission.photo_dalam_url || selectedSubmission.photo_dalam_path)" class="relative group cursor-pointer overflow-hidden rounded-lg" @click="activePhotoZoom = getPhotoUrl(selectedSubmission.photo_dalam_url || selectedSubmission.photo_dalam_path)">
                   <img
-                    :src="selectedSubmission.photo_dalam_url"
+                    :src="getPhotoUrl(selectedSubmission.photo_dalam_url || selectedSubmission.photo_dalam_path)"
                     alt="Foto Dalam"
                     class="w-full h-44 object-cover rounded-lg shadow-md pointer-events-none select-none"
                     draggable="false"
@@ -1118,9 +1151,9 @@ function getRowStyle(item) {
               <!-- Foto KTP -->
               <div class="bg-white p-2.5 rounded-xl border border-[#E5E7EB] text-center relative select-none shadow-sm">
                 <span class="text-[12px] font-semibold text-[#4B5563] block mb-2">3. FOTO KTP</span>
-                <div v-if="selectedSubmission.photo_ktp_url" class="relative group cursor-pointer overflow-hidden rounded-lg" @click="activePhotoZoom = selectedSubmission.photo_ktp_url">
+                <div v-if="getPhotoUrl(selectedSubmission.photo_ktp_url || selectedSubmission.photo_ktp_path)" class="relative group cursor-pointer overflow-hidden rounded-lg" @click="activePhotoZoom = getPhotoUrl(selectedSubmission.photo_ktp_url || selectedSubmission.photo_ktp_path)">
                   <img
-                    :src="selectedSubmission.photo_ktp_url"
+                    :src="getPhotoUrl(selectedSubmission.photo_ktp_url || selectedSubmission.photo_ktp_path)"
                     alt="Foto KTP"
                     class="w-full h-44 object-cover rounded-lg shadow-md pointer-events-none select-none"
                     draggable="false"
@@ -1477,7 +1510,7 @@ function getRowStyle(item) {
 
     <!-- MODAL CONFIRMATION REJECT SPV (LEVEL 2 Z-INDEX 999999) -->
     <Teleport to="body">
-      <div v-if="showRejectModal" class="fixed inset-0 min-h-screen min-w-full w-full h-full z-[999999] overflow-y-auto bg-black/60 backdrop-blur-xs flex items-center justify-center p-4">
+      <div v-if="showRejectModal" class="fixed inset-0 min-h-screen min-w-full w-full h-full z-[999999] overflow-y-auto bg-black/60 backdrop-blur-xs flex items-center justify-center p-4" @click.self="showRejectModal = false">
         <div class="bg-white rounded-xl max-w-md w-full p-6 shadow-xl border border-[#E5E7EB] space-y-4 my-auto">
           <h3 class="text-lg font-bold text-[#111827]">🚫 Tolak Submisi Toko (SPV Area)</h3>
           <p class="text-xs text-[#6B7280]">
