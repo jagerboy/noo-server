@@ -6,8 +6,11 @@ namespace App\Http\Controllers\Web;
 
 use App\Http\Controllers\Controller;
 use Illuminate\Http\Request;
+use Illuminate\Http\RedirectResponse;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Schema;
+use Illuminate\Database\Schema\Blueprint;
 use Inertia\Inertia;
 use Inertia\Response;
 
@@ -386,20 +389,302 @@ class EdpDashboardController extends Controller
     }
 
     /**
+     * Helper untuk memastikan tabel target_ros ada di database PostgreSQL.
+     */
+    private function ensureTargetRosTableExists(): void
+    {
+        if (!Schema::hasTable('target_ros')) {
+            Schema::create('target_ros', function (Blueprint $table) {
+                $table->id();
+                $table->integer('period_year');
+                $table->integer('period_month');
+                $table->string('branch_id', 50);
+                $table->string('salesman_code', 50);
+                $table->string('visit_type', 10)->default('F2');
+                $table->integer('target_ro')->default(0);
+                $table->string('region_code', 50)->nullable();
+                $table->unsignedBigInteger('uploaded_by')->nullable();
+                $table->timestamps();
+
+                $table->unique(['period_year', 'period_month', 'branch_id', 'salesman_code'], 'target_ros_unique_period_branch_salesman');
+                $table->index(['period_year', 'period_month']);
+                $table->index(['branch_id', 'salesman_code']);
+            });
+        }
+    }
+
+    /**
+     * Download Template Excel Target RO yang Rapi & User-Friendly.
+     */
+    public function downloadTargetRoTemplate()
+    {
+        $spreadsheet = new \PhpOffice\PhpSpreadsheet\Spreadsheet();
+        $sheet = $spreadsheet->getActiveSheet();
+        $sheet->setTitle('Template Target RO');
+
+        // Font default
+        $spreadsheet->getDefaultStyle()->getFont()->setName('Calibri')->setSize(10);
+
+        // Header Names rapi
+        $headers = [
+            'A1' => 'Kode Cabang (branch_id)',
+            'B1' => 'Kode Salesman (salesman_code)',
+            'C1' => 'Tipe Kunjungan (F2 / F4)',
+            'D1' => 'Target RO Bulanan',
+        ];
+
+        foreach ($headers as $cell => $text) {
+            $sheet->setCellValue($cell, $text);
+        }
+
+        // Header Styling
+        $headerStyle = [
+            'font' => [
+                'bold' => true,
+                'color' => ['rgb' => 'FFFFFF'],
+                'size' => 11,
+            ],
+            'fill' => [
+                'fillType' => \PhpOffice\PhpSpreadsheet\Style\Fill::FILL_SOLID,
+                'startColor' => ['rgb' => '1E3A8A'], // Royal Navy Blue
+            ],
+            'alignment' => [
+                'horizontal' => \PhpOffice\PhpSpreadsheet\Style\Alignment::HORIZONTAL_CENTER,
+                'vertical' => \PhpOffice\PhpSpreadsheet\Style\Alignment::VERTICAL_CENTER,
+            ],
+            'borders' => [
+                'allBorders' => [
+                    'borderStyle' => \PhpOffice\PhpSpreadsheet\Style\Border::BORDER_THIN,
+                    'color' => ['rgb' => '0F172A'],
+                ],
+            ],
+        ];
+        $sheet->getStyle('A1:D1')->applyFromArray($headerStyle);
+        $sheet->getRowDimension(1)->setRowHeight(30);
+
+        // Sample Rows
+        $sampleData = [
+            ['A01', 'SLS-001', 'F4', 300],
+            ['A01', 'SLS-002', 'F2', 150],
+            ['B02', 'SLS-003', 'F4', 300],
+            ['B02', 'SLS-004', 'F2', 150],
+        ];
+
+        $rowNum = 2;
+        foreach ($sampleData as $row) {
+            $sheet->setCellValue("A{$rowNum}", $row[0]);
+            $sheet->setCellValue("B{$rowNum}", $row[1]);
+            $sheet->setCellValue("C{$rowNum}", $row[2]);
+            $sheet->setCellValue("D{$rowNum}", $row[3]);
+
+            $sheet->getStyle("A{$rowNum}:C{$rowNum}")->getAlignment()->setHorizontal(\PhpOffice\PhpSpreadsheet\Style\Alignment::HORIZONTAL_CENTER);
+            $sheet->getStyle("D{$rowNum}")->getAlignment()->setHorizontal(\PhpOffice\PhpSpreadsheet\Style\Alignment::HORIZONTAL_RIGHT);
+            $sheet->getStyle("A{$rowNum}:D{$rowNum}")->getBorders()->getAllBorders()->setBorderStyle(\PhpOffice\PhpSpreadsheet\Style\Border::BORDER_THIN)->getColor()->setRGB('CBD5E1');
+            $rowNum++;
+        }
+
+        // Instructions note below sample rows
+        $sheet->setCellValue("A7", "* Petunjuk Pengisian Target RO Bulanan:");
+        $sheet->setCellValue("A8", "1. 'Kode Cabang (branch_id)' : Diisi kode branch resmi distributor (contoh: A01, B02).");
+        $sheet->setCellValue("A9", "2. 'Kode Salesman (salesman_code)' : Diisi kode unik salesman (contoh: SLS-001).");
+        $sheet->setCellValue("A10", "3. 'Tipe Kunjungan (F2 / F4)' : Diisi F2 (dua mingguan) atau F4 (mingguan).");
+        $sheet->setCellValue("A11", "4. 'Target RO Bulanan' : Diisi angka jumlah kuota target RO di bulan tersebut.");
+
+        $sheet->getStyle('A7:A11')->getFont()->setItalic(true)->setSize(9)->getColor()->setRGB('475569');
+
+        // Auto width columns
+        foreach (range('A', 'D') as $col) {
+            $sheet->getColumnDimension($col)->setAutoSize(true);
+        }
+
+        $fileName = "Template_Target_RO_Bulanan.xlsx";
+        $writer = new \PhpOffice\PhpSpreadsheet\Writer\Xlsx($spreadsheet);
+
+        return response()->stream(function () use ($writer) {
+            $writer->save('php://output');
+        }, 200, [
+            'Content-Type' => 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+            'Content-Disposition' => "attachment; filename=\"{$fileName}\"",
+            'Cache-Control' => 'max-age=0',
+        ]);
+    }
+
+    /**
+     * Fitur Upload Berkas Target RO oleh EDP per Bulan & Tahun.
+     */
+    public function uploadTargetRo(Request $request): RedirectResponse
+    {
+        $this->ensureTargetRosTableExists();
+
+        $request->validate([
+            'year' => 'required|integer|min:2020|max:2050',
+            'month' => 'required|integer|min:1|max:12',
+            'file' => 'required|file|mimes:xls,xlsx,csv,txt|max:10240',
+        ]);
+
+        try {
+            $user = Auth::user();
+            $userRole = $user->role ?? 'EDP_REGION';
+            $userRegion = $user->region_code ?? null;
+
+            $year = (int)$request->input('year');
+            $month = (int)$request->input('month');
+            $file = $request->file('file');
+
+            // Scoped Branch IDs for EDP Region
+            $allowedBranchIds = [];
+            if ($userRole !== 'SUPERADMIN' && !empty($userRegion)) {
+                $allowedBranchIds = DB::table('master_branches')
+                    ->where('region_code', 'LIKE', "{$userRegion}%")
+                    ->pluck('branch_id')
+                    ->toArray();
+            }
+
+            // Build map of known valid salesmen in database per branch
+            $knownMaster = DB::table('master_salesmen')->select('branch_id', 'salesman_code')->get();
+            $knownSubmissions = DB::table('noo_submissions')->select('branch_id', 'salesman_code')->whereNotNull('salesman_code')->where('salesman_code', '!=', '')->get();
+
+            $knownSalesmenMap = [];
+            foreach ($knownMaster as $km) {
+                $b = trim((string)$km->branch_id);
+                $c = trim((string)$km->salesman_code);
+                $knownSalesmenMap["{$b}:{$c}"] = true;
+            }
+            foreach ($knownSubmissions as $ks) {
+                $b = trim((string)$ks->branch_id);
+                $c = trim((string)$ks->salesman_code);
+                $knownSalesmenMap["{$b}:{$c}"] = true;
+            }
+
+            $spreadsheet = \PhpOffice\PhpSpreadsheet\IOFactory::load($file->getRealPath());
+            $sheet = $spreadsheet->getActiveSheet();
+            $rows = $sheet->toArray();
+
+            if (empty($rows) || count($rows) < 2) {
+                return back()->with('error', 'Berkas Excel kosong atau tidak memiliki baris data.');
+            }
+
+            // Detect column indices from header (Row 0)
+            $header = array_map(fn($val) => strtolower(trim((string)$val)), $rows[0]);
+
+            $colBranch = 0;
+            $colSalesman = 1;
+            $colVisit = 2;
+            $colTarget = 3;
+
+            foreach ($header as $idx => $hText) {
+                if (str_contains($hText, 'branch') || str_contains($hText, 'cabang')) {
+                    $colBranch = $idx;
+                } elseif (str_contains($hText, 'sales') || str_contains($hText, 'salesman')) {
+                    $colSalesman = $idx;
+                } elseif (str_contains($hText, 'visit') || str_contains($hText, 'f2') || str_contains($hText, 'tipe') || str_contains($hText, 'kunjungan')) {
+                    $colVisit = $idx;
+                } elseif (str_contains($hText, 'target') || str_contains($hText, 'ro')) {
+                    $colTarget = $idx;
+                }
+            }
+
+            $savedCount = 0;
+            $skippedCount = 0;
+            $unmatchedSalesmen = [];
+
+            for ($i = 1; $i < count($rows); $i++) {
+                $r = $rows[$i];
+                $branchId = trim((string)($r[$colBranch] ?? ''));
+                $salesmanCode = trim((string)($r[$colSalesman] ?? ''));
+                $rawVisit = strtoupper(trim((string)($r[$colVisit] ?? '')));
+                $rawTarget = trim((string)($r[$colTarget] ?? ''));
+
+                if (empty($branchId) || empty($salesmanCode)) {
+                    continue; // Skip empty rows
+                }
+
+                // Scope validation
+                if (!empty($allowedBranchIds) && !in_array($branchId, $allowedBranchIds, true)) {
+                    $skippedCount++;
+                    continue;
+                }
+
+                // Check exact match in database
+                if (!isset($knownSalesmenMap["{$branchId}:{$salesmanCode}"])) {
+                    $unmatchedSalesmen[] = "Kode '{$salesmanCode}' di Cabang {$branchId}";
+                }
+
+                $visitType = str_contains($rawVisit, '4') ? 'F4' : 'F2';
+                $targetRo = is_numeric($rawTarget) ? (int)$rawTarget : ($visitType === 'F4' ? 300 : 150);
+
+                DB::table('target_ros')->updateOrInsert(
+                    [
+                        'period_year' => $year,
+                        'period_month' => $month,
+                        'branch_id' => $branchId,
+                        'salesman_code' => $salesmanCode,
+                    ],
+                    [
+                        'visit_type' => $visitType,
+                        'target_ro' => $targetRo,
+                        'region_code' => $userRegion,
+                        'uploaded_by' => $user->id ?? null,
+                        'updated_at' => now(),
+                        'created_at' => now(),
+                    ]
+                );
+
+                $savedCount++;
+            }
+
+            $msg = "Target RO bulan {$month}/{$year} berhasil di-upload ({$savedCount} salesman tersimpan).";
+            if (!empty($unmatchedSalesmen)) {
+                $uniqueUnmatched = array_values(array_unique($unmatchedSalesmen));
+                $sampleList = implode(', ', array_slice($uniqueUnmatched, 0, 5));
+                $msg .= " ⚠️ PERINGATAN: Terdapat " . count($uniqueUnmatched) . " kode salesman yang tidak cocok dengan master database: [{$sampleList}]. Harap pastikan penulisan kode salesman pada file Excel sama persis dengan master data.";
+                return back()->with('warning', $msg);
+            }
+
+            if ($skippedCount > 0) {
+                $msg .= " ({$skippedCount} baris dilewati karena di luar wilayah hak akses)";
+            }
+
+            return back()->with('success', $msg);
+        } catch (\Throwable $e) {
+            return back()->with('error', "Gagal upload target RO: {$e->getMessage()}");
+        }
+    }
+
+    /**
      * Halaman Khusus Monitoring Target RO vs Realisasi Approved Salesman.
-     * Mengelompokkan data berdasarkan Cabang / Branch dengan sub-list Salesman.
+     * Realisasi NOO berdasarkan status APPROVED pada edp_decision & terpisah per bulan sesuai submitted_at.
      */
     public function monitoringRo(Request $request): Response
     {
+        $this->ensureTargetRosTableExists();
+
         $user = Auth::user();
         $userRole = $user->role ?? 'EDP_REGION';
         $userRegion = $user->region_code ?? null;
         $userEntity = $user->entity_code_principal ?? null;
 
-        $globalYear = $request->input('year');
-        $globalMonth = $request->input('month');
+        // Default to current year & month if empty
+        $globalYear = $request->filled('year') ? (int)$request->input('year') : (int)date('Y');
+        $globalMonth = $request->filled('month') ? (int)$request->input('month') : (int)date('n');
 
-        // 1. Fetch Active Branches Only (is_active = 1 and branch_name NOT LIKE '%(NON ACTIVE)%')
+        // 1. Query Uploaded Target RO for the selected month & year (strict exact salesman_code matching)
+        $uploadedTargetsRaw = DB::table('target_ros')
+            ->where('period_year', $globalYear)
+            ->where('period_month', $globalMonth)
+            ->get();
+
+        $uploadedTargets = [];
+        $uploadedBranchIds = [];
+        foreach ($uploadedTargetsRaw as $tObj) {
+            $uploadedBranchIds[] = $tObj->branch_id;
+            $rawCode = strtoupper(trim((string)$tObj->salesman_code));
+            $uploadedTargets[$rawCode] = $tObj;
+        }
+        $uploadedBranchIds = array_values(array_unique($uploadedBranchIds));
+        $hasAnyTargetUploaded = count($uploadedTargets) > 0;
+
+        // 2. Fetch Active Branches Only (is_active = 1 and branch_name NOT LIKE '%(NON ACTIVE)%')
         $masterBranches = DB::table('master_branches')
             ->select(
                 'branch_id',
@@ -488,7 +773,18 @@ class EdpDashboardController extends Controller
             return strcmp((string)$a['branch_id'], (string)$b['branch_id']);
         });
 
-        // 2. Query Salesmen (Combination from master_salesmen and noo_submissions)
+        // Track missing target branches for warning alert
+        $missingTargetBranches = [];
+        foreach ($branchesMap as $bItem) {
+            if (!in_array($bItem['branch_id'], $uploadedBranchIds, true)) {
+                $missingTargetBranches[] = [
+                    'branch_id' => $bItem['branch_id'],
+                    'branch_name' => $bItem['branch_name'],
+                ];
+            }
+        }
+
+        // 3. Query Salesmen (Combination from master_salesmen and noo_submissions)
         $salesmenFromMaster = DB::table('master_salesmen')
             ->select('salesman_code', 'salesman_name', 'branch_id', 'region_code')
             ->whereNotNull('salesman_code')
@@ -526,14 +822,14 @@ class EdpDashboardController extends Controller
             }
         }
 
-        // 3. Query Approved RO & JKS Week Stats from noo_submissions (Both Total & Monthly)
+        // 4. Query Realisasi NOO Approved based on edp_decision = 'APPROVED' & grouped per month by submitted_at
         $subStatsQuery = DB::table('noo_submissions')
             ->selectRaw("
                 salesman_code,
                 branch_id,
-                EXTRACT(MONTH FROM COALESCE(edp_reviewed_at, submitted_at, created_at)) as sub_month,
-                EXTRACT(YEAR FROM COALESCE(edp_reviewed_at, submitted_at, created_at)) as sub_year,
-                COUNT(CASE WHEN status IN ('APPROVED_EDP', 'INJECTED', 'EDP_APPROVED') AND COALESCE(is_ro, true) = true THEN 1 END) as approved_ro_count,
+                EXTRACT(MONTH FROM COALESCE(submitted_at, created_at)) as sub_month,
+                EXTRACT(YEAR FROM COALESCE(submitted_at, created_at)) as sub_year,
+                COUNT(CASE WHEN (edp_decision = 'APPROVED' OR status IN ('APPROVED_EDP', 'INJECTED', 'EDP_APPROVED')) AND COALESCE(is_ro, true) = true THEN 1 END) as approved_ro_count,
                 MAX(
                     CASE WHEN m1 IN ('Y', 'YES') THEN 1 ELSE 0 END +
                     CASE WHEN m2 IN ('Y', 'YES') THEN 1 ELSE 0 END +
@@ -559,12 +855,13 @@ class EdpDashboardController extends Controller
             ];
         }
 
-        // 4. Group Salesmen under each Branch
+        // 5. Group Salesmen under each Branch
         $totalSalesmenGlobal = 0;
         $totalAchievedGlobal = 0;
         $totalApprovedRoGlobal = 0;
+        $totalTargetRoGlobal = 0;
 
-        $branchesData = array_map(function ($b) use ($salesmenMap, $statsLookupBySalesman, &$totalSalesmenGlobal, &$totalAchievedGlobal, &$totalApprovedRoGlobal) {
+        $branchesData = array_map(function ($b) use ($salesmenMap, $statsLookupBySalesman, $uploadedTargets, $globalMonth, $globalYear, &$totalSalesmenGlobal, &$totalAchievedGlobal, &$totalApprovedRoGlobal, &$totalTargetRoGlobal) {
             $branchId = $b['branch_id'];
 
             $branchSalesmen = array_filter($salesmenMap, function ($s) use ($branchId) {
@@ -580,20 +877,34 @@ class EdpDashboardController extends Controller
                 $code = $s['salesman_code'];
                 $monthlyList = $statsLookupBySalesman[$code] ?? [];
 
+                // Filter realization for the selected month and year based on submitted_at
                 $approvedRo = 0;
                 $maxWeeks = 0;
                 foreach ($monthlyList as $mItem) {
-                    $approvedRo += $mItem['approved_count'];
+                    if ($mItem['month'] === $globalMonth && $mItem['year'] === $globalYear) {
+                        $approvedRo += $mItem['approved_count'];
+                    }
                     if ($mItem['max_weeks'] > $maxWeeks) {
                         $maxWeeks = $mItem['max_weeks'];
                     }
                 }
 
-                $visitType = ($maxWeeks >= 4) ? 'F4' : 'F2';
-                $targetRo = ($visitType === 'F4') ? 300 : 150;
+                // Check if target was uploaded by EDP for this salesman (exact salesman_code matching)
+                $codeRaw = strtoupper(trim((string)$code));
+                $tObj = $uploadedTargets[$codeRaw] ?? null;
+
+                if ($tObj !== null) {
+                    $targetRo = (int)$tObj->target_ro;
+                    $visitType = strtoupper(trim((string)$tObj->visit_type));
+                    $isCustomTarget = true;
+                } else {
+                    $visitType = null; // Target belum di-upload oleh EDP!
+                    $targetRo = 0;     // Target belum di-upload oleh EDP!
+                    $isCustomTarget = false;
+                }
 
                 $percentage = $targetRo > 0 ? round(($approvedRo / $targetRo) * 100, 1) : 0;
-                $isAchieved = $approvedRo >= $targetRo;
+                $isAchieved = $targetRo > 0 && $approvedRo >= $targetRo;
 
                 if ($isAchieved) {
                     $branchAchievedCount++;
@@ -603,6 +914,7 @@ class EdpDashboardController extends Controller
                 $branchApprovedRo += $approvedRo;
                 $branchTargetRo += $targetRo;
                 $totalApprovedRoGlobal += $approvedRo;
+                $totalTargetRoGlobal += $targetRo;
                 $totalSalesmenGlobal++;
 
                 $salesmenItems[] = [
@@ -613,9 +925,13 @@ class EdpDashboardController extends Controller
                     'target_ro' => $targetRo,
                     'percentage' => $percentage,
                     'is_achieved' => $isAchieved,
+                    'is_custom_target' => $isCustomTarget,
                     'monthly_stats' => $monthlyList,
                 ];
             }
+
+            $branchPct = $branchTargetRo > 0 ? round(($branchApprovedRo / $branchTargetRo) * 100, 1) : 0;
+            $isBranchAchieved = $branchTargetRo > 0 && $branchApprovedRo >= $branchTargetRo;
 
             return [
                 'branch_id' => $b['branch_id'],
@@ -626,6 +942,8 @@ class EdpDashboardController extends Controller
                 'entity_name_principal' => $b['entity_name_principal'],
                 'total_approved_ro' => $branchApprovedRo,
                 'total_target_ro' => $branchTargetRo,
+                'branch_percentage' => $branchPct,
+                'is_branch_achieved' => $isBranchAchieved,
                 'achieved_salesmen_count' => $branchAchievedCount,
                 'total_salesmen_count' => count($salesmenItems),
                 'salesmen' => array_values($salesmenItems),
@@ -643,8 +961,9 @@ class EdpDashboardController extends Controller
             ->values()
             ->toArray();
 
-        if (empty($availableYears)) {
-            $availableYears = [(int)date('Y')];
+        if (!in_array((int)date('Y'), $availableYears, true)) {
+            $availableYears[] = (int)date('Y');
+            rsort($availableYears);
         }
 
         // Filter Options List (Active Only)
@@ -675,19 +994,22 @@ class EdpDashboardController extends Controller
                 'total_salesmen' => $totalSalesmenGlobal,
                 'total_achieved' => $totalAchievedGlobal,
                 'total_approved_ro' => $totalApprovedRoGlobal,
+                'total_target_ro' => $totalTargetRoGlobal,
             ],
+            'missingTargetBranches' => array_values($missingTargetBranches),
+            'hasTargetUploaded' => $hasAnyTargetUploaded,
             'filters' => [
                 'region_code' => $request->input('region_code', ''),
                 'principal' => $request->input('principal', ''),
                 'branch_id' => $request->input('branch_id', ''),
-                'month' => $globalMonth ?? '',
-                'year' => $globalYear ?? '',
+                'month' => (string)$globalMonth,
+                'year' => (string)$globalYear,
             ],
             'filterOptions' => [
                 'regions' => $regions,
                 'entities' => $entities,
                 'branches' => $branchesOptions,
-                'years' => $availableYears,
+                'years' => array_values($availableYears),
             ],
             'userRole' => $userRole,
         ]);

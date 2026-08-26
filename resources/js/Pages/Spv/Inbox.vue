@@ -8,6 +8,8 @@
 import { ref, computed } from 'vue';
 import { useForm, Head } from '@inertiajs/vue3';
 import SpvLayout from '@/Layouts/SpvLayout.vue';
+import BaseButton from '@/Components/BaseButton.vue';
+import BaseCard from '@/Components/BaseCard.vue';
 
 const props = defineProps({
   submissions: {
@@ -468,21 +470,21 @@ function getStepBadgeStyle(step, item) {
 function getStepLabel(step, item) {
   const st = getStepStatus(step, item);
   if (step === 1) {
-    if (st === 'COMPLETED') return '✓ DIINPUT (PUSHED)';
-    if (st === 'REJECTED') return '✕ DITOLAK ADMIN';
-    return '⏳ PENDING INPUT';
+    if (st === 'COMPLETED') return 'DIINPUT (PUSHED)';
+    if (st === 'REJECTED') return 'DITOLAK ADMIN';
+    return 'PENDING INPUT';
   }
   if (step === 2) {
-    if (st === 'COMPLETED') return '✓ DISETUJUI SPV';
-    if (st === 'REJECTED') return '✕ DITOLAK SPV';
-    if (st === 'PENDING') return '⏳ REVIEW SPV';
-    return '🔒 BELUM DIMULAI';
+    if (st === 'COMPLETED') return 'DISETUJUI SPV';
+    if (st === 'REJECTED') return 'DITOLAK SPV';
+    if (st === 'PENDING') return 'REVIEW SPV';
+    return 'BELUM DIMULAI';
   }
   if (step === 3) {
-    if (st === 'COMPLETED') return '✓ DISETUJUI EDP';
-    if (st === 'REJECTED') return '✕ DITOLAK EDP';
-    if (st === 'PENDING') return '⏳ REVIEW EDP';
-    return '🔒 BELUM DIMULAI';
+    if (st === 'COMPLETED') return 'DISETUJUI EDP';
+    if (st === 'REJECTED') return 'DITOLAK EDP';
+    if (st === 'PENDING') return 'REVIEW EDP';
+    return 'BELUM DIMULAI';
   }
   return '';
 }
@@ -706,7 +708,7 @@ function getRowStyle(item) {
                 <td class="px-4 py-3.5 truncate">
                   <div class="font-medium text-[#1F2937] text-[14px] truncate">{{ item.salesman_name }}</div>
                   <div class="text-[12px] text-[#6B7280] mt-0.5 truncate">
-                    🏢 {{ item.branch_name }}
+                    {{ item.branch_name }}
                   </div>
                 </td>
 
@@ -734,12 +736,14 @@ function getRowStyle(item) {
 
                 <!-- Action Button -->
                 <td class="px-4 py-3.5 text-center">
-                  <button
+                  <BaseButton
+                    variant="primary"
+                    size="sm"
+                    class="w-full font-sans"
                     @click="openDetailModal(item)"
-                    class="w-full px-3 py-1.5 bg-[#2563EB] hover:bg-[#1D4ED8] active:bg-[#1E40AF] text-white rounded-lg text-[14px] font-semibold transition shadow-sm"
                   >
                     Kelola & Rute
-                  </button>
+                  </BaseButton>
                 </td>
               </tr>
             </tbody>
@@ -789,7 +793,7 @@ function getRowStyle(item) {
                 {{ selectedSubmission.salesman_name }} ({{ selectedSubmission.salesman_code }})
               </p>
               <p class="text-[12px] text-[#6B7280] mt-0.5">
-                🗓️ {{ formatDate(selectedSubmission.submitted_at || selectedSubmission.created_at) }}
+                {{ formatDate(selectedSubmission.submitted_at || selectedSubmission.created_at) }}
               </p>
             </div>
 
@@ -839,7 +843,7 @@ function getRowStyle(item) {
                 target="_blank"
                 class="inline-flex items-center text-[13px] font-semibold text-[#2563EB] hover:underline mt-1"
               >
-                🗺️ Lihat Lokasi Google Maps →
+                Lihat Lokasi Google Maps →
               </a>
             </div>
           </div>
@@ -848,7 +852,7 @@ function getRowStyle(item) {
           <div class="bg-white p-5 rounded-xl border border-[#E5E7EB] shadow-xs space-y-4">
             <div class="flex items-center justify-between border-b border-[#F3F4F6] pb-3 flex-wrap gap-2">
               <h4 class="text-[14px] font-semibold text-[#111827] uppercase tracking-wider flex items-center gap-2">
-                <span>📈 TRACK RECORD PERSETUJUAN (PROGRESS TRACKER)</span>
+                <span>TRACK RECORD PERSETUJUAN (PROGRESS TRACKER)</span>
               </h4>
               <span class="text-xs font-semibold text-slate-600 bg-slate-100 px-2.5 py-1 rounded-full border border-slate-200">
                 3-Step Audit Trail

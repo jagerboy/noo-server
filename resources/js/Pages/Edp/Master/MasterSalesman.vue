@@ -146,7 +146,7 @@ const isBulkModalOpen = ref(false);
       <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-white p-5 rounded-xl border border-[#E5E7EB] shadow-xs">
         <div>
           <h1 class="text-xl font-bold text-[#111827] flex items-center gap-2">
-            <span>👔 Master Salesman</span>
+            <span>Master Salesman</span>
           </h1>
           <p class="text-xs text-[#6B7280] mt-1">
             Manajemen Kode & Nama Salesman Terdaftar per Cabang Distributor.
@@ -156,9 +156,9 @@ const isBulkModalOpen = ref(false);
         <div v-if="canWrite" class="flex items-center gap-2">
           <button
             @click="isBulkModalOpen = true"
-            class="px-3.5 py-2 text-xs font-semibold text-emerald-700 bg-emerald-50 border border-emerald-300 rounded-lg hover:bg-emerald-100 transition shadow-2xs flex items-center gap-1.5"
+            class="px-3.5 py-2 text-xs font-semibold text-emerald-700 bg-emerald-50 border border-emerald-300 rounded-lg hover:bg-emerald-100 transition shadow-2xs flex items-center gap-1.5 cursor-pointer"
           >
-            <span>📥 Bulk Import CSV</span>
+            <span>Bulk Import CSV</span>
           </button>
           <button
             @click="isAddModalOpen = true"
@@ -173,7 +173,7 @@ const isBulkModalOpen = ref(false);
       <div class="bg-white p-4 rounded-xl border border-[#E5E7EB] shadow-xs space-y-3">
         <div class="flex items-center justify-between">
           <span class="text-xs font-bold uppercase tracking-wider text-[#374151] flex items-center gap-2">
-            🔍 Filter Data Salesman (Instant Client-Side)
+            Filter Data Salesman
           </span>
           <button @click="resetFilters" class="text-xs font-semibold text-blue-600 hover:underline cursor-pointer">
             Reset Filter

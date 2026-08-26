@@ -13,9 +13,14 @@ export default {
     theme: {
         extend: {
             fontFamily: {
-                sans: ['Figtree', ...defaultTheme.fontFamily.sans],
+                sans: ['Inter', ...defaultTheme.fontFamily.sans],
+                heading: ['Plus Jakarta Sans', 'Inter', ...defaultTheme.fontFamily.sans],
             },
             colors: {
+                'noo-primary': '#2B358F',
+                'noo-secondary': '#3B2B85',
+                'noo-accent': '#F59D1A',
+                'noo-danger': '#E31837',
                 asw: {
                     red: '#D9232A',
                     'red-dark': '#B91C1C',

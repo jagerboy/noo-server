@@ -159,7 +159,7 @@ function toggleShowPins() {
       <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-white p-5 rounded-xl border border-[#E5E7EB] shadow-xs">
         <div>
           <h1 class="text-xl font-bold text-[#111827] flex items-center gap-2">
-            <span>🏢 Master Branch / Cabang Distributor</span>
+            <span>Master Branch / Cabang Distributor</span>
           </h1>
           <p class="text-xs text-[#6B7280] mt-1">
             Manajemen Master Cabang Distributor, PIN Branch, Region Code, dan Entitas Principal.
@@ -169,9 +169,9 @@ function toggleShowPins() {
         <div v-if="canWrite" class="flex items-center gap-2">
           <button
             @click="isBulkModalOpen = true"
-            class="px-3.5 py-2 text-xs font-semibold text-emerald-700 bg-emerald-50 border border-emerald-300 rounded-lg hover:bg-emerald-100 transition shadow-2xs flex items-center gap-1.5"
+            class="px-3.5 py-2 text-xs font-semibold text-emerald-700 bg-emerald-50 border border-emerald-300 rounded-lg hover:bg-emerald-100 transition shadow-2xs flex items-center gap-1.5 cursor-pointer"
           >
-            <span>📥 Bulk Import CSV</span>
+            <span>Bulk Import CSV</span>
           </button>
           <button
             @click="isAddModalOpen = true"
@@ -182,15 +182,23 @@ function toggleShowPins() {
         </div>
       </div>
 
-      <!-- Filter Bar (Instant Client-Side Filtering - Tanpa Masuk ke URL Domain) -->
+      <!-- Filter Bar (Instant Client-Side Filtering) -->
       <div class="bg-white p-4 rounded-xl border border-[#E5E7EB] shadow-xs space-y-3">
         <div class="flex items-center justify-between">
           <span class="text-xs font-bold uppercase tracking-wider text-[#374151] flex items-center gap-2">
-            🌱 Filter Data Cabang (Instant Client-Side)
+            Filter Data Cabang
           </span>
-          <button @click="resetFilters" class="text-xs font-semibold text-blue-600 hover:underline cursor-pointer">
-            Reset Filter
-          </button>
+          <div class="flex items-center gap-3">
+            <button
+              @click="toggleShowPins"
+              class="text-xs font-semibold text-purple-700 hover:text-purple-900 cursor-pointer flex items-center gap-1 bg-purple-50 px-2.5 py-1 rounded border border-purple-200"
+            >
+              <span>{{ showAllPins ? 'Sembunyikan PIN Cabang' : 'Tampilkan PIN Cabang' }}</span>
+            </button>
+            <button @click="resetFilters" class="text-xs font-semibold text-blue-600 hover:underline cursor-pointer">
+              Reset Filter
+            </button>
+          </div>
         </div>
 
         <div class="grid grid-cols-1 sm:grid-cols-3 gap-3">

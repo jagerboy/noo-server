@@ -125,7 +125,7 @@ function deleteEdp(edp) {
       <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-white p-5 rounded-xl border border-[#E5E7EB] shadow-xs">
         <div>
           <h1 class="text-xl font-bold text-[#111827] flex items-center gap-2">
-            <span>💻 Master User EDP / Administrator</span>
+            <span>Master User EDP / Administrator</span>
           </h1>
           <p class="text-xs text-[#6B7280] mt-1">
             Manajemen Akun User EDP Region & Otoritas Sistem NOO+.
@@ -146,7 +146,7 @@ function deleteEdp(edp) {
       <div class="bg-white p-4 rounded-xl border border-[#E5E7EB] shadow-xs space-y-3">
         <div class="flex items-center justify-between">
           <span class="text-xs font-bold uppercase tracking-wider text-[#374151] flex items-center gap-2">
-            🔍 Filter Data User EDP (Instant Client-Side)
+            Filter Data User EDP
           </span>
           <button @click="resetFilters" class="text-xs font-semibold text-blue-600 hover:underline cursor-pointer">
             Reset Filter

@@ -21,10 +21,10 @@ const props = defineProps({
 });
 
 const perPageOptions = [
-  { value: 10, label: '10 Data / Hal' },
-  { value: 25, label: '25 Data / Hal' },
-  { value: 50, label: '50 Data / Hal' },
-  { value: 100, label: '100 Data / Hal' },
+  { value: 10, label: '10' },
+  { value: 25, label: '25' },
+  { value: 50, label: '50' },
+  { value: 100, label: '100' },
   { value: -1, label: 'Tampilkan Semua (Show All)' },
 ];
 

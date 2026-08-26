@@ -72,8 +72,8 @@ function toggleMasterMenu() {
 
 <template>
   <div class="min-h-screen bg-[#F8FAFC] font-sans antialiased text-[#374151] flex flex-col">
-    <!-- Top Executive Header Navbar (Portal Principal Executive Dark Multi-Gradient: Dark Slate #0F172A -> ASW Navy #1E2B7B -> INA Purple #542B85 -> ASW Red #D9232A) -->
-    <header class="bg-gradient-to-r from-[#0F172A] via-[#1E2B7B] via-[#542B85] to-[#D9232A] border-b-2 border-[#F59E0B] shadow-md sticky top-0 z-30">
+    <!-- Top Executive Header Navbar (Clean Corporate Dark Slate) -->
+    <header class="bg-[#0F172A] border-b border-slate-800 shadow-xs sticky top-0 z-30">
       <div class="px-4 sm:px-6 lg:px-8">
         <div class="flex items-center justify-between h-16">
           
@@ -81,7 +81,7 @@ function toggleMasterMenu() {
           <div class="flex items-center gap-4">
             <button 
               @click="toggleSidebarPin"
-              class="p-2 text-white/80 hover:text-white rounded-[8px] hover:bg-white/10 transition duration-200 cursor-pointer flex items-center justify-center group overflow-hidden"
+              class="p-2 text-slate-300 hover:text-white rounded-lg hover:bg-slate-800 transition duration-200 cursor-pointer flex items-center justify-center group overflow-hidden"
               :title="isSidebarPinned ? 'Sembunyikan Sidebar' : 'Tampilkan Semua Menu'"
             >
               <div class="relative w-6 h-6 flex items-center justify-center transition-transform duration-300" :class="isSidebarPinned ? 'rotate-90' : 'rotate-0'">
@@ -108,18 +108,18 @@ function toggleMasterMenu() {
             </button>
 
             <Link :href="route('edp.dashboard')" class="flex items-center gap-3 group">
-              <div class="flex items-center justify-center px-3.5 py-1.5 min-w-[95px] rounded-[10px] bg-gradient-to-r from-[#D9232A] via-[#1E2B7B] to-[#542B85] border border-[#F59E0B]/60 text-white font-black text-base tracking-wider shadow-inner group-hover:scale-105 transition shrink-0">
-                <span class="text-white">NOO</span><span class="text-[#F59E0B] ml-0.5">+</span>
+              <div class="flex items-center justify-center px-3.5 py-1.5 min-w-[90px] rounded-lg bg-noo-primary border border-blue-800 text-white font-black text-base tracking-wider shadow-xs group-hover:bg-[#212a76] transition shrink-0">
+                <span class="text-white">NOO</span><span class="text-noo-accent ml-0.5">+</span>
               </div>
               <div class="flex flex-col">
-                <span class="text-[16px] font-extrabold text-white tracking-wide leading-tight flex items-center gap-2">
+                <span class="text-[15px] font-heading font-bold text-white tracking-wide leading-tight flex items-center gap-2">
                   PORTAL PRINCIPAL
-                  <span class="text-[10px] font-extrabold px-2.5 py-0.5 rounded-full bg-[#F59E0B] text-slate-900 border border-amber-300 uppercase tracking-tight shadow-xs hidden sm:inline-block">
-                    👑 ASWFOODS & INAFOODS
+                  <span class="text-[10px] font-semibold px-2.5 py-0.5 rounded-full bg-slate-800 text-slate-300 border border-slate-700 uppercase tracking-tight hidden sm:inline-block">
+                    ASWFOODS & INAFOODS
                   </span>
                 </span>
-                <span class="text-[12px] text-amber-100/90 font-normal leading-none mt-0.5">
-                  Sistem Informasi & Otoritas Master Data Principal NOO+
+                <span class="text-[11px] text-slate-400 font-normal leading-none mt-0.5">
+                  Sistem Informasi & Otoritas Master Data Principal
                 </span>
               </div>
             </Link>
@@ -128,8 +128,8 @@ function toggleMasterMenu() {
           <!-- Right User Profile Badge & Logout -->
           <div class="flex items-center gap-3">
             <div class="hidden md:flex flex-col items-end text-right">
-              <span class="text-[14px] font-semibold text-white">{{ user.name || user.username || user.email }}</span>
-              <span class="text-[12px] text-amber-200 font-semibold px-2 py-0.5 rounded-[6px] bg-white/15 border border-white/20">
+              <span class="text-[13px] font-semibold text-slate-200">{{ user.name || user.username || user.email }}</span>
+              <span class="text-[11px] text-slate-400 font-medium px-2 py-0.5 rounded bg-slate-800 border border-slate-700">
                 {{ displayUserRole }}
               </span>
             </div>
@@ -139,9 +139,9 @@ function toggleMasterMenu() {
               :href="route('edp_logout')" 
               method="post" 
               as="button" 
-              class="px-4 py-2 text-xs font-bold text-white bg-[#DC2626] hover:bg-[#B91C1C] border border-red-400/40 rounded-lg shadow-sm transition-all duration-150 flex items-center gap-2 cursor-pointer active:scale-95 shrink-0"
+              class="px-3.5 py-1.5 text-xs font-semibold text-slate-200 hover:text-white bg-slate-800 hover:bg-slate-700 border border-slate-700 rounded-lg transition flex items-center gap-1.5 cursor-pointer active:scale-95 shrink-0"
             >
-              <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1"/></svg>
+              <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1"/></svg>
               <span>Logout</span>
             </Link>
           </div>
@@ -292,11 +292,11 @@ function toggleMasterMenu() {
                   NOO Master Data
                 </div>
                 <div class="space-y-1">
-                  <Link :href="route('edp.master_branch')" class="block px-2.5 py-1.5 text-xs text-slate-200 hover:text-white hover:bg-slate-800 rounded-lg transition">🏢 Master Branch</Link>
-                  <Link :href="route('edp.master_salesman')" class="block px-2.5 py-1.5 text-xs text-slate-200 hover:text-white hover:bg-slate-800 rounded-lg transition">👔 Master Salesman</Link>
-                  <Link :href="route('edp.master_spv')" class="block px-2.5 py-1.5 text-xs text-slate-200 hover:text-white hover:bg-slate-800 rounded-lg transition">📋 Master SPV</Link>
-                  <Link :href="route('edp.master_outlet_types')" class="block px-2.5 py-1.5 text-xs text-slate-200 hover:text-white hover:bg-slate-800 rounded-lg transition">🏷️ Master Outlet Types</Link>
-                  <Link :href="route('edp.counter_sequence')" class="block px-2.5 py-1.5 text-xs text-slate-200 hover:text-white hover:bg-slate-800 rounded-lg transition">🔢 Counter Sequence</Link>
+                  <Link :href="route('edp.master_branch')" class="block px-2.5 py-1.5 text-xs text-slate-200 hover:text-white hover:bg-slate-800 rounded-lg transition">Master Branch</Link>
+                  <Link :href="route('edp.master_salesman')" class="block px-2.5 py-1.5 text-xs text-slate-200 hover:text-white hover:bg-slate-800 rounded-lg transition">Master Salesman</Link>
+                  <Link :href="route('edp.master_spv')" class="block px-2.5 py-1.5 text-xs text-slate-200 hover:text-white hover:bg-slate-800 rounded-lg transition">Master SPV</Link>
+                  <Link :href="route('edp.master_outlet_types')" class="block px-2.5 py-1.5 text-xs text-slate-200 hover:text-white hover:bg-slate-800 rounded-lg transition">Master Outlet Types</Link>
+                  <Link :href="route('edp.counter_sequence')" class="block px-2.5 py-1.5 text-xs text-slate-200 hover:text-white hover:bg-slate-800 rounded-lg transition">Counter Sequence</Link>
                 </div>
               </div>
             </div>
@@ -318,7 +318,7 @@ function toggleMasterMenu() {
                     route().current('edp.master_branch') ? 'bg-[#DBEAFE] text-[#1D4ED8] font-bold' : 'text-[#6B7280] hover:text-[#111827] hover:bg-[#EFF6FF]'
                   ]"
                 >
-                  🏢 Master Branch
+                  Master Branch
                 </Link>
                 <Link
                   :href="route('edp.master_salesman')"
@@ -327,7 +327,7 @@ function toggleMasterMenu() {
                     route().current('edp.master_salesman') ? 'bg-[#DBEAFE] text-[#1D4ED8] font-bold' : 'text-[#6B7280] hover:text-[#111827] hover:bg-[#EFF6FF]'
                   ]"
                 >
-                  👔 Master Salesman
+                  Master Salesman
                 </Link>
                 <Link
                   :href="route('edp.master_spv')"
@@ -336,7 +336,7 @@ function toggleMasterMenu() {
                     route().current('edp.master_spv') ? 'bg-[#DBEAFE] text-[#1D4ED8] font-bold' : 'text-[#6B7280] hover:text-[#111827] hover:bg-[#EFF6FF]'
                   ]"
                 >
-                  📋 Master SPV
+                  Master SPV
                 </Link>
                 <Link
                   :href="route('edp.master_outlet_types')"
@@ -345,7 +345,7 @@ function toggleMasterMenu() {
                     route().current('edp.master_outlet_types') ? 'bg-[#DBEAFE] text-[#1D4ED8] font-bold' : 'text-[#6B7280] hover:text-[#111827] hover:bg-[#EFF6FF]'
                   ]"
                 >
-                  🏷️ Master Outlet Types
+                  Master Outlet Types
                 </Link>
                 <Link
                   :href="route('edp.counter_sequence')"
@@ -354,7 +354,7 @@ function toggleMasterMenu() {
                     route().current('edp.counter_sequence') ? 'bg-[#DBEAFE] text-[#1D4ED8] font-bold' : 'text-[#6B7280] hover:text-[#111827] hover:bg-[#EFF6FF]'
                   ]"
                 >
-                  🔢 Counter Sequence
+                  Counter Sequence
                 </Link>
               </div>
             </Transition>

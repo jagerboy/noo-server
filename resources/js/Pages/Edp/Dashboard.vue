@@ -247,7 +247,7 @@ const yearOptions = computed(() => {
   const years = props.filterOptions?.years || [new Date().getFullYear()];
   return years.map((y) => ({
     value: String(y),
-    label: `Tahun ${y}`,
+    label: String(y),
   }));
 });
 

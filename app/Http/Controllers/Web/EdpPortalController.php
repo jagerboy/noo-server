@@ -95,6 +95,16 @@ class EdpPortalController extends Controller
         if ($request->filled('status')) {
             $query->where('status', $request->input('status'));
         }
+        if ($request->filled('is_ro')) {
+            $roVal = $request->input('is_ro');
+            if ($roVal === 'active' || $roVal === '1' || $roVal === 'true') {
+                $query->where('is_ro', true);
+            } elseif ($roVal === 'inactive' || $roVal === '0' || $roVal === 'false') {
+                $query->where(function ($q) {
+                    $q->where('is_ro', false)->orWhereNull('is_ro');
+                });
+            }
+        }
         if ($request->filled('search')) {
             $s = $request->input('search');
             $query->where(function ($q) use ($s) {
@@ -183,7 +193,7 @@ class EdpPortalController extends Controller
         }
 
         $activeFilters = array_filter(
-            $request->only(['search', 'region_code', 'principal', 'branch_id', 'status', 'edp_month', 'edp_months', 'edp_year']),
+            $request->only(['search', 'region_code', 'principal', 'branch_id', 'status', 'is_ro', 'edp_month', 'edp_months', 'edp_year']),
             fn($val) => $val !== null && $val !== ''
         );
 
@@ -323,6 +333,10 @@ class EdpPortalController extends Controller
                 return back()->with('error', 'Data toko tidak ditemukan.');
             }
 
+            if (!in_array($submission->status, [NooStatusEnum::APPROVED_EDP->value, 'APPROVED_EDP', 'EDP_APPROVED', 'INJECTED'])) {
+                return back()->with('error', 'Status Registered Outlet (RO) hanya dapat diubah untuk toko yang sudah di-approve oleh EDP Principal.');
+            }
+
             DB::table('noo_submissions')->where('request_id', $requestId)->update([
                 'is_ro' => $isRo,
                 'updated_at' => now(),
@@ -351,10 +365,15 @@ class EdpPortalController extends Controller
 
             $count = DB::table('noo_submissions')
                 ->whereIn('request_id', $requestIds)
+                ->whereIn('status', [NooStatusEnum::APPROVED_EDP->value, 'APPROVED_EDP', 'EDP_APPROVED', 'INJECTED'])
                 ->update([
                     'is_ro' => $isRo,
                     'updated_at' => now(),
                 ]);
+
+            if ($count === 0) {
+                return back()->with('error', 'Tidak ada toko berstatus Approved EDP yang dapat diubah status RO-nya.');
+            }
 
             $statusText = $isRo ? 'AKTIF (Registered Outlet)' : 'NON-AKTIF';
             $this->logAction('BULK_TOGGLE_RO_STATUS', 'NOO_VERIFICATION', "Mengubah status RO untuk {$count} toko menjadi {$statusText}");

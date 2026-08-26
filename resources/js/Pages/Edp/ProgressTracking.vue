@@ -244,7 +244,7 @@ const sortedSubmissions = computed(() => {
       <div class="bg-white p-5 rounded-xl border border-[#E5E7EB] shadow-xs flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>
           <h1 class="text-xl font-bold text-[#111827] flex items-center gap-2">
-            <span>📊 Monitoring Progress Workflow NOO</span>
+            <span>Monitoring Progress Workflow NOO</span>
           </h1>
           <p class="text-xs text-[#6B7280] mt-1">
             Lacak posisi submisi toko & lakukan reset inputan Admin/SPV/EDP sesuai tahapan workflow.
@@ -281,7 +281,7 @@ const sortedSubmissions = computed(() => {
           ]"
         >
           <div class="text-2xl font-black text-amber-600" :class="{ 'text-white': selectedStage === 'stuck_admin' }">{{ metrics?.stuckAdmin || 0 }}</div>
-          <div class="text-[11px] font-bold uppercase tracking-wider mt-1" :class="selectedStage === 'stuck_admin' ? 'text-amber-100' : 'text-amber-700'">⚠️ Admin Belum Memproses</div>
+          <div class="text-[11px] font-bold uppercase tracking-wider mt-1" :class="selectedStage === 'stuck_admin' ? 'text-amber-100' : 'text-amber-700'">Admin Belum Memproses</div>
         </button>
 
         <!-- SPV BELUM MEMPROSES JKS -->
@@ -293,7 +293,7 @@ const sortedSubmissions = computed(() => {
           ]"
         >
           <div class="text-2xl font-black text-purple-600" :class="{ 'text-white': selectedStage === 'stuck_spv' }">{{ metrics?.stuckSpv || 0 }}</div>
-          <div class="text-[11px] font-bold uppercase tracking-wider mt-1" :class="selectedStage === 'stuck_spv' ? 'text-purple-100' : 'text-purple-700'">🕒 SPV Belum Memproses JKS</div>
+          <div class="text-[11px] font-bold uppercase tracking-wider mt-1" :class="selectedStage === 'stuck_spv' ? 'text-purple-100' : 'text-purple-700'">SPV Belum Memproses JKS</div>
         </button>
 
         <!-- PENDING EDP -->
@@ -305,7 +305,7 @@ const sortedSubmissions = computed(() => {
           ]"
         >
           <div class="text-2xl font-black text-sky-600" :class="{ 'text-white': selectedStage === 'pending_edp' }">{{ metrics?.pendingEdp || 0 }}</div>
-          <div class="text-[11px] font-bold uppercase tracking-wider mt-1" :class="selectedStage === 'pending_edp' ? 'text-sky-100' : 'text-sky-700'">⏳ Pending EDP</div>
+          <div class="text-[11px] font-bold uppercase tracking-wider mt-1" :class="selectedStage === 'pending_edp' ? 'text-sky-100' : 'text-sky-700'">Pending EDP</div>
         </button>
 
         <!-- COMPLETED -->
@@ -317,7 +317,7 @@ const sortedSubmissions = computed(() => {
           ]"
         >
           <div class="text-2xl font-black text-emerald-600" :class="{ 'text-white': selectedStage === 'completed' }">{{ metrics?.completed || 0 }}</div>
-          <div class="text-[11px] font-bold uppercase tracking-wider mt-1" :class="selectedStage === 'completed' ? 'text-emerald-100' : 'text-emerald-700'">✅ Selesai</div>
+          <div class="text-[11px] font-bold uppercase tracking-wider mt-1" :class="selectedStage === 'completed' ? 'text-emerald-100' : 'text-emerald-700'">Selesai</div>
         </button>
 
         <!-- REJECTED -->
@@ -329,7 +329,7 @@ const sortedSubmissions = computed(() => {
           ]"
         >
           <div class="text-2xl font-black text-rose-600" :class="{ 'text-white': selectedStage === 'rejected' }">{{ metrics?.rejected || 0 }}</div>
-          <div class="text-[11px] font-bold uppercase tracking-wider mt-1" :class="selectedStage === 'rejected' ? 'text-rose-100' : 'text-rose-700'">❌ Ditolak</div>
+          <div class="text-[11px] font-bold uppercase tracking-wider mt-1" :class="selectedStage === 'rejected' ? 'text-rose-100' : 'text-rose-700'">Ditolak</div>
         </button>
       </div>
 
@@ -362,11 +362,11 @@ const sortedSubmissions = computed(() => {
             <label class="block text-xs font-semibold text-[#4B5563] mb-1">TAHAPAN WORKFLOW</label>
             <select v-model="selectedStage" @change="applyFilters" class="w-full px-3 py-2 text-xs border rounded-lg bg-white">
               <option value="all">-- Semua Tahapan --</option>
-              <option value="stuck_admin">⚠️ Admin Belum Memproses Kode Cust</option>
-              <option value="stuck_spv">🕒 SPV Belum Memproses Rute JKS</option>
-              <option value="pending_edp">⏳ Pending Verifikasi EDP</option>
-              <option value="completed">✅ Selesai / Approved EDP</option>
-              <option value="rejected">❌ Ditolak / Rejected</option>
+              <option value="stuck_admin">Admin Belum Memproses Kode Cust</option>
+              <option value="stuck_spv">SPV Belum Memproses Rute JKS</option>
+              <option value="pending_edp">Pending Verifikasi EDP</option>
+              <option value="completed">Selesai / Approved EDP</option>
+              <option value="rejected">Ditolak / Rejected</option>
             </select>
           </div>
 
@@ -383,8 +383,8 @@ const sortedSubmissions = computed(() => {
         </div>
 
         <div class="flex justify-end">
-          <button @click="resetFilters" class="px-3 py-1.5 text-xs text-gray-600 bg-gray-100 hover:bg-gray-200 rounded-lg transition">
-            🔄 Reset Filter
+          <button @click="resetFilters" class="px-3 py-1.5 text-xs text-gray-600 bg-gray-100 hover:bg-gray-200 rounded-lg transition cursor-pointer">
+            Reset Filter
           </button>
         </div>
       </div>
@@ -448,8 +448,8 @@ const sortedSubmissions = computed(() => {
                 <!-- HIRARKI CABANG -->
                 <td class="p-3">
                   <div class="font-semibold text-gray-800">{{ item.branch_id }} - {{ item.branch_name || 'Cabang' }}</div>
-                  <div class="text-xs text-gray-500 mt-0.5">👔 {{ item.salesman_name }} ({{ item.salesman_code }})</div>
-                  <div class="text-[11px] text-gray-400 mt-0.5">📍 Region: {{ item.region_code }}</div>
+                  <div class="text-xs text-gray-500 mt-0.5">{{ item.salesman_name }} ({{ item.salesman_code }})</div>
+                  <div class="text-[11px] text-gray-400 mt-0.5">Region: {{ item.region_code }}</div>
                 </td>
 
                 <!-- VISUAL STEP WORKFLOW -->
@@ -523,12 +523,12 @@ const sortedSubmissions = computed(() => {
                 <!-- STATUS DETAILS -->
                 <td class="p-3 text-xs">
                   <div class="space-y-1 text-gray-600">
-                    <div>📅 <span class="font-medium">SE Submit:</span> {{ formatDatetime(item.submitted_at) }}</div>
+                    <div><span class="font-medium">SE Submit:</span> {{ formatDatetime(item.submitted_at) }}</div>
                     <div v-if="item.custcode_distributor">
-                      🏬 <span class="font-medium">Custcode:</span> <span class="font-bold text-gray-800">{{ item.custcode_distributor }}</span>
+                      <span class="font-medium">Custcode:</span> <span class="font-bold text-gray-800">{{ item.custcode_distributor }}</span>
                     </div>
                     <div v-if="item.norute">
-                      🗺️ <span class="font-medium">Rute JKS:</span> Hari: {{ formatJksDays(item) }} | Minggu: {{ formatJksWeeks(item) }}
+                      <span class="font-medium">Rute JKS:</span> Hari: {{ formatJksDays(item) }} | Minggu: {{ formatJksWeeks(item) }}
                     </div>
                   </div>
                 </td>
@@ -539,7 +539,7 @@ const sortedSubmissions = computed(() => {
                     @click="activeSubmissionModal = item"
                     class="px-3.5 py-1.5 text-xs font-bold text-blue-700 bg-blue-50 hover:bg-blue-100 border border-blue-200 rounded-lg transition flex items-center gap-1.5 ml-auto shadow-xs cursor-pointer"
                   >
-                    <span>🔍 Detail Timeline</span>
+                    <span>Detail Timeline</span>
                   </button>
                 </td>
               </tr>
@@ -567,7 +567,7 @@ const sortedSubmissions = computed(() => {
           <div class="sticky top-0 z-20 bg-white px-6 py-4 border-b border-gray-200 flex items-center justify-between shrink-0 shadow-2xs">
             <div>
               <h3 class="text-lg font-bold text-[#111827] flex items-center gap-2">
-                <span>📍 Detail Timeline & Progress Workflow</span>
+                <span>Detail Timeline & Progress Workflow</span>
               </h3>
               <p class="text-xs text-gray-500 mt-0.5">
                 {{ activeSubmissionModal.nama_noo }} &bull; ID: <span class="font-mono text-gray-700">{{ activeSubmissionModal.request_id }}</span>
@@ -598,9 +598,9 @@ const sortedSubmissions = computed(() => {
                   <span class="text-[11px] font-semibold text-emerald-700 bg-emerald-100 px-2 py-0.5 rounded border border-emerald-300">COMPLETED</span>
                 </div>
                 <div class="text-xs text-emerald-800 space-y-1">
-                  <div>👔 <strong>Salesman:</strong> {{ activeSubmissionModal.salesman_name }} ({{ activeSubmissionModal.salesman_code }})</div>
-                  <div>🏢 <strong>Cabang:</strong> {{ activeSubmissionModal.branch_id }} - {{ activeSubmissionModal.branch_name }}</div>
-                  <div>📅 <strong>Waktu Submit:</strong> {{ formatDatetime(activeSubmissionModal.submitted_at) }}</div>
+                  <div><strong>Salesman:</strong> {{ activeSubmissionModal.salesman_name }} ({{ activeSubmissionModal.salesman_code }})</div>
+                  <div><strong>Cabang:</strong> {{ activeSubmissionModal.branch_id }} - {{ activeSubmissionModal.branch_name }}</div>
+                  <div><strong>Waktu Submit:</strong> {{ formatDatetime(activeSubmissionModal.submitted_at) }}</div>
                 </div>
               </div>
             </div>
@@ -638,16 +638,16 @@ const sortedSubmissions = computed(() => {
                 <!-- Info Body -->
                 <div class="text-xs space-y-1" :class="isRejectedAdmin(activeSubmissionModal) ? 'text-rose-800' : (activeSubmissionModal.pushed_to_spv_at ? 'text-emerald-800' : 'text-amber-900')">
                   <div v-if="isRejectedAdmin(activeSubmissionModal)" class="font-bold text-rose-800">
-                    🚫 Submisi ditolak oleh Admin Distributor
+                    Submisi ditolak oleh Admin Distributor
                   </div>
                   <div v-else-if="activeSubmissionModal.pushed_to_spv_at">
-                    🏬 <strong>Custcode Distributor:</strong> <span class="font-bold text-gray-900 bg-white px-2 py-0.5 rounded border border-emerald-300">{{ activeSubmissionModal.custcode_distributor }}</span>
+                    <strong>Custcode Distributor:</strong> <span class="font-bold text-gray-900 bg-white px-2 py-0.5 rounded border border-emerald-300">{{ activeSubmissionModal.custcode_distributor }}</span>
                   </div>
                   <div v-else class="font-semibold text-amber-800">
-                    ⚠️ Admin belum memproses NOO dengan mengisikan kode customer versi distributor
+                    Admin belum memproses NOO dengan mengisikan kode customer versi distributor
                   </div>
-                  <div>👤 <strong>Approver Admin:</strong> {{ activeSubmissionModal.approved_by_admin || '-' }}</div>
-                  <div>📅 <strong>Waktu Submit:</strong> {{ formatDatetime(activeSubmissionModal.pushed_to_spv_at) }}</div>
+                  <div><strong>Approver Admin:</strong> {{ activeSubmissionModal.approved_by_admin || '-' }}</div>
+                  <div><strong>Waktu Submit:</strong> {{ formatDatetime(activeSubmissionModal.pushed_to_spv_at) }}</div>
                 </div>
 
                 <!-- ACTION BUTTON EMBEDDED RESET ADMIN (TOMBOL WARNA MERAH / ROSE) -->
@@ -660,12 +660,12 @@ const sortedSubmissions = computed(() => {
                     @click="openResetModal('ADMIN', activeSubmissionModal)"
                     class="px-3 py-1.5 text-xs font-bold text-white bg-rose-600 hover:bg-rose-700 border border-rose-700 shadow-xs rounded-lg transition flex items-center gap-1 cursor-pointer"
                   >
-                    <span>↩️ Reset Input Admin</span>
+                    <span>Reset Input Admin</span>
                   </button>
 
                   <!-- Disabled Lock Notice if Approved EDP -->
                   <div v-else class="flex items-center gap-1.5 px-2.5 py-1 text-[11px] font-bold text-gray-500 bg-gray-100 border border-gray-300 rounded-lg" title="Reset terkunci karena toko sudah Approved EDP. Lakukan Reset Approval EDP terlebih dahulu.">
-                    <span>🔒 Terkunci (Approved EDP)</span>
+                    <span>Terkunci (Approved EDP)</span>
                   </div>
                 </div>
               </div>
@@ -704,10 +704,10 @@ const sortedSubmissions = computed(() => {
                 <!-- Info Body -->
                 <div class="text-xs space-y-1" :class="isRejectedSpv(activeSubmissionModal) ? 'text-rose-800' : (activeSubmissionModal.pushed_to_edp_at ? 'text-emerald-800' : (activeSubmissionModal.pushed_to_spv_at ? 'text-purple-900' : 'text-gray-500'))">
                   <div v-if="isRejectedSpv(activeSubmissionModal)" class="font-bold text-rose-800">
-                    🚫 Submisi ditolak oleh SPV Area
+                    Submisi ditolak oleh SPV Area
                   </div>
                   <div v-else-if="activeSubmissionModal.pushed_to_edp_at">
-                    🗺️ <strong>Jadwal Rute JKS:</strong>
+                    <strong>Jadwal Rute JKS:</strong>
                     <div class="mt-1.5 flex flex-wrap items-center gap-1.5">
                       <span class="px-2.5 py-1 font-bold bg-white text-gray-800 rounded border border-gray-300 shadow-2xs">
                         No Rute: {{ activeSubmissionModal.norute || '01' }}
@@ -721,13 +721,13 @@ const sortedSubmissions = computed(() => {
                     </div>
                   </div>
                   <div v-else-if="activeSubmissionModal.pushed_to_spv_at" class="font-semibold text-purple-800">
-                    🕒 SPV belum memproses NOO dengan mengisikan JKS
+                    SPV belum memproses NOO dengan mengisikan JKS
                   </div>
                   <div v-else>
                     Belum dapat diproses oleh SPV (Menunggu Admin Distributor).
                   </div>
-                  <div>👤 <strong>Approver SPV:</strong> {{ activeSubmissionModal.approved_by_spv || '-' }}</div>
-                  <div>📅 <strong>Waktu Submit:</strong> {{ formatDatetime(activeSubmissionModal.pushed_to_edp_at) }}</div>
+                  <div><strong>Approver SPV:</strong> {{ activeSubmissionModal.approved_by_spv || '-' }}</div>
+                  <div><strong>Waktu Submit:</strong> {{ formatDatetime(activeSubmissionModal.pushed_to_edp_at) }}</div>
                 </div>
 
                 <!-- ACTION BUTTON EMBEDDED RESET SPV (TOMBOL WARNA MERAH / ROSE) -->
@@ -740,12 +740,12 @@ const sortedSubmissions = computed(() => {
                     @click="openResetModal('SPV', activeSubmissionModal)"
                     class="px-3 py-1.5 text-xs font-bold text-white bg-rose-600 hover:bg-rose-700 border border-rose-700 shadow-xs rounded-lg transition flex items-center gap-1 cursor-pointer"
                   >
-                    <span>↩️ Reset Input SPV</span>
+                    <span>Reset Input SPV</span>
                   </button>
 
                   <!-- Disabled Lock Notice if Approved EDP -->
                   <div v-else class="flex items-center gap-1.5 px-2.5 py-1 text-[11px] font-bold text-gray-500 bg-gray-100 border border-gray-300 rounded-lg" title="Reset terkunci karena toko sudah Approved EDP. Lakukan Reset Approval EDP terlebih dahulu.">
-                    <span>🔒 Terkunci (Approved EDP)</span>
+                    <span>Terkunci (Approved EDP)</span>
                   </div>
                 </div>
               </div>
@@ -784,16 +784,16 @@ const sortedSubmissions = computed(() => {
                 <!-- Info Body -->
                 <div class="text-xs space-y-1" :class="isRejectedEdp(activeSubmissionModal) ? 'text-rose-800' : (activeSubmissionModal.status === 'APPROVED_EDP' ? 'text-emerald-800' : (activeSubmissionModal.pushed_to_edp_at ? 'text-sky-900' : 'text-gray-500'))">
                   <div v-if="isRejectedEdp(activeSubmissionModal)" class="font-bold text-rose-800">
-                    🚫 Submisi ditolak oleh EDP Principal
+                    Submisi ditolak oleh EDP Principal
                   </div>
                   <div v-else>
-                    🏷️ <strong>Kode Customer Principal:</strong>
+                    <strong>Kode Customer Principal:</strong>
                     <span v-if="activeSubmissionModal.code_noo_principal" class="font-bold text-emerald-900 bg-white px-2 py-0.5 rounded border border-emerald-300 ml-1">
                       {{ activeSubmissionModal.code_noo_principal }}
                     </span>
                     <span v-else class="text-gray-400 italic ml-1">Belum Terbit</span>
                   </div>
-                  <div>📅 <strong>Waktu Review EDP:</strong> {{ formatDatetime(activeSubmissionModal.edp_reviewed_at) }}</div>
+                  <div><strong>Waktu Review EDP:</strong> {{ formatDatetime(activeSubmissionModal.edp_reviewed_at) }}</div>
                 </div>
 
                 <!-- ACTION BUTTON EMBEDDED RESET APPROVAL EDP (TOMBOL WARNA MERAH / ROSE) -->
@@ -803,7 +803,7 @@ const sortedSubmissions = computed(() => {
                     @click="openResetModal('EDP', activeSubmissionModal)"
                     class="px-3 py-1.5 text-xs font-bold text-white bg-rose-600 hover:bg-rose-700 border border-rose-700 shadow-xs rounded-lg transition flex items-center gap-1 cursor-pointer"
                   >
-                    <span>↩️ Reset Approval EDP</span>
+                    <span>Reset Approval EDP</span>
                   </button>
                 </div>
               </div>
@@ -813,13 +813,13 @@ const sortedSubmissions = computed(() => {
             <div v-if="activeSubmissionModal.reject_reason || activeSubmissionModal.reset_reason" class="pt-3 border-t border-slate-200 space-y-2">
               <div v-if="activeSubmissionModal.reject_reason" class="p-3 rounded-xl bg-rose-50 border border-rose-300 text-rose-900 text-xs shadow-2xs">
                 <span class="font-bold block text-[11px] text-rose-800 uppercase tracking-wider mb-1 flex items-center gap-1">
-                  🚫 Alasan Penolakan (Rejected Reason):
+                  Alasan Penolakan (Rejected Reason):
                 </span>
                 <p class="whitespace-pre-line leading-relaxed font-medium text-rose-950">{{ activeSubmissionModal.reject_reason }}</p>
               </div>
               <div v-if="activeSubmissionModal.reset_reason" class="p-3 rounded-xl bg-amber-50 border border-amber-300 text-amber-900 text-xs shadow-2xs">
                 <span class="font-bold block text-[11px] text-amber-800 uppercase tracking-wider mb-1 flex items-center gap-1">
-                  ↩️ Alasan Pembatalan / Reset:
+                  Alasan Pembatalan / Reset:
                 </span>
                 <p class="whitespace-pre-line leading-relaxed font-medium text-amber-950">{{ activeSubmissionModal.reset_reason }}</p>
               </div>

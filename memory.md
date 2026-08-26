@@ -250,3 +250,28 @@ Saya bekerja sendiri (Solo Developer). Kode harus bisa menjelaskan dirinya sendi
 29. **Multiselect Checkbox Dropdown Bulan Pengajuan di Principal Dashboard**:
     - **Keseragaman Komponen Multiselect Bulan**: Mengganti elemen native `<select>` pada filter `BULAN PENGAJUAN` di `Edp/Dashboard.vue` dengan komponen multiselect checkbox dropdown yang seragam dengan `Inbox.vue` dan `MonitoringRo.vue`.
     - **Dukungan Multi-Month Query Backend**: Memperbarui `EdpDashboardController.php` untuk mendukung parameter `months=1,2,3` via `EXTRACT(MONTH FROM COALESCE(submitted_at, created_at)) IN (...)`.
+
+30. **Redesain Grafik Monitoring RO Menjadi Summary Distributor & Live Hover Detail Bar**:
+    - **Grafik Summary per Distributor**: Mengubah grafik horizontal `MonitoringRo.vue` dari yang sebelumnya menampilkan seluruh baris salesman individual menjadi **1 baris akumulasi total RO per Distributor/Cabang**.
+    - **Skala Sumbu-X Dinamis**: Menghitung skala sumbu-X secara otomatis berpatokan pada target akumulasi cabang terbesar (`maxBranchTarget`).
+    - **Live Executive Hover Detail Bar**: Mengganti tooltip pop-up melayang dengan *Live Executive Hover Detail Bar* di atas kontainer grafik (bebas dari isu *clipping* top/bottom).
+
+31. **Refactoring Multi-Select Coverage Cabang Master SPV Area (`MasterSpv.vue` & `EdpMasterController.php`)**:
+    - **Grouped SPV Table Display**: Mengelompokkan data `master_spvs` berdasarkan `salescode` sehingga setiap SPV unik hanya memiliki **1 baris utuh** pada tabel Master SPV, lengkap dengan badge pill coverage seluruh cabang distributor yang diampu.
+    - **Multi-Select Branch Picker (Add & Edit Modal)**: Mengganti dropdown single-select cabang dengan **Multi-Select Branch Picker** (Tag Pills & Searchable Checkbox List). Admin dapat menambah/mencabut centang coverage cabang distributor dengan sangat fleksibel.
+    - **Back-End Multi-Branch Synchronization**: Backend `EdpMasterController.php` (`storeSpv`, `updateSpv`, `destroySpv`) secara otomatis menyinkronkan data cabang untuk `salescode` tersebut, serta menyelaraskan `nama`, `password`, dan `area` secara atomic sekali simpan.
+
+32. **Pembersihan Total Emoji Dekoratif (Clean Professional Typography)**:
+    - **Eliminasi Emoji Semak**: Menghapus seluruh emoji dekoratif yang berlebihan (seperti 🛡️, 📈, 📊, 🔍, 👥, 🏢, 👔, 🎯, 🏪, 💡, 🎉, ⏳, 👑, 🔄) dari seluruh judul halaman, filter bar, card header, tombol aksi, dan tabel pada `MasterSpv.vue`, `MonitoringRo.vue`, `AccountManagement.vue`, `ProgressTracking.vue`, `MasterSalesman.vue`, `MasterBranch.vue`, `MasterEdp.vue`, dan `Inbox.vue`.
+    - **Clean UI & Typography**: Tampilan antarmuka seluruh portal kini tampak bersih, rapi, elegan, dan profesional tanpa pernak-pernik ikonik yang mengganggu mata.
+
+33. **Redesain Total UI (Clean Corporate & Human-Designed Enterprise)**:
+    - **Eliminasi AI & Vibe Coding Aesthetics**: Mengganti header multi-gradient rainbow, warna-warni neomint/neon, serta efek glow berlebihan dengan gaya visual *Clean Corporate Executive Slate* (`#0F172A`).
+    - **SVG Native & Professional Controls**: Mengganti seluruh ikon emoji dan tombol gaya template AI dengan ikon SVG clean native dan kontrol antarmuka standar enterprise.
+    - **Corporate Cards & Clean Palettes**: Merapikan seluruh kartu metrik, header tabel, tombol filter, dan modal menjadi struktur bersih dengan border slate-200 dan font-weights yang seimbang.
+
+34. **Konstruksi Fondasi UI Components & Design System Tokens**:
+    - **Tailwind Tokens Configuration (`tailwind.config.js`)**: Mengonfigurasi `noo-primary` (`#2B358F`), `noo-secondary` (`#3B2B85`), `noo-accent` (`#F59D1A`), dan `noo-danger` (`#E31837`) serta typography font-family `Inter` (sans) dan `Plus Jakarta Sans` (heading).
+    - **Reusable `BaseButton.vue`**: Mengimplementasikan `<script setup>` dengan `defineOptions({ inheritAttrs: false })`, mendukung varian `primary`, `secondary`, `outline`, `danger`, serta ukuran `sm`, `md`, `lg` responsif dan loading spinner native SVG.
+    - **Reusable `BaseCard.vue`**: Mengimplementasikan komponen pembungkus berlatar `bg-white rounded-xl border border-slate-200` dengan named slot `#header` (`font-heading font-semibold text-slate-900`), slot `default` body (`font-sans font-normal text-slate-600`), dan named slot `#footer` (`bg-slate-50 border-t`).
+    - **Penerapan Lintas Portal**: Mengintegrasikan `BaseButton` dan `BaseCard` di seluruh Portal Admin Distributor, SPV Area, dan EDP Principal.

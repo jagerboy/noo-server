@@ -13,6 +13,8 @@ import axios from 'axios';
 import EdpLayout from '@/Layouts/EdpLayout.vue';
 import SearchableSelect from '@/Components/SearchableSelect.vue';
 import Pagination from '@/Components/Pagination.vue';
+import BaseButton from '@/Components/BaseButton.vue';
+import BaseCard from '@/Components/BaseCard.vue';
 
 const props = defineProps({
   submissions: Array,
@@ -35,6 +37,7 @@ const selectedRegion = ref(props.filters?.region_code || '');
 const selectedPrincipal = ref(props.filters?.principal || '');
 const selectedBranch = ref(props.filters?.branch_id || '');
 const selectedStatus = ref(props.filters?.status || '');
+const selectedRoStatus = ref(props.filters?.is_ro || '');
 const selectedEdpMonths = ref(
   props.filters?.edp_months
     ? String(props.filters.edp_months).split(',')
@@ -243,7 +246,7 @@ const edpYearSelectOptions = computed(() => {
 
   return years.map((y) => ({
     value: String(y),
-    label: `Tahun ${y}`,
+    label: String(y),
   }));
 });
 
@@ -256,6 +259,7 @@ const activeFilterCount = computed(() => {
   if (selectedPrincipal.value) count++;
   if (selectedBranch.value) count++;
   if (selectedStatus.value) count++;
+  if (selectedRoStatus.value) count++;
   if (selectedEdpMonths.value.length > 0) count++;
   if (selectedEdpYear.value) count++;
   if (search.value) count++;
@@ -268,6 +272,7 @@ function applyFilters() {
   if (selectedPrincipal.value) queryParams.principal = selectedPrincipal.value;
   if (selectedBranch.value) queryParams.branch_id = selectedBranch.value;
   if (selectedStatus.value) queryParams.status = selectedStatus.value;
+  if (selectedRoStatus.value) queryParams.is_ro = selectedRoStatus.value;
   if (selectedEdpMonths.value && selectedEdpMonths.value.length > 0) {
     queryParams.edp_months = selectedEdpMonths.value.join(',');
   }
@@ -304,6 +309,7 @@ function resetFilters() {
   selectedPrincipal.value = '';
   selectedBranch.value = '';
   selectedStatus.value = '';
+  selectedRoStatus.value = '';
   selectedEdpMonths.value = [];
   selectedEdpYear.value = '';
   search.value = '';
@@ -436,16 +442,22 @@ function handleToggleRoStatus(newStatus) {
 const selectedRowIds = ref([]);
 const isProcessingBulkToggleRo = ref(false);
 
+const eligibleSubmissions = computed(() => {
+  return (sortedSubmissions.value || []).filter((s) =>
+    ['APPROVED_EDP', 'EDP_APPROVED', 'INJECTED'].includes(s.status)
+  );
+});
+
 const isAllSelected = computed(() => {
-  if (!sortedSubmissions.value || !sortedSubmissions.value.length) return false;
-  return selectedRowIds.value.length === sortedSubmissions.value.length;
+  if (!eligibleSubmissions.value.length) return false;
+  return selectedRowIds.value.length === eligibleSubmissions.value.length;
 });
 
 function toggleSelectAll() {
   if (isAllSelected.value) {
     selectedRowIds.value = [];
   } else {
-    selectedRowIds.value = sortedSubmissions.value.map((s) => s.request_id);
+    selectedRowIds.value = eligibleSubmissions.value.map((s) => s.request_id);
   }
 }
 
@@ -1213,21 +1225,21 @@ function getStepBadgeStyle(step, item) {
 function getStepLabel(step, item) {
   const st = getStepStatus(step, item);
   if (step === 1) {
-    if (st === 'COMPLETED') return '✓ DIINPUT (PUSHED)';
-    if (st === 'REJECTED') return '✕ DITOLAK ADMIN';
-    return '⏳ PENDING INPUT';
+    if (st === 'COMPLETED') return 'DIINPUT (PUSHED)';
+    if (st === 'REJECTED') return 'DITOLAK ADMIN';
+    return 'PENDING INPUT';
   }
   if (step === 2) {
-    if (st === 'COMPLETED') return '✓ DISETUJUI SPV';
-    if (st === 'REJECTED') return '✕ DITOLAK SPV';
-    if (st === 'PENDING') return '⏳ REVIEW SPV';
-    return '🔒 BELUM DIMULAI';
+    if (st === 'COMPLETED') return 'DISETUJUI SPV';
+    if (st === 'REJECTED') return 'DITOLAK SPV';
+    if (st === 'PENDING') return 'REVIEW SPV';
+    return 'BELUM DIMULAI';
   }
   if (step === 3) {
-    if (st === 'COMPLETED') return '✓ DISETUJUI EDP';
-    if (st === 'REJECTED') return '✕ DITOLAK EDP';
-    if (st === 'PENDING') return '⏳ REVIEW EDP';
-    return '🔒 BELUM DIMULAI';
+    if (st === 'COMPLETED') return 'DISETUJUI EDP';
+    if (st === 'REJECTED') return 'DITOLAK EDP';
+    if (st === 'PENDING') return 'REVIEW EDP';
+    return 'BELUM DIMULAI';
   }
   return '';
 }
@@ -1331,28 +1343,28 @@ function getLineStyle(stepBefore, item) {
       <div class="flex flex-col lg:flex-row lg:items-center justify-between gap-5 bg-white p-6 sm:p-7 rounded-xl border border-[#E5E7EB] shadow-xs">
         <div class="space-y-1.5 max-w-3xl">
           <h1 class="text-xl md:text-[24px] font-semibold text-[#111827] tracking-tight leading-[1.4] flex items-center gap-3">
-            <span>📋 NOO Verification</span>
+            <span>NOO Verification</span>
           </h1>
           <p class="text-[14px] text-[#6B7280] leading-[1.5]">
             Verifikasi Final EDP Principal, Penerbitan Kode Customer Principal, & Rekapitulasi Approval. (Region Scope: <span class="font-semibold text-slate-800">{{ userRegion || 'Semua Region' }}</span>)
           </p>
         </div>
 
-        <div class="flex items-center gap-3.5 flex-wrap sm:flex-nowrap shrink-0">
-          <button
+        <div class="flex items-center gap-3 flex-wrap sm:flex-nowrap shrink-0">
+          <BaseButton
+            variant="primary"
+            size="md"
             @click="openExportModal"
-            class="px-5 py-2.5 text-xs sm:text-sm font-bold text-white bg-[#16A34A] hover:bg-[#15803D] border border-emerald-600 rounded-xl shadow-xs hover:shadow transition-all flex items-center gap-2.5 cursor-pointer whitespace-nowrap"
           >
-            <span class="text-base">📊</span>
-            <span>Export Approved (.xlsx)</span>
-          </button>
-          <button
+            Export Approved (.xlsx)
+          </BaseButton>
+          <BaseButton
+            variant="danger"
+            size="md"
             @click="openExportRejectedModal"
-            class="px-5 py-2.5 text-xs sm:text-sm font-bold text-white bg-[#DC2626] hover:bg-[#B91C1C] border border-red-600 rounded-xl shadow-xs hover:shadow transition-all flex items-center gap-2.5 cursor-pointer whitespace-nowrap"
           >
-            <span class="text-base">📊</span>
-            <span>Export Rejected (.xlsx)</span>
-          </button>
+            Export Rejected (.xlsx)
+          </BaseButton>
         </div>
       </div>
 
@@ -1365,13 +1377,13 @@ function getLineStyle(stepBefore, item) {
             v-model="search"
             @keyup.enter="applyFilters"
             placeholder="Cari Nama Toko, CustCode, Salesman..."
-            class="w-full pl-10 pr-4 py-2.5 text-xs sm:text-sm font-medium text-slate-800 bg-slate-50 border border-slate-300 rounded-xl focus:bg-white focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 transition placeholder:text-slate-400"
+            class="w-full pl-9 pr-4 py-2 text-xs sm:text-sm font-medium text-slate-800 bg-slate-50 border border-slate-300 rounded-lg focus:bg-white focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 transition placeholder:text-slate-400"
           />
-          <span class="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400 text-sm pointer-events-none">🔍</span>
+          <svg class="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/></svg>
           <button
             v-if="search"
             @click="search = ''; applyFilters();"
-            class="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 text-xs"
+            class="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 text-xs cursor-pointer"
           >
             ✕
           </button>
@@ -1382,79 +1394,24 @@ function getLineStyle(stepBefore, item) {
           <button
             v-if="activeFilterCount > 0"
             @click="resetFilters"
-            class="px-3.5 py-2.5 text-xs font-bold text-slate-600 hover:text-rose-700 hover:bg-rose-50 border border-slate-300 hover:border-rose-300 rounded-xl transition cursor-pointer flex items-center gap-1.5"
+            class="px-3.5 py-2 text-xs font-semibold text-slate-600 hover:text-rose-700 hover:bg-rose-50 border border-slate-300 hover:border-rose-300 rounded-lg transition cursor-pointer flex items-center gap-1.5"
           >
-            <span>🔄 Reset Filter</span>
+            <span>Reset Filter</span>
           </button>
 
           <!-- OPEN FILTER & SORT MODAL BUTTON -->
           <button
             @click="showFilterModal = true"
-            class="px-4 py-2.5 text-xs sm:text-sm font-bold text-slate-800 bg-slate-100 hover:bg-slate-200 border border-slate-300 rounded-xl shadow-2xs transition flex items-center gap-2 cursor-pointer"
+            class="px-4 py-2 text-xs sm:text-sm font-semibold text-slate-800 bg-slate-100 hover:bg-slate-200 border border-slate-300 rounded-lg shadow-2xs transition flex items-center gap-2 cursor-pointer"
           >
-            <span>🎛️ Filter & Urutkan Data</span>
+            <svg class="w-4 h-4 text-slate-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2.586a1 1 0 01-.293.707l-6.414 6.414a1 1 0 00-.293.707V17l-4 4v-6.586a1 1 0 00-.293-.707L3.293 7.293A1 1 0 013 6.586V4z"/></svg>
+            <span>Filter & Urutkan Data</span>
             <span
               v-if="activeFilterCount > 0"
               class="w-5 h-5 rounded-full bg-blue-600 text-white text-[10px] font-bold flex items-center justify-center"
             >
               {{ activeFilterCount }}
             </span>
-          </button>
-        </div>
-      </div>
-
-      <!-- REVAMPED EXECUTIVE ACTION BAR FOR SELECTED ROWS -->
-      <div v-if="selectedRowIds.length > 0" class="bg-white border-2 border-blue-600 p-4 rounded-2xl shadow-xl flex flex-col sm:flex-row items-center justify-between gap-3 text-slate-900 transition-all duration-300">
-        <div class="flex items-center gap-3">
-          <div class="w-9 h-9 rounded-xl bg-blue-50 border border-blue-200 text-blue-700 flex items-center justify-center font-bold text-sm shrink-0">
-            ☑️
-          </div>
-          <div>
-            <div class="text-xs sm:text-sm font-extrabold text-slate-900 flex items-center gap-2">
-              <span>Ubah Status RO Toko Terpilih</span>
-              <span class="px-2.5 py-0.5 rounded-full text-[11px] font-bold bg-blue-100 text-blue-800 border border-blue-300">
-                {{ selectedRowIds.length }} Toko Terpilih
-              </span>
-            </div>
-            <p class="text-[11px] text-slate-500 mt-0.5">
-              Pilih status keaktifan Registered Outlet (RO) untuk toko yang dicentang.
-            </p>
-          </div>
-        </div>
-
-        <div class="flex items-center gap-2.5 flex-wrap shrink-0">
-          <button
-            type="button"
-            @click="handleBulkToggleRoStatus(true)"
-            :disabled="isProcessingBulkToggleRo"
-            class="px-4 py-2 text-xs sm:text-sm font-bold text-white bg-emerald-600 hover:bg-emerald-700 border border-emerald-700 rounded-xl shadow-sm hover:shadow transition-all flex items-center gap-2 cursor-pointer disabled:opacity-50"
-          >
-            <svg v-if="isProcessingBulkToggleRo" class="animate-spin h-4 w-4 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-              <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
-              <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-            </svg>
-            <span>✅ Aktifkan RO</span>
-          </button>
-
-          <button
-            type="button"
-            @click="handleBulkToggleRoStatus(false)"
-            :disabled="isProcessingBulkToggleRo"
-            class="px-4 py-2 text-xs sm:text-sm font-bold text-white bg-rose-600 hover:bg-rose-700 border border-rose-700 rounded-xl shadow-sm hover:shadow transition-all flex items-center gap-2 cursor-pointer disabled:opacity-50"
-          >
-            <svg v-if="isProcessingBulkToggleRo" class="animate-spin h-4 w-4 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-              <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
-              <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-            </svg>
-            <span>🚫 Nonaktifkan RO</span>
-          </button>
-
-          <button
-            type="button"
-            @click="selectedRowIds = []"
-            class="px-3.5 py-2 text-xs font-bold text-slate-500 hover:text-slate-800 hover:bg-slate-100 rounded-xl transition cursor-pointer"
-          >
-            ✕ Batal
           </button>
         </div>
       </div>
@@ -1471,26 +1428,17 @@ function getLineStyle(stepBefore, item) {
           <table class="w-full text-[14px] text-left text-[#374151]">
             <thead class="bg-[#F3F4F6] border-b border-[#E5E7EB] font-semibold text-[#111827] uppercase tracking-wider select-none">
               <tr>
-                <th class="p-3 w-10 text-center">
-                  <input
-                    type="checkbox"
-                    :checked="isAllSelected"
-                    @change="toggleSelectAll"
-                    class="w-4 h-4 text-blue-600 rounded border-slate-300 focus:ring-blue-500 cursor-pointer"
-                    title="Pilih Semua Toko di Halaman Ini"
-                  />
-                </th>
                 <th class="p-4">Cabang / Salesman</th>
                 <th class="p-4">Nama Outlet & Pemilik</th>
                 <th class="p-4">CustCode Dist</th>
                 <th class="p-4">Customer Code Principal</th>
-                <th class="p-4">Status & Status RO</th>
+                <th class="p-4">Status NOO</th>
                 <th class="p-4 text-center">Aksi</th>
               </tr>
             </thead>
             <tbody class="divide-y divide-[#E5E7EB]">
               <tr v-if="sortedSubmissions.length === 0">
-                <td colspan="7" class="text-center py-12 text-[#9CA3AF] text-[14px]">
+                <td colspan="6" class="text-center py-12 text-[#9CA3AF] text-[14px]">
                   Belum ada data submisi toko masuk untuk verifikasi EDP.
                 </td>
               </tr>
@@ -1501,15 +1449,6 @@ function getLineStyle(stepBefore, item) {
                 class="transition border-b"
                 :class="getRowStyle(sub)"
               >
-                <!-- CHECKBOX ROW SELECT -->
-                <td class="p-3 text-center">
-                  <input
-                    type="checkbox"
-                    :value="sub.request_id"
-                    v-model="selectedRowIds"
-                    class="w-4 h-4 text-blue-600 rounded border-slate-300 focus:ring-blue-500 cursor-pointer"
-                  />
-                </td>
                 <td class="p-4 font-medium text-[#111827]">
                   {{ sub.branch_name }} <br>
                   <span class="text-[12px] text-[#6B7280] font-normal">👤 {{ sub.salesman_name }}</span>
@@ -1533,42 +1472,12 @@ function getLineStyle(stepBefore, item) {
                   </span>
                 </td>
 
-                <!-- STATUS & RO TOGGLE SWITCH COLUMN -->
+                <!-- STATUS BADGE COLUMN -->
                 <td class="p-4">
-                  <div class="space-y-2">
-                    <!-- BADGE STATUS WORKFLOW NOO -->
-                    <div>
-                      <span class="px-2.5 py-1 text-[12px] font-semibold rounded-[8px] border inline-flex items-center gap-1" :class="getStatusBadgeStyle(sub.status)">
-                        {{ formatStatusLabel(sub.status) }}
-                      </span>
-                    </div>
-
-                    <!-- TOGGLE SWITCH BUTTON RO (HANYA DITAMPILKAN JIKA STATUS NOO APPROVED EDP) -->
-                    <div
-                      v-if="sub.status === 'APPROVED_EDP' || sub.status === 'EDP_APPROVED' || sub.status === 'INJECTED'"
-                      class="pt-1 flex items-center gap-2"
-                    >
-                      <button
-                        type="button"
-                        @click="handleToggleRoStatusRow(sub, !(sub.is_ro !== false && sub.is_ro !== 0 && sub.is_ro !== '0'))"
-                        :disabled="isProcessingToggleRo"
-                        class="relative inline-flex h-5 w-9 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none shadow-xs disabled:opacity-50"
-                        :class="sub.is_ro !== false && sub.is_ro !== 0 && sub.is_ro !== '0' ? 'bg-[#16A34A]' : 'bg-[#9CA3AF]'"
-                        :title="sub.is_ro !== false && sub.is_ro !== 0 && sub.is_ro !== '0' ? 'Status RO: AKTIF (Klik untuk menonaktifkan)' : 'Status RO: NON-AKTIF (Klik untuk mengaktifkan)'"
-                      >
-                        <span
-                          class="pointer-events-none inline-block h-4 w-4 transform rounded-full bg-white shadow-md ring-0 transition duration-200 ease-in-out"
-                          :class="sub.is_ro !== false && sub.is_ro !== 0 && sub.is_ro !== '0' ? 'translate-x-4' : 'translate-x-0'"
-                        ></span>
-                      </button>
-
-                      <span
-                        class="text-[11px] font-bold"
-                        :class="sub.is_ro !== false && sub.is_ro !== 0 && sub.is_ro !== '0' ? 'text-[#15803D]' : 'text-[#6B7280]'"
-                      >
-                        {{ sub.is_ro !== false && sub.is_ro !== 0 && sub.is_ro !== '0' ? '🟢 RO Aktif' : '⚪ RO Off' }}
-                      </span>
-                    </div>
+                  <div>
+                    <span class="px-2.5 py-1 text-[12px] font-semibold rounded-[8px] border inline-flex items-center gap-1" :class="getStatusBadgeStyle(sub.status)">
+                      {{ formatStatusLabel(sub.status) }}
+                    </span>
                   </div>
                 </td>
                 <td class="p-4 text-center">
@@ -2731,14 +2640,9 @@ function getLineStyle(stepBefore, item) {
             
             <!-- Modal Filter Header -->
             <div class="flex items-center justify-between border-b border-slate-200 pb-3.5">
-              <div class="flex items-center gap-2.5">
-                <div class="w-8 h-8 rounded-xl bg-blue-50 text-blue-600 border border-blue-200 flex items-center justify-center font-bold text-sm">
-                  🎛️
-                </div>
-                <div>
-                  <h3 class="text-base font-black text-slate-900 tracking-tight">Filter & Urutkan Data Verifikasi</h3>
-                  <p class="text-xs text-slate-500">Sesuaikan kriteria filter & urutan tampilan tabel</p>
-                </div>
+              <div>
+                <h3 class="text-base font-bold text-slate-900 tracking-tight">Filter & Urutkan Data Verifikasi</h3>
+                <p class="text-xs text-slate-500">Sesuaikan kriteria filter & urutan tampilan tabel</p>
               </div>
               <button
                 @click="showFilterModal = false"
@@ -2796,6 +2700,19 @@ function getLineStyle(stepBefore, item) {
                 />
               </div>
 
+              <!-- STATUS RO (REGISTERED OUTLET) -->
+              <div>
+                <label class="block text-xs font-bold text-slate-700 mb-1">Status RO (Registered Outlet):</label>
+                <select
+                  v-model="selectedRoStatus"
+                  class="w-full h-10 px-3 text-xs font-semibold text-slate-800 bg-white border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 shadow-2xs cursor-pointer"
+                >
+                  <option value="">-- Semua Status RO --</option>
+                  <option value="active">RO Aktif</option>
+                  <option value="inactive">RO Nonaktif</option>
+                </select>
+              </div>
+
               <!-- BULAN & TAHUN APPROVAL EDP (MULTISELECT CHECKBOX DROPDOWN LIKE MONITORING RO) -->
               <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <!-- BULAN MULTISELECT -->
@@ -2805,7 +2722,7 @@ function getLineStyle(stepBefore, item) {
                   <button
                     type="button"
                     @click="isMonthDropdownOpen = !isMonthDropdownOpen"
-                    class="w-full h-10 px-3 text-xs rounded-xl border border-slate-300 bg-white font-semibold text-slate-800 flex items-center justify-between shadow-2xs hover:border-blue-500 focus:outline-none transition cursor-pointer"
+                    class="w-full h-10 px-3 text-xs rounded-lg border border-slate-300 bg-white font-semibold text-slate-800 flex items-center justify-between shadow-2xs hover:border-blue-500 focus:outline-none transition cursor-pointer"
                   >
                     <span class="truncate pr-2">{{ selectedEdpMonthsLabel }}</span>
                     <div class="flex items-center gap-1.5 shrink-0">
@@ -2822,7 +2739,7 @@ function getLineStyle(stepBefore, item) {
                   <!-- DROPDOWN OVERLAY WITH CHECKBOXES -->
                   <div
                     v-if="isMonthDropdownOpen"
-                    class="absolute left-0 top-full mt-1.5 w-72 bg-white rounded-2xl border border-slate-200 shadow-2xl z-50 p-3 space-y-2 text-xs"
+                    class="absolute left-0 top-full mt-1.5 w-72 bg-white rounded-xl border border-slate-200 shadow-xl z-50 p-3 space-y-2 text-xs"
                   >
 
                     <!-- CHECKBOX LIST 12 BULAN -->
@@ -2860,7 +2777,7 @@ function getLineStyle(stepBefore, item) {
                   <label class="block text-xs font-bold text-slate-700 mb-1">Tahun Approval EDP:</label>
                   <select
                     v-model="selectedEdpYear"
-                    class="w-full h-10 px-3 text-xs font-semibold text-slate-800 bg-white border border-slate-300 rounded-xl focus:ring-2 focus:ring-blue-500 shadow-2xs cursor-pointer"
+                    class="w-full h-10 px-3 text-xs font-semibold text-slate-800 bg-white border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 shadow-2xs cursor-pointer"
                   >
                     <option value="">-- Semua Tahun Approval --</option>
                     <option v-for="y in edpYearSelectOptions" :key="y.value" :value="y.value">
@@ -2876,14 +2793,14 @@ function getLineStyle(stepBefore, item) {
                 <div class="relative">
                   <select
                     v-model="sortSelect"
-                    class="w-full text-xs font-semibold p-3 pr-10 rounded-xl border border-slate-300 bg-white text-slate-800 focus:ring-2 focus:ring-blue-500 shadow-2xs cursor-pointer appearance-none"
+                    class="w-full text-xs font-semibold p-2.5 pr-10 rounded-lg border border-slate-300 bg-white text-slate-800 focus:ring-2 focus:ring-blue-500 shadow-2xs cursor-pointer appearance-none"
                   >
-                    <option value="created_at_desc">📅 Waktu Submit (Terbaru ➔ Terlama)</option>
-                    <option value="created_at_asc">📅 Waktu Submit (Terlama ➔ Terbaru)</option>
-                    <option value="nama_noo_asc">🏪 Nama Outlet (A ➔ Z)</option>
-                    <option value="nama_noo_desc">🏪 Nama Outlet (Z ➔ A)</option>
-                    <option value="branch_name_asc">🏢 Cabang Distributor (A ➔ Z)</option>
-                    <option value="status_asc">🏷️ Status Submisi (Asc)</option>
+                    <option value="created_at_desc">Waktu Submit (Terbaru ke Terlama)</option>
+                    <option value="created_at_asc">Waktu Submit (Terlama ke Terbaru)</option>
+                    <option value="nama_noo_asc">Nama Outlet (A - Z)</option>
+                    <option value="nama_noo_desc">Nama Outlet (Z - A)</option>
+                    <option value="branch_name_asc">Cabang Distributor (A - Z)</option>
+                    <option value="status_asc">Status Submisi</option>
                   </select>
                   <div class="absolute right-3.5 top-1/2 -translate-y-1/2 pointer-events-none text-slate-500 text-xs font-bold">
                     ▼
@@ -2897,9 +2814,9 @@ function getLineStyle(stepBefore, item) {
               <button
                 type="button"
                 @click="resetFilters"
-                class="px-4 py-2.5 text-xs font-bold text-rose-700 bg-rose-50 hover:bg-rose-100 border border-rose-200 rounded-xl transition cursor-pointer"
+                class="px-4 py-2 text-xs font-semibold text-rose-700 bg-rose-50 hover:bg-rose-100 border border-rose-200 rounded-lg transition cursor-pointer"
               >
-                🔄 Reset All Filter
+                Reset All Filter
               </button>
 
               <div class="flex items-center gap-2">

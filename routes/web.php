@@ -90,6 +90,8 @@ Route::middleware('auth')->group(function () {
 
         // Monitoring Target RO vs Realisasi Approved Salesman
         Route::get('/monitoring-ro', [EdpDashboardController::class, 'monitoringRo'])->name('monitoring_ro');
+        Route::post('/monitoring-ro/upload-target', [EdpDashboardController::class, 'uploadTargetRo'])->name('monitoring_ro.upload_target');
+        Route::get('/monitoring-ro/download-template', [EdpDashboardController::class, 'downloadTargetRoTemplate'])->name('monitoring_ro.download_template');
 
         // Inbox NOO Verification
         Route::get('/inbox', [EdpPortalController::class, 'index'])->name('inbox');

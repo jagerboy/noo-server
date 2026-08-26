@@ -148,7 +148,7 @@ function deleteAccount(acc) {
       <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-white p-5 rounded-xl border border-[#E5E7EB] shadow-xs">
         <div>
           <h1 class="text-xl font-bold text-[#111827] flex items-center gap-2">
-            <span>👥 Manajemen Akun & User Role Manager</span>
+            <span>Manajemen Akun & User Role Manager</span>
           </h1>
           <p class="text-xs text-[#6B7280] mt-1">
             Pengelolaan Akun Pengguna Portal Principal NOO+, Password, Peran Akses (Superadmin, Admin Principal, Operator Region) & Region Scope.
@@ -157,9 +157,9 @@ function deleteAccount(acc) {
 
         <button
           @click="isAddModalOpen = true"
-          class="px-4 py-2 text-xs font-semibold text-white bg-gradient-to-r from-[#1E2B7B] via-[#542B85] to-[#D9232A] hover:opacity-95 rounded-lg shadow-sm border border-[#F59E0B]/30 transition flex items-center gap-2 cursor-pointer"
+          class="px-4 py-2 text-xs font-semibold text-white bg-blue-600 hover:bg-blue-700 rounded-lg shadow-2xs transition flex items-center gap-1.5 cursor-pointer"
         >
-          <span>+ Buat Akun Baru</span>
+          <span>+ Tambah Akun Baru</span>
         </button>
       </div>
 
@@ -174,7 +174,7 @@ function deleteAccount(acc) {
               : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
           ]"
         >
-          <span>👥 Daftar Pengguna</span>
+          <span>Daftar Pengguna</span>
           <span class="px-2 py-0.5 text-[10px] rounded-full bg-purple-100 text-[#542B85] font-extrabold border border-purple-200">
             {{ accounts.total || accounts.data?.length || 0 }}
           </span>
@@ -189,7 +189,7 @@ function deleteAccount(acc) {
               : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
           ]"
         >
-          <span>🛡️ Matriks Hak Akses (User Role Manager)</span>
+          <span>Matriks Hak Akses (User Role Manager)</span>
         </button>
       </div>
 
@@ -265,14 +265,14 @@ function deleteAccount(acc) {
         <div class="p-4 bg-gray-50 border-b border-gray-200 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
           <div>
             <h3 class="text-sm font-bold text-gray-900 flex items-center gap-2">
-              <span>🛡️ Matriks Hak Akses Peran Pengguna (Permissions Matrix)</span>
+              <span>Matriks Hak Akses Peran Pengguna (Permissions Matrix)</span>
             </h3>
             <p class="text-xs text-gray-500 mt-0.5">Penetapan dan otorisasi menu portal untuk masing-masing peran (Role Manager)</p>
           </div>
 
           <div class="flex items-center gap-2 shrink-0">
             <div class="text-xs font-semibold px-3 py-1.5 bg-emerald-100 text-emerald-800 rounded-lg border border-emerald-300 flex items-center gap-1.5">
-              <span>👑 Superadmin Control</span>
+              <span>Superadmin Control</span>
             </div>
 
             <!-- Tombol Edit / Simpan / Batal -->

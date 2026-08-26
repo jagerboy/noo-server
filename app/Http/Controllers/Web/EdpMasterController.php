@@ -356,10 +356,38 @@ class EdpMasterController extends Controller
             });
         }
 
-        $spvs = $query->orderBy('master_spvs.salescode', 'asc')->get();
+        $spvsRaw = $query->orderBy('master_spvs.salescode', 'asc')->get();
+
+        // Group data by salescode agar SPV unik hanya memiliki 1 baris di tabel UI
+        $groupedSpvs = $spvsRaw->groupBy('salescode')->map(function ($items) {
+            $first = $items->first();
+            $branchIds = $items->pluck('branch_id')->filter()->unique()->values()->all();
+            $branches = $items->map(function ($item) {
+                return [
+                    'branch_id' => $item->branch_id,
+                    'branch_name' => $item->branch_name ?? $item->branch_id,
+                    'region_code' => $item->region_code,
+                    'entity_code_principal' => $item->entity_code_principal,
+                ];
+            })->unique('branch_id')->values()->all();
+
+            return [
+                'id' => $first->id,
+                'salescode' => $first->salescode,
+                'nama' => $first->nama,
+                'area' => $first->area,
+                'is_active' => (bool) $first->is_active,
+                'created_at' => $first->created_at,
+                'updated_at' => $first->updated_at,
+                'branch_ids' => $branchIds,
+                'branches' => $branches,
+                'region_codes' => array_values(array_filter(array_unique(array_column($branches, 'region_code')))),
+                'entity_codes' => array_values(array_filter(array_unique(array_column($branches, 'entity_code_principal')))),
+            ];
+        })->values();
 
         return Inertia::render('Edp/Master/MasterSpv', [
-            'spvs' => $spvs,
+            'spvs' => $groupedSpvs,
             'canWrite' => $this->checkCanWrite(),
             'filters' => $request->only(['search', 'region_code', 'entity', 'branch_id']),
             'filterOptions' => $this->getFilterOptions($user),
@@ -376,27 +404,45 @@ class EdpMasterController extends Controller
             'salescode' => 'required|string',
             'password' => 'required|string',
             'nama' => 'required|string',
-            'branch_id' => 'required|string',
+            'branch_ids' => 'nullable|array',
+            'branch_id' => 'nullable|string',
             'area' => 'nullable|string',
         ]);
+
+        $salescode = strtoupper(trim($request->salescode));
+        $branchIds = $request->input('branch_ids');
+        if (!is_array($branchIds) || empty($branchIds)) {
+            $branchIds = $request->filled('branch_id') ? [$request->branch_id] : [];
+        }
+
+        $branchIds = array_values(array_unique(array_filter(array_map('strtoupper', $branchIds))));
+
+        if (empty($branchIds)) {
+            return back()->withErrors(['branch_ids' => 'Pilih minimal satu Cabang Distributor.']);
+        }
 
         // Sync sequence agar PostgreSQL nextval tidak duplikat dengan data import CSV
         $this->syncSequence('master_spvs');
 
-        DB::table('master_spvs')->insert([
-            'salescode' => strtoupper($request->salescode),
-            'password' => \Illuminate\Support\Facades\Hash::make(trim($request->password)),
-            'nama' => $request->nama,
-            'branch_id' => strtoupper($request->branch_id),
-            'area' => $request->area,
-            'is_active' => true,
-            'created_at' => now(),
-            'updated_at' => now(),
-        ]);
+        $hashedPassword = \Illuminate\Support\Facades\Hash::make(trim($request->password));
 
-        $this->logAction('CREATE', 'MASTER_SPV', "Menambahkan SPV: {$request->nama} ({$request->salescode})");
+        foreach ($branchIds as $bId) {
+            DB::table('master_spvs')->updateOrInsert(
+                ['salescode' => $salescode, 'branch_id' => $bId],
+                [
+                    'password' => $hashedPassword,
+                    'nama' => $request->nama,
+                    'area' => $request->area,
+                    'is_active' => true,
+                    'created_at' => now(),
+                    'updated_at' => now(),
+                ]
+            );
+        }
 
-        return back()->with('success', "Data Master SPV Area '{$request->salescode} - {$request->nama}' berhasil ditambahkan.");
+        $this->logAction('CREATE', 'MASTER_SPV', "Menambahkan SPV: {$request->nama} ({$salescode}) dengan " . count($branchIds) . " cabang");
+
+        return back()->with('success', "Data Master SPV Area '{$salescode} - {$request->nama}' (" . count($branchIds) . " Cabang) berhasil ditambahkan.");
     }
 
     public function updateSpv(Request $request, $id): RedirectResponse
@@ -407,27 +453,74 @@ class EdpMasterController extends Controller
 
         $request->validate([
             'nama' => 'required|string',
-            'branch_id' => 'required|string',
+            'branch_ids' => 'nullable|array',
+            'branch_id' => 'nullable|string',
             'area' => 'nullable|string',
             'is_active' => 'required|boolean',
         ]);
 
-        $data = [
+        $targetSpv = DB::table('master_spvs')->where('id', $id)->first();
+        $salescode = $targetSpv ? $targetSpv->salescode : null;
+
+        if ($request->filled('salescode')) {
+            $salescode = strtoupper(trim($request->salescode));
+        }
+
+        if (!$salescode) {
+            return back()->withErrors(['error' => 'Data SPV tidak ditemukan.']);
+        }
+
+        $branchIds = $request->input('branch_ids');
+        if (!is_array($branchIds) || empty($branchIds)) {
+            $branchIds = $request->filled('branch_id') ? [$request->branch_id] : [];
+        }
+
+        $branchIds = array_values(array_unique(array_filter(array_map('strtoupper', $branchIds))));
+
+        if (empty($branchIds)) {
+            return back()->withErrors(['branch_ids' => 'Pilih minimal satu Cabang Distributor.']);
+        }
+
+        // Hapus asosiasi cabang yang sudah tidak dicentang lagi untuk SPV ini
+        DB::table('master_spvs')
+            ->where('salescode', $salescode)
+            ->whereNotIn('branch_id', $branchIds)
+            ->delete();
+
+        $updateData = [
             'nama' => $request->nama,
-            'branch_id' => strtoupper($request->branch_id),
             'area' => $request->area,
             'is_active' => $request->is_active,
             'updated_at' => now(),
         ];
 
         if ($request->filled('password')) {
-            $data['password'] = \Illuminate\Support\Facades\Hash::make(trim($request->password));
+            $updateData['password'] = \Illuminate\Support\Facades\Hash::make(trim($request->password));
         }
 
-        DB::table('master_spvs')->where('id', $id)->update($data);
-        $this->logAction('UPDATE', 'MASTER_SPV', "Memperbarui SPV ID {$id}: {$request->nama}");
+        $this->syncSequence('master_spvs');
 
-        return back()->with('success', "Data Master SPV Area '{$request->nama}' ({$request->salescode}) berhasil diperbarui.");
+        foreach ($branchIds as $bId) {
+            $existing = DB::table('master_spvs')
+                ->where('salescode', $salescode)
+                ->where('branch_id', $bId)
+                ->first();
+
+            if ($existing) {
+                DB::table('master_spvs')->where('id', $existing->id)->update($updateData);
+            } else {
+                DB::table('master_spvs')->insert(array_merge($updateData, [
+                    'salescode' => $salescode,
+                    'branch_id' => $bId,
+                    'password' => $updateData['password'] ?? ($targetSpv ? $targetSpv->password : \Illuminate\Support\Facades\Hash::make('123456')),
+                    'created_at' => now(),
+                ]));
+            }
+        }
+
+        $this->logAction('UPDATE', 'MASTER_SPV', "Memperbarui SPV {$salescode}: {$request->nama} (" . count($branchIds) . " Cabang)");
+
+        return back()->with('success', "Data Master SPV Area '{$request->nama}' ({$salescode}) berhasil diperbarui untuk " . count($branchIds) . " Cabang.");
     }
 
     public function destroySpv($id): RedirectResponse
@@ -437,12 +530,17 @@ class EdpMasterController extends Controller
         }
 
         $spv = DB::table('master_spvs')->where('id', $id)->first();
-        $name = $spv ? "{$spv->salescode} - {$spv->nama}" : "ID {$id}";
+        if (!$spv) {
+            return back()->withErrors(['error' => 'Data SPV tidak ditemukan.']);
+        }
 
-        DB::table('master_spvs')->where('id', $id)->delete();
-        $this->logAction('DELETE', 'MASTER_SPV', "Menghapus SPV ID {$id}");
+        $salescode = $spv->salescode;
+        $name = "{$salescode} - {$spv->nama}";
 
-        return back()->with('success', "Data Master SPV Area '{$name}' berhasil dihapus.");
+        DB::table('master_spvs')->where('salescode', $salescode)->delete();
+        $this->logAction('DELETE', 'MASTER_SPV', "Menghapus SPV {$salescode}");
+
+        return back()->with('success', "Data Master SPV Area '{$name}' (beserta seluruh cabang kovernya) berhasil dihapus.");
     }
 
     // 4. MASTER EDP (Konsolidasi ke tabel users)

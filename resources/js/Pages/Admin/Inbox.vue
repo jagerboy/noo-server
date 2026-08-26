@@ -6,6 +6,8 @@
 import { ref, computed } from 'vue';
 import { useForm } from '@inertiajs/vue3';
 import AdminLayout from '@/Layouts/AdminLayout.vue';
+import BaseButton from '@/Components/BaseButton.vue';
+import BaseCard from '@/Components/BaseCard.vue';
 
 const props = defineProps({
   submissions: {
@@ -618,14 +620,16 @@ function getRowStyle(item) {
                   <span v-else class="text-[12px] italic text-[#9CA3AF] block whitespace-normal break-words">Belum tergenerate</span>
                 </td>
 
-                <!-- Action Button Text 15px / 600 -->
+                <!-- Action Button -->
                 <td class="px-4 py-3.5 text-center">
-                  <button
+                  <BaseButton
+                    variant="primary"
+                    size="sm"
+                    class="w-full font-sans"
                     @click="openDetailModal(item)"
-                    class="w-full px-3 py-1.5 bg-[#2563EB] hover:bg-[#1D4ED8] active:bg-[#1E40AF] text-white rounded-lg text-[15px] font-semibold transition shadow-sm"
                   >
                     Kelola Toko
-                  </button>
+                  </BaseButton>
                 </td>
               </tr>
             </tbody>
