@@ -174,8 +174,13 @@ return new class extends Migration
             $table->timestamp('injected_at')->nullable();
             $table->string('injected_by', 50)->nullable();
 
-            // Meta Status Workflow Global
-            $table->string('flags', 255)->nullable();
+            // Meta Status Workflow & KTP Revision
+            $table->boolean('is_ktp_revised')->default(false);
+            $table->timestamp('ktp_revised_at')->nullable();
+            $table->string('ktp_revised_by', 100)->nullable();
+            $table->timestamp('ktp_unlocked_at')->nullable();
+            $table->string('ktp_unlocked_by', 100)->nullable();
+            $table->text('flags')->nullable();
             $table->string('status', 50)->default('SE_SUBMITTED')->index();
             $table->timestamps();
 

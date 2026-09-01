@@ -419,7 +419,7 @@ function formatActionLabel(action) {
       <div class="flex flex-col md:flex-row md:items-center justify-between gap-4 bg-white p-6 rounded-xl border border-[#E5E7EB] shadow-xs">
         <div>
           <h1 class="text-2xl sm:text-3xl font-black text-[#111827] tracking-tight flex items-center gap-3">
-            <span>🏠 Executive Dashboard Overview NOO+</span>
+            <span>Executive Dashboard Overview NOO+</span>
           </h1>
           <p class="text-xs sm:text-sm text-[#6B7280] mt-1.5 leading-relaxed">
             Ringkasan Metrik Pengajuan Outlet Baru (NOO), Status Persetujuan Bertingkat, Analisis Grafik & Log Aktivitas.
@@ -584,7 +584,7 @@ function formatActionLabel(action) {
           <div class="bg-white p-5 rounded-xl border border-slate-200 shadow-xs hover:border-blue-300 transition flex flex-col justify-between">
             <div class="flex items-center justify-between border-b border-slate-100 pb-2.5">
               <span class="text-xs font-bold text-slate-800 uppercase tracking-wider flex items-center gap-1.5">
-                <span>🏢 Admin Distributor</span>
+                <span>Admin Distributor</span>
               </span>
               <span class="text-[10px] font-bold px-2 py-0.5 rounded-full bg-slate-100 text-slate-600">Tahap 1</span>
             </div>
@@ -615,7 +615,7 @@ function formatActionLabel(action) {
           <div class="bg-white p-5 rounded-xl border border-slate-200 shadow-xs hover:border-purple-300 transition flex flex-col justify-between">
             <div class="flex items-center justify-between border-b border-slate-100 pb-2.5">
               <span class="text-xs font-bold text-slate-800 uppercase tracking-wider flex items-center gap-1.5">
-                <span>📋 SPV Area</span>
+                <span>SPV Area</span>
               </span>
               <span class="text-[10px] font-bold px-2 py-0.5 rounded-full bg-slate-100 text-slate-600">Tahap 2</span>
             </div>
@@ -646,7 +646,7 @@ function formatActionLabel(action) {
           <div class="bg-white p-5 rounded-xl border-2 border-emerald-500 shadow-xs bg-emerald-50/10 hover:border-emerald-600 transition flex flex-col justify-between">
             <div class="flex items-center justify-between border-b border-emerald-100 pb-2.5">
               <span class="text-xs font-bold text-[#065F46] uppercase tracking-wider flex items-center gap-1.5">
-                <span>⭐ Principal (EDP)</span>
+                <span>Principal (EDP)</span>
               </span>
               <span class="text-[10px] font-bold px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-800">Final Verification</span>
             </div>
@@ -683,7 +683,7 @@ function formatActionLabel(action) {
         <div class="bg-white p-5 rounded-xl border border-[#E5E7EB] shadow-xs space-y-4 hover:shadow-md transition">
           <div class="flex items-center justify-between border-b border-slate-100 pb-3 flex-wrap gap-2">
             <div>
-              <h3 class="text-sm font-bold text-[#111827]">🍩 Perbandingan Status Submisi NOO</h3>
+              <h3 class="text-sm font-bold text-[#111827]">Perbandingan Status Submisi NOO</h3>
               <p class="text-[11px] text-slate-500">Distribusi Total Submit SE vs Approved vs Rejected Principal</p>
             </div>
             <!-- FILTER TAHUN CHART 1 -->
@@ -787,7 +787,7 @@ function formatActionLabel(action) {
         <div class="bg-white p-5 rounded-xl border border-[#E5E7EB] shadow-xs space-y-4 hover:shadow-md transition">
           <div class="flex items-center justify-between border-b border-slate-100 pb-3 flex-wrap gap-2">
             <div>
-              <h3 class="text-sm font-bold text-[#111827]">📊 Analisis Submisi vs Approval per Region Area</h3>
+              <h3 class="text-sm font-bold text-[#111827]">Analisis Submisi vs Approval per Region Area</h3>
               <p class="text-[11px] text-slate-500">Perbandingan Jumlah Submitted SE (Biru) & Approved Principal (Hijau)</p>
             </div>
             <!-- FILTER TAHUN CHART 2 -->
@@ -815,7 +815,7 @@ function formatActionLabel(action) {
               class="p-2.5 rounded-xl bg-slate-50/50 hover:bg-slate-100/60 border border-slate-100 transition group cursor-pointer"
             >
               <div class="flex justify-between items-center text-xs mb-1.5">
-                <span class="font-mono font-bold text-slate-800 group-hover:text-blue-700 transition">📍 Area {{ area.area_code }}</span>
+                <span class="font-mono font-bold text-slate-800 group-hover:text-blue-700 transition">Area {{ area.area_code }}</span>
                 <div class="flex items-center gap-3 text-[11px] font-bold">
                   <span class="text-blue-600 bg-blue-50 px-2 py-0.5 rounded border border-blue-200">Submisi: {{ area.total_submitted }}</span>
                   <span class="text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded border border-emerald-200">Approved: {{ area.approved_principal }}</span>
@@ -845,7 +845,7 @@ function formatActionLabel(action) {
         <div class="bg-white p-5 rounded-xl border border-[#E5E7EB] shadow-xs space-y-4 hover:shadow-md transition">
           <div class="flex items-center justify-between border-b border-slate-100 pb-3 flex-wrap gap-2">
             <div>
-              <h3 class="text-sm font-bold text-[#111827]">🏪 Sebaran Submisi per Tipe Outlet / Channel</h3>
+              <h3 class="text-sm font-bold text-[#111827]">Sebaran Submisi per Tipe Outlet / Channel</h3>
               <p class="text-[11px] text-slate-500">Distribusi pengajuan berdasarkan jenis outlet toko</p>
             </div>
             <!-- FILTER TAHUN CHART 3 -->
@@ -897,7 +897,7 @@ function formatActionLabel(action) {
         <div class="bg-white p-5 rounded-xl border border-[#E5E7EB] shadow-xs space-y-4 hover:shadow-md transition">
           <div class="flex items-center justify-between border-b border-slate-100 pb-3 flex-wrap gap-2">
             <div>
-              <h3 class="text-sm font-bold text-[#111827]">🏬 Top Cabang Submisi NOO Terbanyak</h3>
+              <h3 class="text-sm font-bold text-[#111827]">Top Cabang Submisi NOO Terbanyak</h3>
               <p class="text-[11px] text-slate-500">Peringkat cabang dengan volume pengajuan toko baru tertinggi</p>
             </div>
             <!-- FILTER TAHUN CHART 4 -->
@@ -960,7 +960,7 @@ function formatActionLabel(action) {
         <div class="flex items-center justify-between border-b border-slate-100 pb-3">
           <div>
             <h3 class="text-sm font-bold text-[#111827] flex items-center gap-2">
-              <span>📑 Summary Recent Audit & Activity Logs</span>
+              <span>Summary Recent Audit & Activity Logs</span>
             </h3>
             <p class="text-xs text-slate-500 mt-0.5">Daftar 5 aktivitas pergerakan data pengajuan NOO terbaru</p>
           </div>

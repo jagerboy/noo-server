@@ -6,17 +6,26 @@
 import { ref, computed, onMounted, onUnmounted } from 'vue';
 import { useForm } from '@inertiajs/vue3';
 import AdminLayout from '@/Layouts/AdminLayout.vue';
+import Pagination from '@/Components/Pagination.vue';
 import BaseButton from '@/Components/BaseButton.vue';
 import BaseCard from '@/Components/BaseCard.vue';
 
 const props = defineProps({
   submissions: {
-    type: Array,
+    type: [Array, Object],
     default: () => [],
+  },
+  stats: {
+    type: Object,
+    default: () => null,
   },
   userBranch: {
     type: String,
     default: '',
+  },
+  filters: {
+    type: Object,
+    default: () => ({}),
   },
 });
 
@@ -52,8 +61,13 @@ const editNamaForm = useForm({
   nama_noo: '',
 });
 
+// Validasi status: Nama toko HANYA bisa diubah sebelum disubmit ke SPV (status masih SE_SUBMITTED)
+const canEditNamaOutlet = computed(() => {
+  return selectedSubmission.value && selectedSubmission.value.status === 'SE_SUBMITTED';
+});
+
 function startEditNamaOutlet() {
-  if (!selectedSubmission.value) return;
+  if (!selectedSubmission.value || !canEditNamaOutlet.value) return;
   editNamaForm.request_id = selectedSubmission.value.request_id;
   editNamaForm.nama_noo = selectedSubmission.value.nama_noo || '';
   isEditingNamaOutlet.value = true;
@@ -81,9 +95,15 @@ function submitUpdateNamaOutlet() {
   });
 }
 
+const rawSubmissions = computed(() => {
+  if (Array.isArray(props.submissions)) return props.submissions;
+  if (props.submissions && Array.isArray(props.submissions.data)) return props.submissions.data;
+  return [];
+});
+
 // Filter Submisi Data Toko
 const filteredSubmissions = computed(() => {
-  return props.submissions.filter((item) => {
+  return rawSubmissions.value.filter((item) => {
     const matchesSearch =
       (item.nama_noo || '').toLowerCase().includes(searchQuery.value.toLowerCase()) ||
       (item.salesman_name || '').toLowerCase().includes(searchQuery.value.toLowerCase()) ||
@@ -103,12 +123,13 @@ const filteredSubmissions = computed(() => {
   });
 });
 
-// State & Handler Sort Tabel
-const sortKey = ref('submitted_at');
-const sortDir = ref('desc');
+// State & Handler Sort Tabel (Default: Pending Admin & submitted_at terbaru)
+const sortKey = ref('default_order');
+const sortDir = ref('asc');
 
 const sortSelect = computed({
   get() {
+    if (sortKey.value === 'default_order') return 'submitted_at_desc';
     return `${sortKey.value}_${sortDir.value}`;
   },
   set(val) {
@@ -123,13 +144,22 @@ const sortSelect = computed({
 
 const sortedSubmissions = computed(() => {
   const list = [...filteredSubmissions.value];
-  if (!sortKey.value) return list;
+  if (!sortKey.value || sortKey.value === 'default_order') {
+    return list.sort((a, b) => {
+      const aPending = a.status === 'SE_SUBMITTED' ? 0 : 1;
+      const bPending = b.status === 'SE_SUBMITTED' ? 0 : 1;
+      if (aPending !== bPending) return aPending - bPending;
+      const aTime = a.submitted_at ? new Date(a.submitted_at).getTime() : (a.created_at ? new Date(a.created_at).getTime() : 0);
+      const bTime = b.submitted_at ? new Date(b.submitted_at).getTime() : (b.created_at ? new Date(b.created_at).getTime() : 0);
+      return bTime - aTime;
+    });
+  }
 
   return list.sort((a, b) => {
     let valA = a[sortKey.value] ?? '';
     let valB = b[sortKey.value] ?? '';
 
-    if (['submitted_at', 'created_at', 'pushed_to_spv_at', 'spv_approved_at', 'edp_approved_at'].includes(sortKey.value)) {
+    if (['submitted_at', 'created_at', 'pushed_to_spv_at', 'spv_submit_at', 'pushed_to_edp_at', 'edp_reviewed_at'].includes(sortKey.value)) {
       valA = valA ? new Date(valA).getTime() : 0;
       valB = valB ? new Date(valB).getTime() : 0;
     } else if (typeof valA === 'string') {
@@ -145,11 +175,13 @@ const sortedSubmissions = computed(() => {
 
 // Stats Ringkasan Data Toko
 const stats = computed(() => {
-  const total = props.submissions.length;
-  const pendingSe = props.submissions.filter((i) => i.status === 'SE_SUBMITTED').length;
-  const pushedSpv = props.submissions.filter((i) => i.status === 'PUSHED_TO_SPV').length;
-  const rejected = props.submissions.filter((i) => ['ADMIN_REJECTED', 'SPV_REJECTED', 'EDP_REJECTED', 'REJECTED_ADMIN', 'REJECTED_SPV', 'REJECTED_EDP'].includes(i.status)).length;
-  const approved = props.submissions.filter((i) => ['EDP_APPROVED', 'APPROVED_EDP', 'APPROVED_BY_SPV', 'APPROVED_SPV'].includes(i.status)).length;
+  if (props.stats) return props.stats;
+  const list = rawSubmissions.value;
+  const total = list.length;
+  const pendingSe = list.filter((i) => i.status === 'SE_SUBMITTED').length;
+  const pushedSpv = list.filter((i) => i.status === 'PUSHED_TO_SPV').length;
+  const rejected = list.filter((i) => ['ADMIN_REJECTED', 'SPV_REJECTED', 'EDP_REJECTED', 'REJECTED_ADMIN', 'REJECTED_SPV', 'REJECTED_EDP'].includes(i.status)).length;
+  const approved = list.filter((i) => ['EDP_APPROVED', 'APPROVED_EDP', 'APPROVED_BY_SPV', 'APPROVED_SPV'].includes(i.status)).length;
 
   return { total, pendingSe, pushedSpv, rejected, approved };
 });
@@ -269,13 +301,13 @@ function formatStatusLabel(status) {
       return 'Approved EDP';
     case 'ADMIN_REJECTED':
     case 'REJECTED_ADMIN':
-      return 'Ditolak Admin';
+      return 'Rejected Admin';
     case 'SPV_REJECTED':
     case 'REJECTED_SPV':
-      return 'Ditolak SPV Area';
+      return 'Rejected SPV Area';
     case 'EDP_REJECTED':
     case 'REJECTED_EDP':
-      return 'Ditolak EDP';
+      return 'Rejected EDP';
     case 'REVISION_KTP':
       return 'Revisi KTP';
     default:
@@ -525,21 +557,29 @@ function getRowStyle(item) {
 
         <!-- Metric Stat Badges -->
         <div class="grid grid-cols-2 sm:grid-cols-4 gap-3">
-          <div class="bg-white p-3.5 rounded-xl border border-[#E5E7EB] shadow-[0_1px_3px_rgba(0,0,0,0.08)] text-center">
-            <span class="text-[11px] font-semibold uppercase tracking-wider text-[#B45309]">Pending Admin</span>
-            <div class="text-2xl font-bold text-[#D97706] mt-0.5">{{ stats.pendingSe }}</div>
+          <div class="bg-white p-3.5 rounded-xl border border-[#E5E7EB] shadow-[0_1px_3px_rgba(0,0,0,0.08)] text-center flex flex-col justify-between h-full">
+            <div class="min-h-[32px] flex items-center justify-center">
+              <span class="text-[11px] font-semibold uppercase tracking-wider text-[#B45309]">Pending Admin</span>
+            </div>
+            <div class="text-2xl font-bold text-[#D97706] mt-1">{{ stats.pendingSe }}</div>
           </div>
-          <div class="bg-white p-3.5 rounded-xl border border-[#E5E7EB] shadow-[0_1px_3px_rgba(0,0,0,0.08)] text-center">
-            <span class="text-[11px] font-semibold uppercase tracking-wider text-[#1D4ED8]">Pushed to SPV</span>
-            <div class="text-2xl font-bold text-[#2563EB] mt-0.5">{{ stats.pushedSpv }}</div>
+          <div class="bg-white p-3.5 rounded-xl border border-[#E5E7EB] shadow-[0_1px_3px_rgba(0,0,0,0.08)] text-center flex flex-col justify-between h-full">
+            <div class="min-h-[32px] flex items-center justify-center">
+              <span class="text-[11px] font-semibold uppercase tracking-wider text-[#1D4ED8]">Pushed to SPV</span>
+            </div>
+            <div class="text-2xl font-bold text-[#2563EB] mt-1">{{ stats.pushedSpv }}</div>
           </div>
-          <div class="bg-white p-3.5 rounded-xl border border-[#E5E7EB] shadow-[0_1px_3px_rgba(0,0,0,0.08)] text-center">
-            <span class="text-[11px] font-semibold uppercase tracking-wider text-[#15803D]">EDP Approved</span>
-            <div class="text-2xl font-bold text-[#16A34A] mt-0.5">{{ stats.approved }}</div>
+          <div class="bg-white p-3.5 rounded-xl border border-[#E5E7EB] shadow-[0_1px_3px_rgba(0,0,0,0.08)] text-center flex flex-col justify-between h-full">
+            <div class="min-h-[32px] flex items-center justify-center">
+              <span class="text-[11px] font-semibold uppercase tracking-wider text-[#15803D]">EDP Approved</span>
+            </div>
+            <div class="text-2xl font-bold text-[#16A34A] mt-1">{{ stats.approved }}</div>
           </div>
-          <div class="bg-white p-3.5 rounded-xl border border-[#E5E7EB] shadow-[0_1px_3px_rgba(0,0,0,0.08)] text-center">
-            <span class="text-[11px] font-semibold uppercase tracking-wider text-[#B91C1C]">Ditolak</span>
-            <div class="text-2xl font-bold text-[#DC2626] mt-0.5">{{ stats.rejected }}</div>
+          <div class="bg-white p-3.5 rounded-xl border border-[#E5E7EB] shadow-[0_1px_3px_rgba(0,0,0,0.08)] text-center flex flex-col justify-between h-full">
+            <div class="min-h-[32px] flex items-center justify-center">
+              <span class="text-[11px] font-semibold uppercase tracking-wider text-[#B91C1C]">Ditolak</span>
+            </div>
+            <div class="text-2xl font-bold text-[#DC2626] mt-1">{{ stats.rejected }}</div>
           </div>
         </div>
       </div>
@@ -571,12 +611,12 @@ function getRowStyle(item) {
             >
               <option value="ALL">Semua Submisi</option>
               <option value="SE_SUBMITTED">1. Pending Admin</option>
-              <option value="ADMIN_REJECTED">2. Ditolak Admin</option>
+              <option value="ADMIN_REJECTED">2. Rejected Admin</option>
               <option value="PUSHED_TO_SPV">3. Pushed to SPV (Pending SPV)</option>
               <option value="APPROVED_BY_SPV">4. Approved SPV (Pending EDP)</option>
-              <option value="SPV_REJECTED">5. Ditolak SPV Area</option>
+              <option value="SPV_REJECTED">5. Rejected SPV Area</option>
               <option value="EDP_APPROVED">6. Approved EDP (Completed)</option>
-              <option value="EDP_REJECTED">7. Ditolak EDP Principal</option>
+              <option value="EDP_REJECTED">7. Rejected EDP Principal</option>
             </select>
           </div>
 
@@ -694,6 +734,16 @@ function getRowStyle(item) {
             </tbody>
           </table>
         </div>
+
+        <!-- Pagination Links -->
+        <Pagination
+          v-if="submissions?.links"
+          :links="submissions.links"
+          :from="submissions.from"
+          :to="submissions.to"
+          :total="submissions.total"
+          :current-per-page="submissions.per_page"
+        />
       </div>
 
     </div>
@@ -738,17 +788,19 @@ function getRowStyle(item) {
               </div>
 
               <!-- Normal Display Nama Outlet + Pencil Edit Button -->
-              <div v-else class="flex items-center space-x-2">
+              <div v-else class="flex items-center space-x-2.5">
                 <h3 class="text-[22px] font-semibold leading-[28px] text-white">{{ selectedSubmission.nama_noo }}</h3>
                 <button
+                  v-if="canEditNamaOutlet"
                   type="button"
                   @click="startEditNamaOutlet"
-                  title="Edit Nama Outlet"
-                  class="p-1.5 rounded-lg bg-blue-700/70 hover:bg-blue-600 text-blue-100 hover:text-white transition flex items-center justify-center cursor-pointer border border-blue-400/40"
+                  title="Ubah / Rename Nama Toko"
+                  class="px-2 py-1 rounded-lg bg-amber-400 hover:bg-amber-300 active:bg-amber-500 text-slate-950 font-bold text-xs shadow-md transition-all flex items-center gap-1.5 cursor-pointer border border-amber-300 hover:scale-105"
                 >
-                  <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" />
+                  <svg class="w-3.5 h-3.5 text-slate-950 stroke-[2.5]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" />
                   </svg>
+                  <span>Ubah Nama</span>
                 </button>
               </div>
 
@@ -828,20 +880,43 @@ function getRowStyle(item) {
             </div>
 
             <div>
-              <p class="text-[12px] font-medium text-[#4B5563] uppercase">GPS Koordinat & Akurasi</p>
-              <p class="text-[14px] font-mono text-[#374151] mt-0.5">Lat: {{ selectedSubmission.la }}, Lg: {{ selectedSubmission.lg }}</p>
+              <p class="text-[12px] font-medium text-[#4B5563] uppercase">GPS Koordinat</p>
+              <p class="text-[14px] font-mono text-[#374151] mt-0.5">{{ selectedSubmission.la }}, {{ selectedSubmission.lg }}</p>
               <p class="text-[12px] text-[#15803D] font-semibold mt-0.5">Akurasi GPS: {{ selectedSubmission.accuracy_m }} meter</p>
-              <a
-                :href="`https://www.google.com/maps?q=${selectedSubmission.la},${selectedSubmission.lg}`"
-                target="_blank"
-                class="inline-flex items-center text-[13px] font-semibold text-[#2563EB] hover:underline mt-1"
-              >
-                🗺️ Lihat Lokasi Google Maps →
-              </a>
             </div>
           </div>
 
-          <!-- BERKAS FOTO TOKO (Diletakkan di Atas Track Record Persetujuan) -->
+          <!-- SECTION PREVIEW MAPS (PETA LOKASI TOKO INDEPENDEN SEPERTI INBOX SPV & PRINCIPAL) -->
+          <div class="space-y-3 bg-[#F8FAFC] p-4 rounded-[10px] border border-[#E5E7EB]">
+            <div class="flex items-center justify-between flex-wrap gap-2">
+              <h3 class="text-[14px] font-semibold text-[#1F2937] uppercase tracking-wider flex items-center gap-2">
+                <span>🌐 Preview Peta Lokasi Toko</span>
+              </h3>
+              <a
+                :href="`https://www.google.com/maps?q=${selectedSubmission.la},${selectedSubmission.lg}`"
+                target="_blank"
+                class="text-[13px] font-semibold text-[#2563EB] hover:text-[#1D4ED8] flex items-center gap-1"
+              >
+                <span>Buka Google Maps ↗</span>
+              </a>
+            </div>
+
+            <!-- Interactive Google Maps Embed -->
+            <div class="w-full h-72 bg-[#E5E7EB] rounded-[8px] overflow-hidden border border-[#D1D5DB] relative shadow-inner">
+              <iframe
+                v-if="selectedSubmission.la && selectedSubmission.lg"
+                class="w-full h-full border-0"
+                :src="`https://maps.google.com/maps?q=${selectedSubmission.la},${selectedSubmission.lg}&z=17&output=embed`"
+                allowfullscreen=""
+                loading="lazy"
+              ></iframe>
+              <div v-else class="w-full h-full flex items-center justify-center text-slate-400 text-xs italic">
+                Koordinat GPS tidak tersedia
+              </div>
+            </div>
+          </div>
+
+          <!-- BERKAS FOTO TOKO -->
           <div>
             <h4 class="text-[14px] font-semibold uppercase text-[#4B5563] tracking-wider mb-3">
               📸 BERKAS FOTO TOKO

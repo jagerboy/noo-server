@@ -27,8 +27,8 @@ class EdpAccountManagementController extends Controller
     {
         $currentUser = Auth::user();
         $userRole = $currentUser->role ?? 'EDP_REGION';
-        if (!in_array($userRole, ['SUPERADMIN', 'ADMIN_PRINCIPAL'])) {
-            abort(403, 'Akses Ditolak. Halaman Manajemen Akun hanya dapat diakses oleh Superadmin dan Admin Principal.');
+        if ($userRole !== 'SUPERADMIN') {
+            abort(403, 'Akses Ditolak. Halaman Manajemen Akun & User Role Manager hanya dapat diakses oleh Superadmin.');
         }
 
         $query = DB::table('users')
@@ -86,8 +86,8 @@ class EdpAccountManagementController extends Controller
     {
         $currentUser = Auth::user();
         $userRole = $currentUser->role ?? 'EDP_REGION';
-        if (!in_array($userRole, ['SUPERADMIN', 'ADMIN_PRINCIPAL'])) {
-            return back()->withErrors(['error' => 'Akses ditolak. Anda tidak berhak membuat akun baru.']);
+        if ($userRole !== 'SUPERADMIN') {
+            return back()->withErrors(['error' => 'Akses ditolak. Hanya Superadmin yang berhak membuat akun baru.']);
         }
 
         $request->validate([

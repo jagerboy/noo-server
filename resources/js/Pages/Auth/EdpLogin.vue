@@ -106,7 +106,7 @@ function submitLogin() {
                 :class="form.username === u ? 'bg-purple-50 text-[#542B85] border-purple-300 font-bold' : 'bg-slate-50 text-slate-700 border-slate-200 hover:bg-slate-100'"
                 @click="selectSavedAccount(u)"
               >
-                <span>👤 {{ u }}</span>
+                <span>{{ u }}</span>
                 <button
                   type="button"
                   @click.stop="removeSavedAccount(u)"
@@ -168,7 +168,7 @@ function submitLogin() {
             </div>
 
             <span v-if="form.errors.username || form.errors.password" class="text-xs text-[#DC2626] font-semibold block px-0.5">
-              ⚠️ {{ form.errors.username || form.errors.password }}
+              {{ form.errors.username || form.errors.password }}
             </span>
 
             <!-- DUAL BRAND LOGIN BUTTON -->
@@ -203,7 +203,7 @@ function submitLogin() {
         <!-- Header Tagline Panel Kanan -->
         <div class="relative z-10 space-y-2">
           <div class="inline-flex items-center gap-2 px-3 py-1 rounded-full text-[11px] font-bold uppercase tracking-wider bg-white/15 backdrop-blur-md text-white border border-[#F59E0B]/50 shadow-sm">
-            <span>👑</span> PORTAL PRINCIPAL
+            <span>PORTAL PRINCIPAL</span>
           </div>
           <h3 class="text-xl font-bold text-white tracking-tight">Pusat Otoritas & Master Data</h3>
           <p class="text-xs text-emerald-100/90 leading-relaxed font-medium">
@@ -214,7 +214,7 @@ function submitLogin() {
         <!-- Visual Feature Highlights -->
         <div class="relative z-10 space-y-2.5 my-auto py-2">
           <div class="flex items-center gap-3 p-2.5 rounded-xl bg-white/10 backdrop-blur-md border border-white/15">
-            <span class="w-8 h-8 rounded-lg bg-emerald-400/20 flex items-center justify-center text-emerald-200 font-bold text-sm shrink-0">✅</span>
+            <span class="w-8 h-8 rounded-lg bg-emerald-400/20 flex items-center justify-center text-emerald-200 font-bold text-xs shrink-0">NOO</span>
             <div>
               <h4 class="text-xs font-bold text-white">Approval Toko & Kode NOO</h4>
               <p class="text-[10px] text-emerald-100/80">Otomatisasi pemetaan Kode Toko Principal</p>
@@ -222,7 +222,7 @@ function submitLogin() {
           </div>
 
           <div class="flex items-center gap-3 p-2.5 rounded-xl bg-white/10 backdrop-blur-md border border-white/15">
-            <span class="w-8 h-8 rounded-lg bg-teal-400/20 flex items-center justify-center text-teal-200 font-bold text-sm shrink-0">📊</span>
+            <span class="w-8 h-8 rounded-lg bg-teal-400/20 flex items-center justify-center text-teal-200 font-bold text-xs shrink-0">DATA</span>
             <div>
               <h4 class="text-xs font-bold text-white">Master Data & Log Aktivitas</h4>
               <p class="text-[10px] text-teal-100/80">Manajemen Salesman, SPV, Cabang & Rekap Log</p>
@@ -233,12 +233,12 @@ function submitLogin() {
         <!-- Animated Running Ticker -->
         <div class="relative z-10 overflow-hidden bg-white/10 backdrop-blur-md rounded-xl border border-white/15 py-1.5 px-3 mb-2">
           <div class="animate-marquee whitespace-nowrap text-[11px] font-medium text-emerald-100 flex gap-6">
-            <span>🛡️ Approval Toko & Generator Kode NOO</span>
-            <span>📊 Master Data Salesman, SPV & Cabang</span>
-            <span>📋 Log Aktivitas & Rekap Verifikasi Terpadu</span>
-            <span>🛡️ Approval Toko & Generator Kode NOO</span>
-            <span>📊 Master Data Salesman, SPV & Cabang</span>
-            <span>📋 Log Aktivitas & Rekap Verifikasi Terpadu</span>
+            <span>Approval Toko & Generator Kode NOO</span>
+            <span>Master Data Salesman, SPV & Cabang</span>
+            <span>Log Aktivitas & Rekap Verifikasi Terpadu</span>
+            <span>Approval Toko & Generator Kode NOO</span>
+            <span>Master Data Salesman, SPV & Cabang</span>
+            <span>Log Aktivitas & Rekap Verifikasi Terpadu</span>
           </div>
         </div>
 

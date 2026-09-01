@@ -56,7 +56,11 @@ class EdpProgressController extends Controller
             ->select('region_code', 'entity_code_principal', 'branch_id', 'branch_name')
             ->whereNotNull('branch_id');
 
-        if ($userRole !== 'SUPERADMIN' && !empty($regionCode)) {
+        if ($userRole === 'EDP_REGION' && !empty($regionCode)) {
+            $regionsQuery->where('region_code', $regionCode);
+            $entitiesQuery->where('region_code', $regionCode);
+            $branchesQuery->where('region_code', $regionCode);
+        } elseif ($userRole === 'ADMIN_PRINCIPAL' && !empty($regionCode)) {
             $regionsQuery->where('region_code', 'LIKE', "{$regionCode}%");
             $entitiesQuery->where('region_code', 'LIKE', "{$regionCode}%");
             $branchesQuery->where('region_code', 'LIKE', "{$regionCode}%");

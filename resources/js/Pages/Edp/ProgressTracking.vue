@@ -54,6 +54,13 @@ const branchOptions = computed(() => {
   }));
 });
 
+function formatRole(role) {
+  if (role === 'EDP_REGION') return 'EDP Regional';
+  if (role === 'ADMIN_PRINCIPAL') return 'Admin Principal';
+  if (role === 'SUPERADMIN') return 'Superadmin';
+  return (role || '').replace(/_/g, ' ');
+}
+
 function applyFilters() {
   router.get(
     route('edp.progress_tracking'),
@@ -280,7 +287,7 @@ const sortedSubmissions = computed(() => {
 
         <div class="flex items-center gap-2">
           <span class="px-3 py-1.5 text-xs font-bold rounded-lg border bg-blue-50 text-blue-700 border-blue-200">
-            Role Access: {{ userRole }}
+            Role Access: {{ formatRole(userRole) }}
           </span>
         </div>
       </div>
@@ -580,9 +587,13 @@ const sortedSubmissions = computed(() => {
           </table>
         </div>
 
-        <div class="p-4 border-t bg-[#F8FAFC]">
-          <Pagination :links="submissions.links" />
-        </div>
+        <!-- Pagination Links -->
+        <Pagination
+          :links="submissions.links"
+          :from="submissions.from"
+          :to="submissions.to"
+          :total="submissions.total"
+        />
       </div>
     </div>
 

@@ -39,6 +39,30 @@ Route::get('/logo-noo-plus.png', function () {
     abort(404);
 });
 
+Route::get('/init-db-columns', function () {
+    try {
+        \Illuminate\Support\Facades\DB::statement('ALTER TABLE noo_submissions ADD COLUMN IF NOT EXISTS is_ktp_revised boolean DEFAULT false');
+        \Illuminate\Support\Facades\DB::statement('ALTER TABLE noo_submissions ADD COLUMN IF NOT EXISTS ktp_revised_at timestamp null');
+        \Illuminate\Support\Facades\DB::statement('ALTER TABLE noo_submissions ADD COLUMN IF NOT EXISTS ktp_revised_by varchar(100) null');
+        \Illuminate\Support\Facades\DB::statement('ALTER TABLE noo_submissions ADD COLUMN IF NOT EXISTS ktp_unlocked_at timestamp null');
+        \Illuminate\Support\Facades\DB::statement('ALTER TABLE noo_submissions ADD COLUMN IF NOT EXISTS ktp_unlocked_by varchar(100) null');
+        \Illuminate\Support\Facades\DB::statement('ALTER TABLE noo_submissions ALTER COLUMN flags TYPE text');
+        
+        $cols = \Illuminate\Support\Facades\DB::select("SELECT column_name, data_type FROM information_schema.columns WHERE table_name = 'noo_submissions' AND column_name IN ('is_ktp_revised', 'ktp_revised_at', 'ktp_revised_by', 'ktp_unlocked_at', 'ktp_unlocked_by', 'flags')");
+        
+        return response()->json([
+            'status' => 'SUCCESS',
+            'message' => '5 KTP columns created/verified in noo_submissions successfully!',
+            'columns' => $cols
+        ]);
+    } catch (\Throwable $e) {
+        return response()->json([
+            'status' => 'ERROR',
+            'error' => $e->getMessage()
+        ], 500);
+    }
+});
+
 Route::get('/', function () {
     return redirect()->route('edp_login.create');
 });

@@ -25,7 +25,7 @@ const perPageOptions = [
   { value: 25, label: '25' },
   { value: 50, label: '50' },
   { value: 100, label: '100' },
-  { value: -1, label: 'Tampilkan Semua (Show All)' },
+  { value: -1, label: 'Tampilkan Semua' },
 ];
 
 function getInitialPerPage() {

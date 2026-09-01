@@ -13,7 +13,8 @@ return new class extends Migration
      */
     public function up(): void
     {
-        Schema::create('target_ros', function (Blueprint $table) {
+        if (!Schema::hasTable('target_ros')) {
+            Schema::create('target_ros', function (Blueprint $table) {
             $table->id();
             $table->integer('period_year');
             $table->integer('period_month');
@@ -29,6 +30,7 @@ return new class extends Migration
             $table->index(['period_year', 'period_month']);
             $table->index(['branch_id', 'salesman_code']);
         });
+        }
     }
 
     /**

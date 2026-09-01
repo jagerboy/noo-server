@@ -62,13 +62,73 @@ class SpvPortalController extends Controller
             $query->whereRaw('1 = 0');
         }
 
+        $statsBase = DB::table('noo_submissions')
+            ->whereIn('status', [
+                NooStatusEnum::PUSHED_TO_SPV->value,
+                NooStatusEnum::APPROVED_SPV->value,
+                NooStatusEnum::REJECTED_SPV->value,
+                NooStatusEnum::APPROVED_EDP->value,
+                NooStatusEnum::REJECTED_EDP->value
+            ]);
+
+        if (!empty($myBranches)) {
+            $statsBase->whereIn('branch_id', $myBranches);
+        } else if (!empty($user->branch_id)) {
+            $statsBase->where('branch_id', $user->branch_id);
+        } else {
+            $statsBase->whereRaw('1 = 0');
+        }
+
+        $allSpvSubmissions = $statsBase->get();
+        $stats = [
+            'total' => $allSpvSubmissions->count(),
+            'pendingReview' => $allSpvSubmissions->where('status', NooStatusEnum::PUSHED_TO_SPV->value)->count(),
+            'approvedSpv' => $allSpvSubmissions->filter(fn($i) => in_array($i->status, ['APPROVED_SPV', 'APPROVED_BY_SPV', NooStatusEnum::APPROVED_SPV->value]))->count(),
+            'approvedEdp' => $allSpvSubmissions->filter(fn($i) => in_array($i->status, ['APPROVED_EDP', 'EDP_APPROVED', NooStatusEnum::APPROVED_EDP->value]))->count(),
+            'rejected' => $allSpvSubmissions->filter(fn($i) => in_array($i->status, ['REJECTED_SPV', 'SPV_REJECTED', 'REJECTED_EDP', 'EDP_REJECTED', 'ADMIN_REJECTED', 'REJECTED_ADMIN']))->count(),
+        ];
+
+        $perPage = (int) $request->input('per_page', 10);
+        if ($perPage <= 0) {
+            $perPage = 100000;
+        }
+
+        if ($request->filled('search')) {
+            $s = trim((string) $request->input('search'));
+            $query->where(function ($q) use ($s) {
+                $q->where('nama_noo', 'ILIKE', "%{$s}%")
+                  ->orWhere('salesman_name', 'ILIKE', "%{$s}%")
+                  ->orWhere('salesman_code', 'ILIKE', "%{$s}%")
+                  ->orWhere('branch_name', 'ILIKE', "%{$s}%")
+                  ->orWhere('alamat_noo', 'ILIKE', "%{$s}%")
+                  ->orWhere('custcode_distributor', 'ILIKE', "%{$s}%")
+                  ->orWhere('code_noo_principal', 'ILIKE', "%{$s}%");
+            });
+        }
+
+        if ($request->filled('status') && $request->input('status') !== 'ALL') {
+            $st = $request->input('status');
+            if ($st === 'REJECTED') {
+                $query->whereIn('status', ['REJECTED_SPV', 'SPV_REJECTED', 'REJECTED_EDP', 'EDP_REJECTED', 'ADMIN_REJECTED', 'REJECTED_ADMIN']);
+            } else {
+                $query->where('status', $st);
+            }
+        }
+
+        if ($request->filled('branch_id') && $request->input('branch_id') !== 'ALL') {
+            $query->where('branch_id', $request->input('branch_id'));
+        }
+
+        $query->orderByRaw("CASE WHEN status = 'PUSHED_TO_SPV' THEN 0 ELSE 1 END ASC")
+              ->orderByRaw("COALESCE(pushed_to_spv_at, submitted_at, created_at) DESC");
+
         $formatPhoto = function ($path) {
             if (empty($path)) return null;
             $cleanPath = ltrim(str_replace('storage/', '', $path), '/');
             return url('/media-photo/' . $cleanPath);
         };
 
-        $submissions = $query->orderBy('created_at', 'desc')->get()->map(function ($item) use ($formatPhoto) {
+        $submissions = $query->paginate($perPage)->withQueryString()->through(function ($item) use ($formatPhoto) {
             $item->photo_depan_url = $formatPhoto($item->photo_depan_path ?? null);
             $item->photo_dalam_url = $formatPhoto($item->photo_dalam_path ?? null);
             $item->photo_ktp_url = $formatPhoto($item->photo_ktp_path ?? null);
@@ -87,7 +147,9 @@ class SpvPortalController extends Controller
 
         return Inertia::render('Spv/Inbox', [
             'submissions' => $submissions,
+            'stats' => $stats,
             'myBranches' => $branchesData,
+            'filters' => $request->only(['search', 'status', 'branch_id']),
         ]);
     }
 

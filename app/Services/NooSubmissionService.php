@@ -17,6 +17,17 @@ use Exception;
 class NooSubmissionService
 {
     /**
+     * Membersihkan dan memformat nama toko/outlet.
+     */
+    public static function sanitizeOutletName(?string $name): string
+    {
+        if (empty($name)) {
+            return '';
+        }
+        return trim((string) preg_replace('/\s+/', ' ', $name));
+    }
+
+    /**
      * Membersihkan Pluscode di awal alamat (misal: "GPQ9+FXQ, Timbang Deli..." -> "Timbang Deli...").
      */
     public static function sanitizeAddress(?string $address): string

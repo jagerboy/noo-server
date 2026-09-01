@@ -71,7 +71,7 @@ function submitLogin() {
                   type="text"
                   v-model="form.username"
                   placeholder="Masukkan Salescode"
-                  class="w-full py-1 text-[13px] font-semibold text-[#1E293B] bg-transparent border-0 focus:ring-0 focus:outline-none uppercase placeholder-[#94A3B8] transition leading-tight"
+                  class="w-full py-1 text-[13px] font-semibold text-[#1E293B] bg-transparent border-0 focus:ring-0 focus:outline-none uppercase placeholder:normal-case placeholder-[#94A3B8] transition leading-tight"
                 />
               </div>
 
@@ -100,7 +100,7 @@ function submitLogin() {
             </div>
 
             <span v-if="form.errors.username || form.errors.password" class="text-xs text-[#DC2626] font-semibold block px-0.5">
-              ⚠️ {{ form.errors.username || form.errors.password }}
+              {{ form.errors.username || form.errors.password }}
             </span>
 
             <!-- LOGIN BUTTON DUAL BRAND -->
@@ -135,7 +135,7 @@ function submitLogin() {
         <!-- Floating Badge -->
         <div class="relative z-10">
           <div class="inline-flex items-center gap-2 px-3 py-1 rounded-full text-[11px] font-bold uppercase tracking-wider bg-white/15 backdrop-blur-md text-white border border-[#F59E0B]/60 shadow-sm">
-            <span>👑</span> OVERVIEW SUPERVISOR AREA
+            <span>OVERVIEW SUPERVISOR AREA</span>
           </div>
         </div>
 
@@ -146,7 +146,7 @@ function submitLogin() {
               <p class="text-[11px] text-blue-200">Pending Review SPV</p>
               <p class="text-base font-bold text-white mt-0.5">{{ metrics.pushedToSpv }} Toko</p>
             </div>
-            <span class="w-7 h-7 rounded-lg bg-blue-400/20 flex items-center justify-center text-blue-200 font-bold text-xs">⏳</span>
+            <span class="w-7 h-7 rounded-lg bg-blue-400/20 flex items-center justify-center text-blue-200 font-bold text-xs">SPV</span>
           </div>
 
           <div class="bg-white/10 backdrop-blur-md p-2.5 rounded-xl border border-white/15 flex items-center justify-between">
@@ -154,7 +154,7 @@ function submitLogin() {
               <p class="text-[11px] text-blue-200">Disetujui SPV Area</p>
               <p class="text-base font-bold text-white mt-0.5">{{ metrics.approvedSpv }} Toko</p>
             </div>
-            <span class="w-7 h-7 rounded-lg bg-purple-400/20 flex items-center justify-center text-purple-200 font-bold text-xs">✓</span>
+            <span class="w-7 h-7 rounded-lg bg-purple-400/20 flex items-center justify-center text-purple-200 font-bold text-xs">JKS</span>
           </div>
 
           <div class="bg-white/10 backdrop-blur-md p-2.5 rounded-xl border border-white/15 flex items-center justify-between">
@@ -162,7 +162,7 @@ function submitLogin() {
               <p class="text-[11px] text-blue-200">Disetujui EDP Principal</p>
               <p class="text-base font-bold text-white mt-0.5">{{ metrics.approvedEdp }} Toko</p>
             </div>
-            <span class="w-7 h-7 rounded-lg bg-emerald-400/20 flex items-center justify-center text-emerald-200 font-bold text-xs">🎉</span>
+            <span class="w-7 h-7 rounded-lg bg-emerald-400/20 flex items-center justify-center text-emerald-200 font-bold text-xs">EDP</span>
           </div>
 
           <div class="bg-white/10 backdrop-blur-md p-2.5 rounded-xl border border-white/15 flex items-center justify-between">
@@ -170,19 +170,19 @@ function submitLogin() {
               <p class="text-[11px] text-blue-200">Total Akumulasi Ditolak</p>
               <p class="text-base font-bold text-rose-200 mt-0.5">{{ metrics.rejected }} Toko</p>
             </div>
-            <span class="w-7 h-7 rounded-lg bg-rose-400/20 flex items-center justify-center text-rose-200 font-bold text-xs">✕</span>
+            <span class="w-7 h-7 rounded-lg bg-rose-400/20 flex items-center justify-center text-rose-200 font-bold text-xs">REJ</span>
           </div>
         </div>
 
         <!-- Animated Running Ticker -->
         <div class="relative z-10 overflow-hidden bg-white/10 backdrop-blur-md rounded-xl border border-white/15 py-1.5 px-3">
           <div class="animate-marquee whitespace-nowrap text-[11px] font-medium text-blue-100 flex gap-6">
-            <span>🗺️ Pengaturan Rute Kunjungan JKS</span>
-            <span>📍 Verifikasi Koordinat Lokasi GPS</span>
-            <span>✓ Persetujuan Pengajuan Toko Area</span>
-            <span>🗺️ Pengaturan Rute Kunjungan JKS</span>
-            <span>📍 Verifikasi Koordinat Lokasi GPS</span>
-            <span>✓ Persetujuan Pengajuan Toko Area</span>
+            <span>Pengaturan Rute Kunjungan JKS</span>
+            <span>Verifikasi Koordinat Lokasi GPS</span>
+            <span>Persetujuan Pengajuan Toko Area</span>
+            <span>Pengaturan Rute Kunjungan JKS</span>
+            <span>Verifikasi Koordinat Lokasi GPS</span>
+            <span>Persetujuan Pengajuan Toko Area</span>
           </div>
         </div>
 

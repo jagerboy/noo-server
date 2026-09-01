@@ -688,6 +688,9 @@ class EdpDashboardController extends Controller
 
         $user = Auth::user();
         $userRole = $user->role ?? 'EDP_REGION';
+        if ($userRole !== 'SUPERADMIN') {
+            abort(403, 'Akses Ditolak. Halaman Monitoring RO saat ini masih dalam tahap finalisasi dan hanya dapat diakses oleh Superadmin.');
+        }
         $userRegion = $user->region_code ?? null;
         $userEntity = $user->entity_code_principal ?? null;
 

@@ -34,13 +34,57 @@ class AdminDistributorController extends Controller
         }
         $branchId = $user->branch_id ?? null;
 
+        $statsBase = DB::table('noo_submissions');
+        if (!empty($branchId)) {
+            $statsBase->where('branch_id', $branchId);
+        } else {
+            $statsBase->whereRaw('1 = 0');
+        }
+
+        $allBranchSubmissions = $statsBase->get();
+        $stats = [
+            'total' => $allBranchSubmissions->count(),
+            'pendingSe' => $allBranchSubmissions->where('status', 'SE_SUBMITTED')->count(),
+            'pushedSpv' => $allBranchSubmissions->where('status', 'PUSHED_TO_SPV')->count(),
+            'rejected' => $allBranchSubmissions->filter(fn($i) => in_array($i->status, ['ADMIN_REJECTED', 'SPV_REJECTED', 'EDP_REJECTED', 'REJECTED_ADMIN', 'REJECTED_SPV', 'REJECTED_EDP']))->count(),
+            'approved' => $allBranchSubmissions->filter(fn($i) => in_array($i->status, ['EDP_APPROVED', 'APPROVED_EDP', 'APPROVED_BY_SPV', 'APPROVED_SPV']))->count(),
+        ];
+
+        $perPage = (int) $request->input('per_page', 10);
+        if ($perPage <= 0) {
+            $perPage = 100000;
+        }
+
         $query = DB::table('noo_submissions');
         if (!empty($branchId)) {
             $query->where('branch_id', $branchId);
         } else {
-            // Jika branch_id tidak terdefinisi, jangan tampilkan data cabang lain
             $query->whereRaw('1 = 0');
         }
+
+        if ($request->filled('search')) {
+            $s = trim((string) $request->input('search'));
+            $query->where(function ($q) use ($s) {
+                $q->where('nama_noo', 'ILIKE', "%{$s}%")
+                  ->orWhere('salesman_name', 'ILIKE', "%{$s}%")
+                  ->orWhere('salesman_code', 'ILIKE', "%{$s}%")
+                  ->orWhere('alamat_noo', 'ILIKE', "%{$s}%")
+                  ->orWhere('custcode_distributor', 'ILIKE', "%{$s}%")
+                  ->orWhere('code_noo_principal', 'ILIKE', "%{$s}%");
+            });
+        }
+
+        if ($request->filled('status') && $request->input('status') !== 'ALL') {
+            $st = $request->input('status');
+            if ($st === 'REJECTED') {
+                $query->whereIn('status', ['ADMIN_REJECTED', 'SPV_REJECTED', 'EDP_REJECTED', 'REJECTED_ADMIN', 'REJECTED_SPV', 'REJECTED_EDP']);
+            } else {
+                $query->where('status', $st);
+            }
+        }
+
+        $query->orderByRaw("CASE WHEN status = 'SE_SUBMITTED' THEN 0 ELSE 1 END ASC")
+              ->orderByRaw("COALESCE(submitted_at, created_at) DESC");
 
         $formatPhoto = function ($path) {
             if (empty($path)) return null;
@@ -48,7 +92,7 @@ class AdminDistributorController extends Controller
             return url('/media-photo/' . $cleanPath);
         };
 
-        $submissions = $query->orderBy('created_at', 'desc')->get()->map(function ($item) use ($formatPhoto) {
+        $submissions = $query->paginate($perPage)->withQueryString()->through(function ($item) use ($formatPhoto) {
             $item->photo_depan_url = $formatPhoto($item->photo_depan_path ?? null);
             $item->photo_dalam_url = $formatPhoto($item->photo_dalam_path ?? null);
             $item->photo_ktp_url = $formatPhoto($item->photo_ktp_path ?? null);
@@ -57,7 +101,9 @@ class AdminDistributorController extends Controller
 
         return Inertia::render('Admin/Inbox', [
             'submissions' => $submissions,
+            'stats' => $stats,
             'userBranch' => $branchId,
+            'filters' => $request->only(['search', 'status']),
         ]);
     }
 
@@ -196,6 +242,10 @@ class AdminDistributorController extends Controller
 
             if (!$submission) {
                 return back()->with('error', 'Data toko tidak ditemukan.');
+            }
+
+            if ($submission->status !== NooStatusEnum::SE_SUBMITTED->value) {
+                return back()->with('error', 'Nama toko tidak dapat diubah karena sudah disubmit ke tahapan berikutnya.');
             }
 
             $user = session('distributor_user') ?? $request->user();

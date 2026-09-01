@@ -211,8 +211,8 @@ function toggleMasterMenu() {
             </div>
           </div>
 
-          <!-- MENU 3: MONITORING RO -->
-          <div class="relative group">
+          <!-- MENU 3: MONITORING RO (KHUSUS SUPERADMIN KARENA DALAM TAHAP FINALISASI) -->
+          <div v-if="userRole === 'SUPERADMIN'" class="relative group">
             <Link
               :href="route('edp.monitoring_ro')"
               :class="[
@@ -263,7 +263,7 @@ function toggleMasterMenu() {
             </div>
           </div>
 
-          <!-- MENU 3: NOO MASTER DATA ACCORDION / POPOVER -->
+          <!-- MENU 5: NOO MASTER DATA ACCORDION / POPOVER -->
           <div class="relative group">
             <button
               type="button"
@@ -358,8 +358,8 @@ function toggleMasterMenu() {
             </Transition>
           </div>
 
-          <!-- MENU 4: MANAJEMEN AKUN (SUPERADMIN & ADMIN PRINCIPAL) -->
-          <div v-if="userRole === 'SUPERADMIN' || userRole === 'ADMIN_PRINCIPAL'" class="relative group">
+          <!-- MENU 6: MANAJEMEN AKUN (KHUSUS SUPERADMIN) -->
+          <div v-if="userRole === 'SUPERADMIN'" class="relative group">
             <Link
               :href="route('edp.account_management')"
               :class="[

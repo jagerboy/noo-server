@@ -147,7 +147,11 @@ class EdpPortalController extends Controller
             $perPage = 100000;
         }
 
-        $submissions = $query->orderBy('created_at', 'desc')->paginate($perPage)->withQueryString()->through(function ($item) use ($outletTypes) {
+        $submissions = $query->orderByRaw("CASE WHEN status IN ('PUSHED_TO_EDP', 'APPROVED_SPV', 'APPROVED_BY_SPV') THEN 0 ELSE 1 END ASC")
+            ->orderByRaw("COALESCE(spv_submit_at, pushed_to_edp_at, pushed_to_spv_at, submitted_at, created_at) DESC")
+            ->paginate($perPage)
+            ->withQueryString()
+            ->through(function ($item) use ($outletTypes) {
             $formatPhoto = function ($path) {
                 if (empty($path)) return null;
                 if (str_starts_with($path, 'http://') || str_starts_with($path, 'https://')) {
@@ -255,6 +259,16 @@ class EdpPortalController extends Controller
         ]);
     }
 
+    private function redirectWithFilters(Request $request, string $flashType, string $flashMessage): RedirectResponse
+    {
+        $filterParams = array_filter(
+            $request->only(['search', 'region_code', 'principal', 'branch_id', 'status', 'is_ro', 'edp_month', 'edp_months', 'edp_year']),
+            fn($val) => $val !== null && $val !== ''
+        );
+
+        return redirect()->route('edp.inbox', $filterParams)->with($flashType, $flashMessage);
+    }
+
     public function updateStoreName(Request $request): RedirectResponse
     {
         $request->validate([
@@ -268,7 +282,7 @@ class EdpPortalController extends Controller
             $submission = DB::table('noo_submissions')->where('request_id', $requestId)->first();
 
             if (!$submission) {
-                return back()->with('error', 'Data toko tidak ditemukan.');
+                return $this->redirectWithFilters($request, 'error', 'Data toko tidak ditemukan.');
             }
 
             $oldName = $submission->nama_noo;
@@ -279,9 +293,9 @@ class EdpPortalController extends Controller
 
             $this->logAction('UPDATE_STORE_NAME', 'NOO_VERIFICATION', "Mengubah nama toko ID {$requestId} dari '{$oldName}' menjadi '{$newName}'");
 
-            return back()->with('success', "Nama toko berhasil diperbarui menjadi '{$newName}'");
+            return $this->redirectWithFilters($request, 'success', "Nama toko berhasil diperbarui menjadi '{$newName}'");
         } catch (Throwable $e) {
-            return back()->with('error', "Gagal memperbarui nama toko: {$e->getMessage()}");
+            return $this->redirectWithFilters($request, 'error', "Gagal memperbarui nama toko: {$e->getMessage()}");
         }
     }
 
@@ -298,7 +312,7 @@ class EdpPortalController extends Controller
             $submission = DB::table('noo_submissions')->where('request_id', $requestId)->first();
 
             if (!$submission) {
-                return back()->with('error', 'Data toko tidak ditemukan.');
+                return $this->redirectWithFilters($request, 'error', 'Data toko tidak ditemukan.');
             }
 
             $oldAddress = $submission->alamat_noo;
@@ -309,9 +323,9 @@ class EdpPortalController extends Controller
 
             $this->logAction('UPDATE_STORE_ADDRESS', 'NOO_VERIFICATION', "Mengubah alamat toko ID {$requestId} dari '{$oldAddress}' menjadi '{$newAddress}'");
 
-            return back()->with('success', "Alamat toko berhasil diperbarui.");
+            return $this->redirectWithFilters($request, 'success', "Alamat toko berhasil diperbarui.");
         } catch (Throwable $e) {
-            return back()->with('error', "Gagal memperbarui alamat toko: {$e->getMessage()}");
+            return $this->redirectWithFilters($request, 'error', "Gagal memperbarui alamat toko: {$e->getMessage()}");
         }
     }
 
@@ -327,14 +341,18 @@ class EdpPortalController extends Controller
             $submission = DB::table('noo_submissions')->where('request_id', $requestId)->first();
 
             if (!$submission) {
-                return back()->with('error', 'Data toko tidak ditemukan.');
+                return $this->redirectWithFilters($request, 'error', 'Data toko tidak ditemukan.');
             }
 
             $user = $request->user();
             $userName = $user->name ?? $user->username ?? 'EDP Principal';
 
             $codeNoo = $submission->code_noo_principal;
-            if (empty($codeNoo)) {
+            if (empty($codeNoo) && !empty($submission->previous_code_noo_principal)) {
+                // Gunakan kembali kode principal lama toko ini (dari sebelum di-reset) tanpa menambah counter sequence
+                $codeNoo = trim((string)$submission->previous_code_noo_principal);
+            } elseif (empty($codeNoo)) {
+                // Buat kode baru dari sequence berikutnya
                 $codeNoo = $this->codeGeneratorService->generateCode(
                     $submission->principal_code,
                     $submission->branch_id,
@@ -344,6 +362,7 @@ class EdpPortalController extends Controller
 
             DB::table('noo_submissions')->where('request_id', $requestId)->update([
                 'code_noo_principal' => $codeNoo,
+                'previous_code_noo_principal' => null, // Reset previous code setelah berhasil digunakan kembali
                 'edp_notes' => $request->input('edp_notes'),
                 'approved_by_edp' => $userName,
                 'edp_decision' => 'APPROVED',
@@ -355,9 +374,9 @@ class EdpPortalController extends Controller
 
             $this->logAction('APPROVE_EDP', 'NOO_VERIFICATION', "Approved NOO {$submission->nama_noo} dengan Kode Principal: {$codeNoo}");
 
-            return back()->with('success', "Toko {$submission->nama_noo} berhasil di-approve EDP dengan Kode Principal: {$codeNoo}");
+            return $this->redirectWithFilters($request, 'success', "Toko {$submission->nama_noo} berhasil di-approve EDP dengan Kode Principal: {$codeNoo}");
         } catch (Throwable $e) {
-            return back()->with('error', "Gagal approve EDP: {$e->getMessage()}");
+            return $this->redirectWithFilters($request, 'error', "Gagal approve EDP: {$e->getMessage()}");
         }
     }
 
@@ -374,11 +393,11 @@ class EdpPortalController extends Controller
 
             $submission = DB::table('noo_submissions')->where('request_id', $requestId)->first();
             if (!$submission) {
-                return back()->with('error', 'Data toko tidak ditemukan.');
+                return $this->redirectWithFilters($request, 'error', 'Data toko tidak ditemukan.');
             }
 
             if (!in_array($submission->status, [NooStatusEnum::APPROVED_EDP->value, 'APPROVED_EDP', 'EDP_APPROVED', 'INJECTED'])) {
-                return back()->with('error', 'Status Registered Outlet (RO) hanya dapat diubah untuk toko yang sudah di-approve oleh EDP Principal.');
+                return $this->redirectWithFilters($request, 'error', 'Status Registered Outlet (RO) hanya dapat diubah untuk toko yang sudah di-approve oleh EDP Principal.');
             }
 
             DB::table('noo_submissions')->where('request_id', $requestId)->update([
@@ -389,9 +408,9 @@ class EdpPortalController extends Controller
             $statusText = $isRo ? 'AKTIF (Registered Outlet)' : 'NON-AKTIF';
             $this->logAction('TOGGLE_RO_STATUS', 'NOO_VERIFICATION', "Mengubah status RO toko {$submission->nama_noo} menjadi {$statusText}");
 
-            return back()->with('success', "Status RO toko {$submission->nama_noo} berhasil diubah menjadi {$statusText}");
+            return $this->redirectWithFilters($request, 'success', "Status RO toko {$submission->nama_noo} berhasil diubah menjadi {$statusText}");
         } catch (Throwable $e) {
-            return back()->with('error', "Gagal mengubah status RO: {$e->getMessage()}");
+            return $this->redirectWithFilters($request, 'error', "Gagal mengubah status RO: {$e->getMessage()}");
         }
     }
 
@@ -416,15 +435,15 @@ class EdpPortalController extends Controller
                 ]);
 
             if ($count === 0) {
-                return back()->with('error', 'Tidak ada toko berstatus Approved EDP yang dapat diubah status RO-nya.');
+                return $this->redirectWithFilters($request, 'error', 'Tidak ada toko berstatus Approved EDP yang dapat diubah status RO-nya.');
             }
 
             $statusText = $isRo ? 'AKTIF (Registered Outlet)' : 'NON-AKTIF';
             $this->logAction('BULK_TOGGLE_RO_STATUS', 'NOO_VERIFICATION', "Mengubah status RO untuk {$count} toko menjadi {$statusText}");
 
-            return back()->with('success', "Berhasil mengubah status RO secara massal untuk {$count} toko menjadi {$statusText}");
+            return $this->redirectWithFilters($request, 'success', "Berhasil mengubah status RO secara massal untuk {$count} toko menjadi {$statusText}");
         } catch (Throwable $e) {
-            return back()->with('error', "Gagal mengubah status RO massal: {$e->getMessage()}");
+            return $this->redirectWithFilters($request, 'error', "Gagal mengubah status RO massal: {$e->getMessage()}");
         }
     }
 
@@ -441,7 +460,7 @@ class EdpPortalController extends Controller
             $submission = DB::table('noo_submissions')->where('request_id', $requestId)->first();
 
             if (!$submission) {
-                return back()->with('error', 'Data toko tidak ditemukan.');
+                return $this->redirectWithFilters($request, 'error', 'Data toko tidak ditemukan.');
             }
 
             $user = $request->user();
@@ -459,9 +478,9 @@ class EdpPortalController extends Controller
 
             $this->logAction('REJECT_EDP', 'NOO_VERIFICATION', "Rejected NOO {$submission->nama_noo}: {$reason}");
 
-            return back()->with('success', "Toko {$submission->nama_noo} telah ditolak oleh EDP Principal.");
+            return $this->redirectWithFilters($request, 'success', "Toko {$submission->nama_noo} telah ditolak oleh EDP Principal.");
         } catch (Throwable $e) {
-            return back()->with('error', "Gagal menolak toko: {$e->getMessage()}");
+            return $this->redirectWithFilters($request, 'error', "Gagal menolak toko: {$e->getMessage()}");
         }
     }
 
@@ -474,14 +493,14 @@ class EdpPortalController extends Controller
         try {
             $userRole = strtoupper($request->user()->role ?? '');
             if (!in_array($userRole, ['SUPERADMIN', 'ADMIN_PRINCIPAL'])) {
-                return back()->with('error', 'Hanya Superadmin dan Admin Principal yang diizinkan membatalkan penolakan.');
+                return $this->redirectWithFilters($request, 'error', 'Hanya Superadmin dan Admin Principal yang diizinkan membatalkan penolakan.');
             }
 
             $requestId = $request->input('request_id');
             $submission = DB::table('noo_submissions')->where('request_id', $requestId)->first();
 
             if (!$submission || $submission->status !== NooStatusEnum::REJECTED_EDP->value) {
-                return back()->with('error', 'Data toko tidak dalam status REJECTED_EDP.');
+                return $this->redirectWithFilters($request, 'error', 'Data toko tidak dalam status REJECTED_EDP.');
             }
 
             DB::table('noo_submissions')->where('request_id', $requestId)->update([
@@ -492,9 +511,9 @@ class EdpPortalController extends Controller
 
             $this->logAction('CANCEL_REJECT', 'NOO_VERIFICATION', "Membatalkan penolakan NOO {$submission->nama_noo}");
 
-            return back()->with('success', "Penolakan toko {$submission->nama_noo} berhasil dibatalkan. Status kembali ke Verifikasi SPV.");
+            return $this->redirectWithFilters($request, 'success', "Penolakan toko {$submission->nama_noo} berhasil dibatalkan. Status kembali ke Verifikasi SPV.");
         } catch (Throwable $e) {
-            return back()->with('error', "Gagal membatalkan penolakan: {$e->getMessage()}");
+            return $this->redirectWithFilters($request, 'error', "Gagal membatalkan penolakan: {$e->getMessage()}");
         }
     }
 
@@ -508,14 +527,14 @@ class EdpPortalController extends Controller
         try {
             $userRole = strtoupper($request->user()->role ?? '');
             if (!in_array($userRole, ['SUPERADMIN', 'ADMIN_PRINCIPAL'])) {
-                return back()->with('error', 'Hanya Superadmin dan Admin Principal yang diizinkan melakukan Reset Approval EDP.');
+                return $this->redirectWithFilters($request, 'error', 'Hanya Superadmin dan Admin Principal yang diizinkan melakukan Reset Approval EDP.');
             }
 
             $requestId = $request->input('request_id');
             $submission = DB::table('noo_submissions')->where('request_id', $requestId)->first();
 
             if (!$submission) {
-                return back()->with('error', 'Data toko tidak ditemukan.');
+                return $this->redirectWithFilters($request, 'error', 'Data toko tidak ditemukan.');
             }
 
             $user = $request->user();
@@ -526,10 +545,15 @@ class EdpPortalController extends Controller
                 $resetReason = "Reset Approval EDP oleh {$userName}";
             }
 
+            $previousCode = !empty($submission->code_noo_principal) 
+                ? trim((string)$submission->code_noo_principal) 
+                : (!empty($submission->previous_code_noo_principal) ? trim((string)$submission->previous_code_noo_principal) : null);
+
             DB::table('noo_submissions')->where('request_id', $requestId)->update([
                 'status' => NooStatusEnum::APPROVED_SPV->value,
                 'edp_decision' => null,
-                'code_noo_principal' => null, // Reset Customer Code Principal
+                'previous_code_noo_principal' => $previousCode, // Simpan kode principal toko untuk dipakai kembali saat approve ulang
+                'code_noo_principal' => null, // Reset status approval agar toko dapat direvisi
                 'edp_reviewed_at' => null,
                 'reset_reason' => $resetReason,
                 'updated_at' => now(),
@@ -537,9 +561,9 @@ class EdpPortalController extends Controller
 
             $this->logAction('RESET_EDP_APPROVAL', 'NOO_VERIFICATION', "Superadmin {$userName} mereset approval EDP & kode principal ({$oldCode}) toko {$submission->nama_noo}");
 
-            return back()->with('success', "Approval EDP & Kode Customer Principal toko {$submission->nama_noo} berhasil di-reset kembali ke status Approved SPV.");
+            return $this->redirectWithFilters($request, 'success', "Approval EDP & Kode Customer Principal toko {$submission->nama_noo} berhasil di-reset kembali ke status Approved SPV. Kode {$oldCode} akan digunakan kembali saat disetujui ulang.");
         } catch (Throwable $e) {
-            return back()->with('error', "Gagal reset approval EDP: {$e->getMessage()}");
+            return $this->redirectWithFilters($request, 'error', "Gagal reset approval EDP: {$e->getMessage()}");
         }
     }
 
@@ -555,35 +579,26 @@ class EdpPortalController extends Controller
             $submission = DB::table('noo_submissions')->where('request_id', $requestId)->first();
 
             if (!$submission) {
-                return back()->with('error', 'Data toko tidak ditemukan.');
+                return $this->redirectWithFilters($request, 'error', 'Data toko tidak ditemukan.');
             }
 
             // Batasi revisi KTP maksimal 1 kali
             $isRevised = ($submission->is_ktp_revised ?? false) || str_contains((string)($submission->flags ?? ''), 'REVISI_KTP_EDP');
             if ($isRevised) {
-                return back()->with('error', 'Foto KTP untuk toko ini sudah pernah direvisi (maksimal 1 kali).');
+                return $this->redirectWithFilters($request, 'error', 'Foto KTP untuk toko ini sudah pernah direvisi (maksimal 1 kali).');
             }
 
             $file = $request->file('photo_ktp');
-            $filename = "{$requestId}_ktp_revised_" . time() . '.' . $file->getClientOriginalExtension();
-            $folder = "noo_photos/" . ($submission->branch_id ?? 'BRANCH') . "/" . date('Y-m-d');
-            $path = $file->storeAs($folder, $filename, 'public');
-
-            $nowText = now()->setTimezone('Asia/Jakarta')->format('Y-m-d H:i:s');
             $user = $request->user();
             $userName = $user->name ?? $user->username ?? 'EDP';
 
-            DB::table('noo_submissions')->where('request_id', $requestId)->update([
-                'photo_ktp_path' => $path,
-                'flags' => trim(($submission->flags ?? '') . "; REVISI_KTP_EDP_BY_{$userName}_AT_{$nowText}"),
-                'updated_at' => now(),
-            ]);
+            $path = $this->ktpRevisionService->processKtpRevision($requestId, $file, $userName);
 
             $this->logAction('REVISE_KTP', 'NOO_VERIFICATION', "Melakukan Revisi KTP 1x untuk toko {$submission->nama_noo}");
 
-            return back()->with('success', "Foto KTP untuk toko {$submission->nama_noo} berhasil diperbarui.");
+            return $this->redirectWithFilters($request, 'success', "Foto KTP untuk toko {$submission->nama_noo} berhasil diperbarui.");
         } catch (Throwable $e) {
-            return back()->with('error', "Gagal merevisi KTP: {$e->getMessage()}");
+            return $this->redirectWithFilters($request, 'error', "Gagal merevisi KTP: {$e->getMessage()}");
         }
     }
 
@@ -596,34 +611,37 @@ class EdpPortalController extends Controller
         try {
             $userRole = strtoupper($request->user()->role ?? '');
             if (!in_array($userRole, ['SUPERADMIN', 'ADMIN_PRINCIPAL'])) {
-                return back()->with('error', 'Hanya Superadmin dan Admin Principal yang diizinkan membuka kembali kunci revisi KTP.');
+                return $this->redirectWithFilters($request, 'error', 'Hanya Superadmin dan Admin Principal yang diizinkan membuka kembali kunci revisi KTP.');
             }
 
             $requestId = $request->input('request_id');
             $submission = DB::table('noo_submissions')->where('request_id', $requestId)->first();
 
             if (!$submission) {
-                return back()->with('error', 'Data toko tidak ditemukan.');
+                return $this->redirectWithFilters($request, 'error', 'Data toko tidak ditemukan.');
             }
 
             $nowText = now()->setTimezone('Asia/Jakarta')->format('Y-m-d H:i:s');
             $user = $request->user();
             $userName = $user->name ?? $user->username ?? 'SUPERADMIN';
 
-            // Bersihkan flag REVISI_KTP_EDP agar status revisi ter-reset
-            $flagsCleaned = preg_replace('/;?\s*REVISI_KTP_EDP[^\s;]*/i', '', $submission->flags ?? '');
+            // Bersihkan flag REVISI_KTP_EDP dan UNLOCKED_KTP sebelumnya agar tidak menumpuk
+            $flagsCleaned = preg_replace('/;?\s*(REVISI_KTP_EDP|UNLOCKED_KTP)[^;]*/i', '', (string) ($submission->flags ?? ''));
+            $newFlags = trim(trim($flagsCleaned, '; ') . "; UNLOCKED_KTP_BY_{$userName}_AT_{$nowText}", '; ');
 
             DB::table('noo_submissions')->where('request_id', $requestId)->update([
                 'is_ktp_revised' => false,
-                'flags' => trim($flagsCleaned . "; UNLOCKED_KTP_BY_{$userName}_AT_{$nowText}"),
+                'ktp_unlocked_at' => now(),
+                'ktp_unlocked_by' => $userName,
+                'flags' => $newFlags,
                 'updated_at' => now(),
             ]);
 
             $this->logAction('RESET_KTP_REVISION', 'NOO_VERIFICATION', "Superadmin {$userName} membuka kunci revisi KTP untuk toko {$submission->nama_noo}");
 
-            return back()->with('success', "Akses revisi Foto KTP untuk toko {$submission->nama_noo} telah dibuka kembali.");
+            return $this->redirectWithFilters($request, 'success', "Akses revisi Foto KTP untuk toko {$submission->nama_noo} telah dibuka kembali.");
         } catch (Throwable $e) {
-            return back()->with('error', "Gagal membuka kunci revisi KTP: {$e->getMessage()}");
+            return $this->redirectWithFilters($request, 'error', "Gagal membuka kunci revisi KTP: {$e->getMessage()}");
         }
     }
 

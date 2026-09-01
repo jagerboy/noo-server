@@ -248,7 +248,7 @@ Saya bekerja sendiri (Solo Developer). Kode harus bisa menjelaskan dirinya sendi
     - **Default Active Sheet "Template"**: Menambahkan `$spreadsheet->setActiveSheetIndex(0)` di `ExcelExportService.php` sehingga saat berkas `.xlsx` hasil ekspor dibuka di MS Excel / Google Sheets, sheet pertama yang aktif terbuka adalah Sheet 1 **"Template"**.
 
 29. **Multiselect Checkbox Dropdown Bulan Pengajuan di Principal Dashboard**:
-    - **Keseragaman Komponen Multiselect Bulan**: Mengganti elemen native `<select>` pada filter `BULAN PENGAJUAN` di `Edp/Dashboard.vue` dengan komponen multiselect checkbox dropdown yang seragam dengan `Inbox.vue` dan `MonitoringRo.vue`.
+    - **Keseragaman Komponen Multiselect Bulan**: Mengganti elemen native `<select>` pada filter `BULAN PENGAJUAN` di `Edp/Dashboard.vue` dengan komponen multiselect  checkbox dropdown yang seragam dengan `Inbox.vue` dan `MonitoringRo.vue`.
     - **Dukungan Multi-Month Query Backend**: Memperbarui `EdpDashboardController.php` untuk mendukung parameter `months=1,2,3` via `EXTRACT(MONTH FROM COALESCE(submitted_at, created_at)) IN (...)`.
 
 30. **Redesain Grafik Monitoring RO Menjadi Summary Distributor & Live Hover Detail Bar**:
@@ -275,3 +275,81 @@ Saya bekerja sendiri (Solo Developer). Kode harus bisa menjelaskan dirinya sendi
     - **Reusable `BaseButton.vue`**: Mengimplementasikan `<script setup>` dengan `defineOptions({ inheritAttrs: false })`, mendukung varian `primary`, `secondary`, `outline`, `danger`, serta ukuran `sm`, `md`, `lg` responsif dan loading spinner native SVG.
     - **Reusable `BaseCard.vue`**: Mengimplementasikan komponen pembungkus berlatar `bg-white rounded-xl border border-slate-200` dengan named slot `#header` (`font-heading font-semibold text-slate-900`), slot `default` body (`font-sans font-normal text-slate-600`), dan named slot `#footer` (`bg-slate-50 border-t`).
     - **Penerapan Lintas Portal**: Mengintegrasikan `BaseButton` dan `BaseCard` di seluruh Portal Admin Distributor, SPV Area, dan EDP Principal.
+
+36. **Standardisasi Modal Detail Inbox (Preview Maps, GPS Layout, & Metric Badges)**:
+    - **Penyelarasan Horizontal Metric Stat Badges**: Memastikan posisi angka dan judul pada seluruh kartu metrik (`Admin/Inbox.vue` dan `Spv/Inbox.vue`) sejajar presisi secara horizontal dengan container `flex flex-col justify-between h-full` dan `min-h-[32px]` pada label judul.
+    - **Penyelarasan Format GPS Koordinat & Akurasi**: Menyeragamkan tampilan GPS di modal detail `Admin/Inbox.vue`, `Spv/Inbox.vue`, dan `Edp/Inbox.vue` menjadi format bersih 2-baris (Baris 1: `la, lg`, Baris 2: `Akurasi GPS: X meter`) serta menghapus tautan teks *"Lihat Lokasi Google Maps"*.
+    - **Integrasi Section Preview Maps Modal Admin Distributor**: Menambahkan section independen **Preview Peta Lokasi Toko** (Google Maps iframe embed) di modal detail `Admin/Inbox.vue` seragam dengan yang ada di `Spv/Inbox.vue` dan `Edp/Inbox.vue`.
+
+38. **Watermark Revisi Foto KTP, Realtime Modal Update, Pagination & Default Workflow Ordering**:
+    - **Watermark Otomatis Revisi Foto KTP Pemilik**: Mengimplementasikan generator watermark pada `KtpRevisionService.php` dengan judul `FOTO KTP OWNER (REVISI)`, memuat rincian lengkap Salesman (`SE: nama (code)`), `Outlet: nama_noo`, `Branch: branch_id`, `LA / LG GPS`, dan timestamp eksekusi pada banner bawah yang proporsional.
+    - **Realtime Image Refresh & Auto-Disable Button Revisi (`Edp/Inbox.vue`)**: Memperbaiki reaktivitas `activeModalSubmission` setelah upload revisi KTP sukses agar foto thumbnail & preview langsung berganti ke foto ber-watermark baru (cache-buster `?v=...`) dan tombol revisi otomatis beralih ke state non-aktif `🔒 Revisi Max (1x)`.
+    - **Integrasi Pagination di Seluruh Inbox Portal**: Menambahkan komponen `<Pagination>` di `Admin/Inbox.vue` dan `Spv/Inbox.vue` serta menyelaraskan dukungan paginator Laravel di `AdminDistributorController.php` dan `SpvPortalController.php`.
+    - **Penyelarasan Urutan Default (Workflow-Aware Default Ordering)**:
+        - **Admin Distributor**: Memprioritaskan data yang masih berstatus pending Admin (`SE_SUBMITTED`) di urutan paling atas, lalu diurutkan berdasarkan `submitted_at` terbaru (DESC).
+        - **SPV Area**: Memprioritaskan data yang masih berstatus pending SPV (`PUSHED_TO_SPV`) di urutan paling atas, lalu diurutkan berdasarkan tanggal admin melakukan submit terbaru (`COALESCE(pushed_to_spv_at, submitted_at, created_at)` DESC).
+        - **Principal (EDP)**: Memprioritaskan data yang masih pending review EDP (`PUSHED_TO_EDP`, `APPROVED_SPV`) di urutan paling atas, lalu diurutkan berdasarkan `COALESCE(spv_approved_at, pushed_to_spv_at, submitted_at, created_at)` DESC.
+39. **Pencegahan Error Overflow Kolom Flags & Sanitasi Riwayat Revisi KTP**:
+    - **Perubahan Tipe Kolom `flags` ke TEXT**: Mengubah tipe data kolom `flags` pada tabel `noo_submissions` menjadi `TEXT` tanpa batasan karakter `varchar(255)` agar dapat menampung jejak audit dan flag revisi tanpa batas panjang.
+    - **Sanitasi Riwayat Flag Unlock & Revisi KTP**: Menambahkan kolom dedicated `is_ktp_revised`, `ktp_revised_at`, `ktp_revised_by`, `ktp_unlocked_at`, `ktp_unlocked_by` pada tabel `noo_submissions`.
+40. **Penyempurnaan Tombol Rename Nama Toko & Proteksi Status Submisi**:
+    - **Visual Pop-Out Icon & Tombol Rename**: Memperbarui tombol ubah nama toko pada modal detail `Admin/Inbox.vue` dan `Edp/Inbox.vue` dengan styling badge warna kuning/amber cerah berlatar kontras (`bg-amber-400 text-slate-950 font-bold`) disertai label teks jelas ("Ubah Nama") agar langsung terbaca dan terlihat oleh pengguna.
+    - **Proteksi Pengubahan Nama**: Di Portal Admin Distributor, tombol ubah nama hanya muncul saat status toko masih `SE_SUBMITTED` (`canEditNamaOutlet`). Sekali toko disubmit ke SPV, nama toko tidak dapat diubah lagi oleh admin distributor.
+41. **Penyelarasan Tipografi & Banner Non-Destruktif Watermark Revisi KTP**:
+    - **Font Modern TrueType Sans-Serif**: Menggunakan font TrueType Arial / Arial Bold (`resources/fonts/arial.ttf` & `arialbd.ttf`) pada `KtpRevisionService.php` agar gaya, ketebalan, dan ukuran font watermark identik dengan watermark foto lainnya (Foto Depan Toko & Foto Dalam Toko).
+    - **Watermark Non-Destruktif (Extended Canvas)**: Gambar asli KTP 1:1 dipertahankan 100% utuh di bagian atas tanpa tertimpa, dan banner watermark ditempatkan di bagian bawah (kanvas diperpanjang) sehingga teks watermark tidak menutupi informasi KTP.
+42. **Loading State & Button Disable Upload Foto Revisi KTP (`Edp/Inbox.vue`)**:
+    - Menambahkan state `isUploadingKtp` dengan animasi spinner berputar dan teks dynamic *"Mengupload Foto..."*, serta menonaktifkan tombol submit & batal selama proses unggah berlangsung untuk mencegah double-click.
+43. **Isolasi State Filter & Pengikatan Query Params pada Seluruh Aksi Modal (`Edp/Inbox.vue` & `EdpPortalController.php`)**:
+    - **Pencegahan Reset Filter Tabel**: Menghapus watcher penimpaan reaktif `props.filters` pada client, serta membuat helper backend `redirectWithFilters()` di `EdpPortalController.php` dan `getActiveQueryParams()` di `Edp/Inbox.vue`.
+    - **Sinkronisasi Sempurna**: Setiap aksi modal (Approve, Reject, Cancel Rejection, Update Nama/Alamat, Revisi KTP, Unlock KTP, Reset Approval, Toggle RO) otomatis melampirkan filter aktif, sehingga tabel toko tetap terfilter secara konsisten sesuai pilihan pengguna (misal: tetap pada filter *Belum Diproses*).
+44. **Sanitasi String Nama Toko (`NooSubmissionService.php`)**:
+    - Menambahkan method statis `sanitizeOutletName(?string $name): string` untuk membersihkan whitespace berlebih pada nama toko dan mencegah error *undefined method*.
+45. **Proteksi Hak Akses Manajemen Akun Khusus Superadmin**:
+    - Membatasi akses menu & endpoint Manajemen Akun (`EdpAccountManagementController.php` & `EdpLayout.vue`) menjadi khusus `SUPERADMIN`. Role `ADMIN_PRINCIPAL` dan `EDP_REGION` tidak lagi dapat melihat maupun mengakses tab/menu Manajemen Akun.
+46. **Penyembunyian Menu Monitoring RO Selama Masa Finalisasi**:
+    - Menu Monitoring RO di sidebar (`EdpLayout.vue`) dan endpoint backend (`EdpDashboardController::monitoringRo`) kini disembunyikan dan dibatasi khusus untuk `SUPERADMIN` selama masa penyempurnaan, sehingga tidak muncul di role EDP dan Admin Principal.
+47. **Kelengkapan Matriks Hak Akses (`AccountManagement.vue`)**:
+    - Menambahkan seluruh menu dan modul portal secara komprehensif ke dalam tabel Matriks Hak Akses (Home Dashboard, NOO Verification, Monitoring RO, Progress Tracking NOO, NOO Master Data Branch/Salesman/SPV/Outlet Types/Counter Sequence, Manajemen Akun, dan Audit Logs).
+
+---
+
+## 🏛️ Rangkuman Arsitektur & Hak Akses Portal Monolith NOO+ v2.0 (Final)
+
+### 1. Portal Admin Distributor (`/admin-distributor/*`)
+- **Akses**: Publik / Domain Distributor (`distributor.auth` session-based).
+- **Fitur Utama**:
+  - Inbox NOO Toko baru dari SE Salesman (`SE_SUBMITTED`).
+  - Verifikasi data & foto toko dengan Security Watermark Overlay.
+  - Preview Google Maps lokasi koordinat toko.
+  - Pengisian Kode Customer Distributor (`custcode_distributor`) & Catatan Admin.
+  - Ubah Nama Outlet (hanya jika belum disubmit ke SPV).
+  - Submit ke SPV Area (`PUSHED_TO_SPV`) atau Tolak Submisi (`ADMIN_REJECTED`).
+
+### 2. Portal SPV Area (`/spv/*`)
+- **Akses**: Internal Server / Domain SPV (`spv.auth` session-based).
+- **Fitur Utama**:
+  - Inbox verifikasi toko yang telah disubmit Admin (`PUSHED_TO_SPV`).
+  - Preview detail outlet, GPS Haversine distance, dan galeri foto.
+  - Approve ke Principal EDP (`APPROVED_SPV` / `PUSHED_TO_EDP`) atau Tolak Submisi (`SPV_REJECTED`).
+
+### 3. Portal Principal EDP (`/principal/*` - Auth User)
+- **Role Permissions**:
+  - **Operator EDP Regional (`EDP_REGION`)**:
+    - Scope wilayah terisolasi per `region_code` (misal: `ASWSUM1`, `ASWJWA2`).
+    - Home Dashboard, Inbox Submisi NOO (Approve/Generate Kode Principal, Reject, Ubah Nama/Alamat, Revisi KTP 1x, Toggle Status RO, Ekspor Excel), Progress Tracking NOO, dan View Master Data.
+  - **Admin Principal (`ADMIN_PRINCIPAL`)**:
+    - Scope multi-subregion / brand principal (`entity_code_principal`, misal ASW / INA).
+    - Seluruh fitur EDP Regional + CRUD Master Data (Branch, Salesman, SPV, Outlet Types, Counter Sequence), Reset Approval EDP / Pembatalan Reject, dan Audit Logs.
+  - **Superadmin (`SUPERADMIN`)**:
+    - Full Global Access ke seluruh region dan entitas.
+    - Seluruh fitur Admin Principal + Manajemen Akun & User Role Manager, Unlock Revisi KTP, Bulk Upload CSV Master Data, dan Menu Monitoring RO (Target vs Realisasi).
+
+48. **Reusable Customer Code Principal pada Reset Approval NOO**:
+    - **Kolom `previous_code_noo_principal`**: Menambahkan kolom `previous_code_noo_principal` pada tabel `noo_submissions` via migration `2026_09_01_000001_add_previous_code_noo_principal_to_noo_submissions_table.php`.
+    - **Preservasi Kode Saat Reset (`resetEdpApproval`)**: Saat toko di-reset oleh Superadmin/Admin, nilai `code_noo_principal` lama (misal: `CAPSP00929`) diamankan ke kolom `previous_code_noo_principal` dan `code_noo_principal` diset `null`. Counter sequence utama tidak diganggu gugat.
+    - **Otomatis Reuse Saat Re-Approve (`approve`)**: Ketika toko tersebut diperbaiki (nama, alamat, KTP) dan disetujui kembali, backend mendeteksi `previous_code_noo_principal` dan menggunakannya kembali sebagai kode toko (`CAPSP00929`) tanpa menambah sequence `counter_sequences`. Sequence berikutnya (`CAPSP00934`) tetap tersimpan untuk toko baru.
+    - **Visual Transparan di Modal Detail (`Edp/Inbox.vue`)**: Menampilkan badge info di modal toko yang di-reset: *"CAPSP00929 (Reuse on Approve - Kode sebelumnya yang akan otomatis dipakai kembali saat di-approve)"*.
+
+
+

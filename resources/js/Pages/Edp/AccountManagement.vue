@@ -36,47 +36,69 @@ const editForm = useForm({
   is_active: true,
 });
 
-// STATE MATRIKS HAK AKSES
+// STATE MATRIKS HAK AKSES (Lengkap Sesuai Seluruh Menu Portal NOO+)
 const defaultMatrixData = [
+  {
+    category: '🏠 HOME & DASHBOARD',
+    categoryClass: 'bg-slate-100 font-bold text-slate-900',
+    items: [
+      { id: 'dashboard_view', name: 'Home (Executive Dashboard & Summary Statistik)', edp: true, admin: true, super: true },
+    ]
+  },
   {
     category: '📬 NOO VERIFICATION',
     categoryClass: 'bg-emerald-50/60 font-bold text-emerald-900',
     items: [
-      { id: 'inbox_view', name: 'Inbox Submisi NOO', edp: true, admin: true, super: true },
-      { id: 'inbox_approve', name: 'Approval Submisi NOO', edp: true, admin: true, super: true },
-      { id: 'inbox_reject', name: 'Tolak / Reject Submisi Toko', edp: true, admin: true, super: true },
-      { id: 'inbox_reset', name: 'Reset / Pembatalan Approval (Admin / SPV / EDP)', edp: false, admin: true, super: true },
+      { id: 'inbox_view', name: 'Inbox Submisi NOO (Tabel & Preview Detail Toko)', edp: true, admin: true, super: true },
+      { id: 'inbox_approve', name: 'Approval Submisi NOO (Generate Kode Principal)', edp: true, admin: true, super: true },
+      { id: 'inbox_reject', name: 'Tolak / Reject Submisi Toko (dengan Alasan)', edp: true, admin: true, super: true },
+      { id: 'inbox_edit_info', name: 'Ubah Nama Outlet & Alamat Toko di Modal Detail', edp: true, admin: true, super: true },
+      { id: 'inbox_revise_ktp', name: 'Revisi Foto KTP (1x dengan Watermark Standar)', edp: true, admin: true, super: true },
+      { id: 'inbox_unlock_ktp', name: 'Buka Kunci (Unlock) Revisi KTP Toko', edp: false, admin: false, super: true },
+      { id: 'inbox_reset', name: 'Reset / Pembatalan Approval EDP & Status Reject', edp: false, admin: true, super: true },
+      { id: 'inbox_toggle_ro', name: 'Ubah Status Registered Outlet (RO) Toko', edp: true, admin: true, super: true },
+      { id: 'inbox_export', name: 'Export Data Approved & Rejected (.xlsx Excel)', edp: true, admin: true, super: true },
+    ]
+  },
+  {
+    category: '📊 MONITORING RO (FINALISASI)',
+    categoryClass: 'bg-amber-50/70 font-bold text-amber-950',
+    items: [
+      { id: 'monitoring_ro_view', name: 'Menu Monitoring RO (Target vs Realisasi RO Salesman)', edp: false, admin: false, super: true },
+      { id: 'monitoring_ro_upload', name: 'Upload & Download Format Target RO Salesman (.xlsx)', edp: false, admin: false, super: true },
     ]
   },
   {
     category: '📈 PROGRESS TRACKING NOO',
     categoryClass: 'bg-blue-50/60 font-bold text-blue-900',
     items: [
-      { id: 'progress_view', name: 'Workflow Status Progress Toko', edp: true, admin: true, super: true },
-      { id: 'progress_reset', name: 'Reset Stage Workflow', edp: false, admin: true, super: true },
+      { id: 'progress_view', name: 'Workflow Status Progress Submisi Toko', edp: true, admin: true, super: true },
+      { id: 'progress_reset_admin', name: 'Reset Inputan Admin Distributor (Kembali ke Draft SE)', edp: false, admin: true, super: true },
+      { id: 'progress_reset_spv', name: 'Reset Keputusan SPV (Kembali ke Pushed to SPV)', edp: false, admin: true, super: true },
     ]
   },
   {
     category: '🏢 NOO MASTER DATA',
     categoryClass: 'bg-purple-50/60 font-bold text-purple-900',
     items: [
-      { id: 'master_view', name: 'View Master Data (Branch, Salesman, SPV, Outlet Type)', edp: true, admin: true, super: true },
-      { id: 'master_crud', name: 'CRUD Master Data (Tambah / Edit / Hapus Master)', edp: false, admin: true, super: true },
-      { id: 'master_seq', name: 'Setting & Update Counter Sequence Kode Principal', edp: false, admin: true, super: true },
-      { id: 'master_bulk', name: 'Bulk Upload / Import Massal Master CSV', edp: false, admin: false, super: true },
+      { id: 'master_view', name: 'Lihat Master Data (Branch, Salesman, SPV, Outlet Type)', edp: true, admin: true, super: true },
+      { id: 'master_crud', name: 'Kelola Master Data (Tambah / Edit / Hapus Data Master)', edp: false, admin: true, super: true },
+      { id: 'master_seq', name: 'Setting & Update Counter Sequence Kode Customer Principal', edp: false, admin: true, super: true },
+      { id: 'master_bulk', name: 'Bulk Upload / Import Massal Master Data (CSV)', edp: false, admin: false, super: true },
     ]
   },
   {
-    category: '⚙️ MANAJEMEN AKUN DAN LOGS & AUDIT',
+    category: '⚙️ MANAJEMEN AKUN & AUDIT LOGS',
     categoryClass: 'bg-gray-100 font-bold text-gray-900',
     items: [
-      { id: 'sys_users', name: 'Kelola User Portal (Account Management)', edp: false, admin: false, super: true },
-      { id: 'sys_logs', name: 'Audit Log & Riwayat Aktivitas Sistem', edp: false, admin: true, super: true },
+      { id: 'sys_users', name: 'Kelola Akun Pengguna Portal (User Management & Password)', edp: false, admin: false, super: true },
+      { id: 'sys_role_matrix', name: 'Atur Matriks Hak Akses Peran Pengguna (Role Manager)', edp: false, admin: false, super: true },
+      { id: 'sys_logs', name: 'Audit Log & Riwayat Aktivitas Seluruh Pengguna Sistem', edp: false, admin: true, super: true },
     ]
   }
 ];
 
-const savedMatrix = localStorage.getItem('noo_permission_matrix');
+const savedMatrix = localStorage.getItem('noo_permission_matrix_v2');
 const permissionMatrix = ref(savedMatrix ? JSON.parse(savedMatrix) : defaultMatrixData);
 const isEditingMatrix = ref(false);
 const matrixSuccessBanner = ref('');
@@ -96,7 +118,7 @@ function cancelEditMatrix() {
 }
 
 function saveMatrix() {
-  localStorage.setItem('noo_permission_matrix', JSON.stringify(permissionMatrix.value));
+  localStorage.setItem('noo_permission_matrix_v2', JSON.stringify(permissionMatrix.value));
   isEditingMatrix.value = false;
   matrixSuccessBanner.value = 'Matriks Hak Akses Peran Pengguna berhasil diperbarui dan disimpan!';
 }

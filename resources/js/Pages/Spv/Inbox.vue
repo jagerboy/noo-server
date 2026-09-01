@@ -8,17 +8,26 @@
 import { ref, computed, onMounted, onUnmounted } from 'vue';
 import { useForm, Head } from '@inertiajs/vue3';
 import SpvLayout from '@/Layouts/SpvLayout.vue';
+import Pagination from '@/Components/Pagination.vue';
 import BaseButton from '@/Components/BaseButton.vue';
 import BaseCard from '@/Components/BaseCard.vue';
 
 const props = defineProps({
   submissions: {
-    type: Array,
+    type: [Array, Object],
     default: () => [],
+  },
+  stats: {
+    type: Object,
+    default: () => null,
   },
   myBranches: {
     type: Array,
     default: () => [],
+  },
+  filters: {
+    type: Object,
+    default: () => ({}),
   },
 });
 
@@ -48,9 +57,15 @@ const rejectForm = useForm({
   reject_reason: '',
 });
 
+const rawSubmissions = computed(() => {
+  if (Array.isArray(props.submissions)) return props.submissions;
+  if (props.submissions && Array.isArray(props.submissions.data)) return props.submissions.data;
+  return [];
+});
+
 // Filter Submisi Data Toko
 const filteredSubmissions = computed(() => {
-  return props.submissions.filter((item) => {
+  return rawSubmissions.value.filter((item) => {
     const matchesSearch =
       (item.nama_noo || '').toLowerCase().includes(searchQuery.value.toLowerCase()) ||
       (item.salesman_name || '').toLowerCase().includes(searchQuery.value.toLowerCase()) ||
@@ -76,12 +91,13 @@ const filteredSubmissions = computed(() => {
   });
 });
 
-// State & Handler Sort Tabel
-const sortKey = ref('submitted_at');
-const sortDir = ref('desc');
+// State & Handler Sort Tabel (Default: Pending SPV & kapan admin melakukan submit terbaru)
+const sortKey = ref('default_order');
+const sortDir = ref('asc');
 
 const sortSelect = computed({
   get() {
+    if (sortKey.value === 'default_order') return 'submitted_at_desc';
     return `${sortKey.value}_${sortDir.value}`;
   },
   set(val) {
@@ -96,13 +112,22 @@ const sortSelect = computed({
 
 const sortedSubmissions = computed(() => {
   const list = [...filteredSubmissions.value];
-  if (!sortKey.value) return list;
+  if (!sortKey.value || sortKey.value === 'default_order') {
+    return list.sort((a, b) => {
+      const aPending = a.status === 'PUSHED_TO_SPV' ? 0 : 1;
+      const bPending = b.status === 'PUSHED_TO_SPV' ? 0 : 1;
+      if (aPending !== bPending) return aPending - bPending;
+      const aTime = a.pushed_to_spv_at ? new Date(a.pushed_to_spv_at).getTime() : (a.submitted_at ? new Date(a.submitted_at).getTime() : 0);
+      const bTime = b.pushed_to_spv_at ? new Date(b.pushed_to_spv_at).getTime() : (b.submitted_at ? new Date(b.submitted_at).getTime() : 0);
+      return bTime - aTime;
+    });
+  }
 
   return list.sort((a, b) => {
     let valA = a[sortKey.value] ?? '';
     let valB = b[sortKey.value] ?? '';
 
-    if (['submitted_at', 'created_at', 'pushed_to_spv_at', 'spv_approved_at', 'edp_approved_at'].includes(sortKey.value)) {
+    if (['submitted_at', 'created_at', 'pushed_to_spv_at', 'spv_submit_at', 'pushed_to_edp_at', 'edp_reviewed_at'].includes(sortKey.value)) {
       valA = valA ? new Date(valA).getTime() : 0;
       valB = valB ? new Date(valB).getTime() : 0;
     } else if (typeof valA === 'string') {
@@ -118,11 +143,13 @@ const sortedSubmissions = computed(() => {
 
 // Stats Metric Counter
 const stats = computed(() => {
-  const total = props.submissions.length;
-  const pendingSpv = props.submissions.filter((i) => i.status === 'PUSHED_TO_SPV').length;
-  const approvedSpv = props.submissions.filter((i) => ['APPROVED_SPV', 'APPROVED_BY_SPV', 'PUSHED_TO_EDP'].includes(i.status)).length;
-  const approvedEdp = props.submissions.filter((i) => ['APPROVED_EDP', 'EDP_APPROVED'].includes(i.status)).length;
-  const rejected = props.submissions.filter((i) => ['REJECTED_SPV', 'SPV_REJECTED', 'REJECTED_EDP', 'EDP_REJECTED', 'ADMIN_REJECTED', 'REJECTED_ADMIN'].includes(i.status)).length;
+  if (props.stats) return props.stats;
+  const list = rawSubmissions.value;
+  const total = list.length;
+  const pendingSpv = list.filter((i) => i.status === 'PUSHED_TO_SPV').length;
+  const approvedSpv = list.filter((i) => ['APPROVED_SPV', 'APPROVED_BY_SPV', 'PUSHED_TO_EDP'].includes(i.status)).length;
+  const approvedEdp = list.filter((i) => ['APPROVED_EDP', 'EDP_APPROVED'].includes(i.status)).length;
+  const rejected = list.filter((i) => ['REJECTED_SPV', 'SPV_REJECTED', 'REJECTED_EDP', 'EDP_REJECTED', 'ADMIN_REJECTED', 'REJECTED_ADMIN'].includes(i.status)).length;
 
   return { total, pendingSpv, approvedSpv, approvedEdp, rejected };
 });
@@ -608,21 +635,29 @@ function getRowStyle(item) {
 
         <!-- Metric Stat Badges -->
         <div class="grid grid-cols-2 sm:grid-cols-4 gap-3">
-          <div class="bg-white p-3.5 rounded-xl border border-[#E5E7EB] shadow-[0_1px_3px_rgba(0,0,0,0.08)] text-center">
-            <span class="text-[11px] font-semibold uppercase tracking-wider text-[#1D4ED8]">Pending Review</span>
-            <div class="text-2xl font-bold text-[#2563EB] mt-0.5">{{ stats.pendingSpv }}</div>
+          <div class="bg-white p-3.5 rounded-xl border border-[#E5E7EB] shadow-[0_1px_3px_rgba(0,0,0,0.08)] text-center flex flex-col justify-between h-full">
+            <div class="min-h-[32px] flex items-center justify-center">
+              <span class="text-[11px] font-semibold uppercase tracking-wider text-[#1D4ED8]">Pending Review</span>
+            </div>
+            <div class="text-2xl font-bold text-[#2563EB] mt-1">{{ stats.pendingSpv }}</div>
           </div>
-          <div class="bg-white p-3.5 rounded-xl border border-[#E5E7EB] shadow-[0_1px_3px_rgba(0,0,0,0.08)] text-center">
-            <span class="text-[11px] font-semibold uppercase tracking-wider text-[#7E22CE]">Disetujui SPV</span>
-            <div class="text-2xl font-bold text-[#9333EA] mt-0.5">{{ stats.approvedSpv }}</div>
+          <div class="bg-white p-3.5 rounded-xl border border-[#E5E7EB] shadow-[0_1px_3px_rgba(0,0,0,0.08)] text-center flex flex-col justify-between h-full">
+            <div class="min-h-[32px] flex items-center justify-center">
+              <span class="text-[11px] font-semibold uppercase tracking-wider text-[#7E22CE]">Disetujui SPV</span>
+            </div>
+            <div class="text-2xl font-bold text-[#9333EA] mt-1">{{ stats.approvedSpv }}</div>
           </div>
-          <div class="bg-white p-3.5 rounded-xl border border-[#E5E7EB] shadow-[0_1px_3px_rgba(0,0,0,0.08)] text-center">
-            <span class="text-[11px] font-semibold uppercase tracking-wider text-[#15803D]">EDP Approved</span>
-            <div class="text-2xl font-bold text-[#16A34A] mt-0.5">{{ stats.approvedEdp }}</div>
+          <div class="bg-white p-3.5 rounded-xl border border-[#E5E7EB] shadow-[0_1px_3px_rgba(0,0,0,0.08)] text-center flex flex-col justify-between h-full">
+            <div class="min-h-[32px] flex items-center justify-center">
+              <span class="text-[11px] font-semibold uppercase tracking-wider text-[#15803D]">EDP Approved</span>
+            </div>
+            <div class="text-2xl font-bold text-[#16A34A] mt-1">{{ stats.approvedEdp }}</div>
           </div>
-          <div class="bg-white p-3.5 rounded-xl border border-[#E5E7EB] shadow-[0_1px_3px_rgba(0,0,0,0.08)] text-center">
-            <span class="text-[11px] font-semibold uppercase tracking-wider text-[#B91C1C]">Ditolak</span>
-            <div class="text-2xl font-bold text-[#DC2626] mt-0.5">{{ stats.rejected }}</div>
+          <div class="bg-white p-3.5 rounded-xl border border-[#E5E7EB] shadow-[0_1px_3px_rgba(0,0,0,0.08)] text-center flex flex-col justify-between h-full">
+            <div class="min-h-[32px] flex items-center justify-center">
+              <span class="text-[11px] font-semibold uppercase tracking-wider text-[#B91C1C]">Ditolak</span>
+            </div>
+            <div class="text-2xl font-bold text-[#DC2626] mt-1">{{ stats.rejected }}</div>
           </div>
         </div>
       </div>
@@ -782,6 +817,16 @@ function getRowStyle(item) {
             </tbody>
           </table>
         </div>
+
+        <!-- Pagination Links -->
+        <Pagination
+          v-if="submissions?.links"
+          :links="submissions.links"
+          :from="submissions.from"
+          :to="submissions.to"
+          :total="submissions.total"
+          :current-per-page="submissions.per_page"
+        />
       </div>
 
     </div>
@@ -868,16 +913,9 @@ function getRowStyle(item) {
             </div>
 
             <div>
-              <p class="text-[12px] font-medium text-[#4B5563] uppercase">GPS Koordinat & Akurasi</p>
-              <p class="text-[14px] font-mono text-[#374151] mt-0.5">Lat: {{ selectedSubmission.la }}, Lg: {{ selectedSubmission.lg }}</p>
+              <p class="text-[12px] font-medium text-[#4B5563] uppercase">GPS Koordinat</p>
+              <p class="text-[14px] font-mono text-[#374151] mt-0.5">{{ selectedSubmission.la }}, {{ selectedSubmission.lg }}</p>
               <p class="text-[12px] text-[#15803D] font-semibold mt-0.5">Akurasi GPS: {{ selectedSubmission.accuracy_m }} meter</p>
-              <a
-                :href="`https://www.google.com/maps?q=${selectedSubmission.la},${selectedSubmission.lg}`"
-                target="_blank"
-                class="inline-flex items-center text-[13px] font-semibold text-[#2563EB] hover:underline mt-1"
-              >
-                Lihat Lokasi Google Maps →
-              </a>
             </div>
           </div>
 

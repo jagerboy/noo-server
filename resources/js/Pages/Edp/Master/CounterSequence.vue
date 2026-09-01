@@ -21,6 +21,7 @@ const props = defineProps({
 
 const search = ref(props.filters?.search || '');
 const selectedRegion = ref(props.filters?.region_code || '');
+const selectedEntity = ref(props.filters?.entity || '');
 const selectedBranch = ref(props.filters?.branch_id || '');
 
 const editingItem = ref(null);
@@ -32,10 +33,24 @@ const regionOptions = computed(() => {
   }));
 });
 
+const entityOptions = computed(() => {
+  let list = props.filterOptions?.entities || [];
+  if (selectedRegion.value) {
+    list = list.filter((e) => e.region_code === selectedRegion.value);
+  }
+  return list.map((e) => ({
+    value: typeof e === 'object' ? e.entity_code_principal : e,
+    label: typeof e === 'object' ? (e.entity_name_principal ? `${e.entity_code_principal} - ${e.entity_name_principal}` : e.entity_code_principal) : String(e),
+  }));
+});
+
 const branchOptions = computed(() => {
   let list = props.filterOptions?.branches || [];
   if (selectedRegion.value) {
     list = list.filter((b) => b.region_code === selectedRegion.value);
+  }
+  if (selectedEntity.value) {
+    list = list.filter((b) => b.entity_code_principal === selectedEntity.value);
   }
   return list.map((b) => ({
     value: b.branch_id,
@@ -44,7 +59,23 @@ const branchOptions = computed(() => {
 });
 
 function onRegionChange() {
-  if (selectedRegion.value) {
+  if (selectedRegion.value && selectedEntity.value) {
+    const valid = entityOptions.value.some((e) => e.value === selectedEntity.value);
+    if (!valid) {
+      selectedEntity.value = '';
+    }
+  }
+  if (selectedRegion.value && selectedBranch.value) {
+    const valid = branchOptions.value.some((b) => b.value === selectedBranch.value);
+    if (!valid) {
+      selectedBranch.value = '';
+    }
+  }
+  applyFilters();
+}
+
+function onEntityChange() {
+  if (selectedEntity.value && selectedBranch.value) {
     const valid = branchOptions.value.some((b) => b.value === selectedBranch.value);
     if (!valid) {
       selectedBranch.value = '';
@@ -94,6 +125,7 @@ function applyFilters() {
     {
       search: search.value,
       region_code: selectedRegion.value,
+      entity: selectedEntity.value,
       branch_id: selectedBranch.value,
     },
     { preserveState: true, replace: true }
@@ -103,6 +135,7 @@ function applyFilters() {
 function resetFilters() {
   search.value = '';
   selectedRegion.value = '';
+  selectedEntity.value = '';
   selectedBranch.value = '';
   applyFilters();
 }
@@ -188,7 +221,7 @@ const isBulkModalOpen = ref(false);
       <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-white p-5 rounded-xl border border-[#E5E7EB] shadow-xs">
         <div>
           <h1 class="text-xl font-bold text-[#111827] flex items-center gap-2">
-            <span>🔢 Counter Sequence Kode Customer Principal</span>
+            <span>Counter Sequence Kode Customer Principal</span>
           </h1>
           <p class="text-xs text-[#6B7280] mt-1">
             Penataan & Otomatisasi Sequence Nomor Urut Kode Customer Principal per Cabang Distributor.
@@ -220,7 +253,7 @@ const isBulkModalOpen = ref(false);
           <span>Filter Data Counter Sequence</span>
         </h2>
 
-        <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
+        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
           <div>
             <label class="block text-xs font-semibold text-[#4B5563] mb-1">REGION</label>
             <SearchableSelect
@@ -229,6 +262,17 @@ const isBulkModalOpen = ref(false);
               placeholder="-- Semua Region --"
               searchPlaceholder="Ketik Region Code / Nama..."
               @change="onRegionChange"
+            />
+          </div>
+
+          <div>
+            <label class="block text-xs font-semibold text-[#4B5563] mb-1">ENTITY / PRINCIPAL</label>
+            <SearchableSelect
+              v-model="selectedEntity"
+              :options="entityOptions"
+              placeholder="-- Semua Entity --"
+              searchPlaceholder="Ketik Entity Code / Nama..."
+              @change="onEntityChange"
             />
           </div>
 

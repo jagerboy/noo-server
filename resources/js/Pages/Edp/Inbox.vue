@@ -7,7 +7,7 @@
  * 3. Revisi Foto KTP Pemilik dibatasi Maksimal 1x (Button ter-disable dengan badge 🔒 Revisi Max (1x)).
  * 4. Refresh instan Foto KTP dengan Timestamp Cache-Buster.
  */
-import { ref, computed, onMounted, onUnmounted } from 'vue';
+import { ref, computed, watch, onMounted, onUnmounted } from 'vue';
 import { useForm, Head, router } from '@inertiajs/vue3';
 import axios from 'axios';
 import EdpLayout from '@/Layouts/EdpLayout.vue';
@@ -60,6 +60,7 @@ const isProcessingApprove = ref(false);
 const isProcessingReject = ref(false);
 const isProcessingCancelReject = ref(false);
 const isProcessingResetApproval = ref(false);
+const isUploadingKtp = ref(false);
 
 const showKtpModal = ref(false);
 const previewImageModal = ref(null);
@@ -257,7 +258,7 @@ function toggleSelectAllMonths() {
 
 function getPhotoUrl(urlOrPath) {
   if (!urlOrPath) return null;
-  if (urlOrPath.startsWith('http://') || urlOrPath.startsWith('https://')) return urlOrPath;
+  if (urlOrPath.startsWith('http://') || urlOrPath.startsWith('https://') || urlOrPath.startsWith('blob:') || urlOrPath.startsWith('data:')) return urlOrPath;
   let clean = urlOrPath.replace(/^\/+/, '');
   if (clean.startsWith('public/')) clean = clean.substring(7);
   if (clean.startsWith('storage/')) clean = clean.substring(8);
@@ -501,15 +502,31 @@ function closeDetailModal() {
   isEditingAddress.value = false;
 }
 
+function getActiveQueryParams() {
+  const queryParams = {};
+  if (selectedRegion.value) queryParams.region_code = selectedRegion.value;
+  if (selectedPrincipal.value) queryParams.principal = selectedPrincipal.value;
+  if (selectedBranch.value) queryParams.branch_id = selectedBranch.value;
+  if (selectedStatus.value) queryParams.status = selectedStatus.value;
+  if (selectedEdpMonths.value && selectedEdpMonths.value.length > 0) {
+    queryParams.edp_months = selectedEdpMonths.value.join(',');
+  }
+  if (selectedEdpYear.value) queryParams.edp_year = selectedEdpYear.value;
+  if (search.value) queryParams.search = search.value;
+  return queryParams;
+}
+
 function saveStoreName() {
   if (!activeModalSubmission.value || !editedStoreName.value) return;
   router.post(
-    route('edp.update_store_name'),
+    route('edp.update_store_name', getActiveQueryParams()),
     {
       request_id: activeModalSubmission.value.request_id,
       nama_noo: editedStoreName.value,
     },
     {
+      preserveState: true,
+      preserveScroll: true,
       onSuccess: () => {
         activeModalSubmission.value.nama_noo = editedStoreName.value;
         isEditingStoreName.value = false;
@@ -522,12 +539,14 @@ function saveStoreAddress() {
   if (!activeModalSubmission.value || !editedAddress.value) return;
   const cleanAddr = sanitizePluscode(editedAddress.value);
   router.post(
-    route('edp.update_store_address'),
+    route('edp.update_store_address', getActiveQueryParams()),
     {
       request_id: activeModalSubmission.value.request_id,
       alamat_noo: cleanAddr,
     },
     {
+      preserveState: true,
+      preserveScroll: true,
       onSuccess: () => {
         activeModalSubmission.value.alamat_noo = cleanAddr;
         isEditingAddress.value = false;
@@ -541,12 +560,13 @@ function handleApprove() {
   const currentReqId = activeModalSubmission.value.request_id;
 
   router.post(
-    route('edp.approve'),
+    route('edp.approve', getActiveQueryParams()),
     {
       request_id: currentReqId,
       edp_notes: edpNotesInput.value,
     },
     {
+      preserveState: true,
       preserveScroll: true,
       onStart: () => {
         isProcessingApprove.value = true;
@@ -568,12 +588,13 @@ function handleToggleRoStatus(newStatus) {
   const currentReqId = activeModalSubmission.value.request_id;
 
   router.post(
-    route('edp.toggle_ro_status'),
+    route('edp.toggle_ro_status', getActiveQueryParams()),
     {
       request_id: currentReqId,
       is_ro: newStatus,
     },
     {
+      preserveState: true,
       preserveScroll: true,
       onStart: () => {
         isProcessingToggleRo.value = true;
@@ -616,12 +637,13 @@ function handleToggleRoStatusRow(sub, newStatus) {
   if (!sub || isProcessingToggleRo.value) return;
 
   router.post(
-    route('edp.toggle_ro_status'),
+    route('edp.toggle_ro_status', getActiveQueryParams()),
     {
       request_id: sub.request_id,
       is_ro: newStatus,
     },
     {
+      preserveState: true,
       preserveScroll: true,
       onStart: () => {
         isProcessingToggleRo.value = true;
@@ -648,12 +670,13 @@ function handleBulkToggleRoStatus(newStatus) {
   }
 
   router.post(
-    route('edp.bulk_toggle_ro_status'),
+    route('edp.bulk_toggle_ro_status', getActiveQueryParams()),
     {
       request_ids: selectedRowIds.value,
       is_ro: newStatus,
     },
     {
+      preserveState: true,
       preserveScroll: true,
       onStart: () => {
         isProcessingBulkToggleRo.value = true;
@@ -719,13 +742,14 @@ function submitReject() {
   const currentReqId = activeModalSubmission.value.request_id;
 
   router.post(
-    route('edp.reject'),
+    route('edp.reject', getActiveQueryParams()),
     {
       request_id: currentReqId,
       reject_reason: reason,
       edp_notes: reason,
     },
     {
+      preserveState: true,
       preserveScroll: true,
       onStart: () => {
         isProcessingReject.value = true;
@@ -1062,11 +1086,12 @@ function handleCancelRejection() {
   const currentReqId = activeModalSubmission.value.request_id;
 
   router.post(
-    route('edp.cancel_rejection'),
+    route('edp.cancel_rejection', getActiveQueryParams()),
     {
       request_id: currentReqId,
     },
     {
+      preserveState: true,
       preserveScroll: true,
       onStart: () => {
         isProcessingCancelReject.value = true;
@@ -1103,18 +1128,30 @@ function handleKtpDrop(event) {
 }
 
 function submitKtpRevision() {
-  if (!ktpFile.value || !activeModalSubmission.value) return;
+  if (!ktpFile.value || !activeModalSubmission.value || isUploadingKtp.value) return;
   const currentReqId = activeModalSubmission.value.request_id;
 
   const formData = new FormData();
   formData.append('request_id', currentReqId);
   formData.append('photo_ktp', ktpFile.value);
 
-  router.post(route('edp.revise_ktp'), formData, {
+  router.post(route('edp.revise_ktp', getActiveQueryParams()), formData, {
+    preserveState: true,
+    preserveScroll: true,
+    onStart: () => {
+      isUploadingKtp.value = true;
+    },
+    onFinish: () => {
+      isUploadingKtp.value = false;
+    },
+    onError: () => {
+      // Jika terjadi error dari server, jangan kunci button dan jangan update foto
+    },
     onSuccess: (page) => {
       showKtpModal.value = false;
       const ts = Date.now();
-      const updatedList = page?.props?.submissions || props.submissions || [];
+      const rawList = page?.props?.submissions?.data || page?.props?.submissions || props.submissions?.data || props.submissions || [];
+      const updatedList = Array.isArray(rawList) ? rawList : [];
       const updatedSub = updatedList.find((s) => s.request_id === currentReqId);
 
       if (updatedSub) {
@@ -1123,16 +1160,15 @@ function submitKtpRevision() {
           : (ktpPreviewUrl.value || null);
         
         activeModalSubmission.value = {
+          ...activeModalSubmission.value,
           ...updatedSub,
+          photo_ktp_path: updatedSub.photo_ktp_path || activeModalSubmission.value.photo_ktp_path,
           photo_ktp_url: freshUrl,
           is_ktp_revised: true,
         };
-      } else if (activeModalSubmission.value) {
-        activeModalSubmission.value.is_ktp_revised = true;
-        if (ktpPreviewUrl.value) {
-          activeModalSubmission.value.photo_ktp_url = ktpPreviewUrl.value;
-        }
       }
+      ktpFile.value = null;
+      ktpPreviewUrl.value = null;
     },
   });
 }
@@ -1142,11 +1178,13 @@ function handleUnlockKtpRevision() {
   if (!confirm('Apakah Anda yakin ingin membuka kembali kunci revisi KTP toko ini (Superadmin)?')) return;
 
   router.post(
-    route('edp.reset_ktp_revision'),
+    route('edp.reset_ktp_revision', getActiveQueryParams()),
     {
       request_id: activeModalSubmission.value.request_id,
     },
     {
+      preserveState: true,
+      preserveScroll: true,
       onSuccess: () => {
         if (activeModalSubmission.value) {
           activeModalSubmission.value.is_ktp_revised = false;
@@ -1162,11 +1200,12 @@ function handleResetEdpApproval() {
 
   const currentReqId = activeModalSubmission.value.request_id;
   router.post(
-    route('edp.reset_edp_approval'),
+    route('edp.reset_edp_approval', getActiveQueryParams()),
     {
       request_id: currentReqId,
     },
     {
+      preserveState: true,
       preserveScroll: true,
       onStart: () => {
         isProcessingResetApproval.value = true;
@@ -1177,6 +1216,7 @@ function handleResetEdpApproval() {
       onSuccess: () => {
         if (activeModalSubmission.value) {
           activeModalSubmission.value.status = 'APPROVED_SPV';
+          activeModalSubmission.value.previous_code_noo_principal = activeModalSubmission.value.code_noo_principal || activeModalSubmission.value.previous_code_noo_principal;
           activeModalSubmission.value.code_noo_principal = null;
         }
         closeDetailModal();
@@ -1210,7 +1250,7 @@ const sortedSubmissions = computed(() => {
     let valA = a[sortKey.value] ?? '';
     let valB = b[sortKey.value] ?? '';
 
-    if (['submitted_at', 'created_at', 'pushed_to_spv_at', 'spv_approved_at', 'edp_approved_at'].includes(sortKey.value)) {
+    if (['submitted_at', 'created_at', 'pushed_to_spv_at', 'spv_submit_at', 'pushed_to_edp_at', 'edp_reviewed_at'].includes(sortKey.value)) {
       valA = valA ? new Date(valA).getTime() : 0;
       valB = valB ? new Date(valB).getTime() : 0;
     } else if (typeof valA === 'string') {
@@ -1704,10 +1744,12 @@ function getLineStyle(stepBefore, item) {
         </div>
         <!-- Pagination Links -->
         <Pagination
+          v-if="submissions?.links"
           :links="submissions.links"
           :from="submissions.from"
           :to="submissions.to"
           :total="submissions.total"
+          :current-per-page="submissions.per_page"
         />
       </div>
 
@@ -1747,7 +1789,19 @@ function getLineStyle(stepBefore, item) {
               </div>
               <div>
                 <span class="text-[12px] font-semibold text-[#6B7280] uppercase tracking-wider block mb-1">KODE CUST PRINCIPAL</span>
-                <p class="text-[15px] font-mono font-bold text-[#15803D]">{{ activeModalSubmission.code_noo_principal || 'BELUM TERGENERATE' }}</p>
+                <p v-if="activeModalSubmission.code_noo_principal" class="text-[15px] font-mono font-bold text-[#15803D]">
+                  {{ activeModalSubmission.code_noo_principal }}
+                </p>
+                <div v-else-if="activeModalSubmission.previous_code_noo_principal" class="space-y-0.5">
+                  <p class="text-[14px] font-mono font-bold text-amber-700 flex items-center gap-1">
+                    <span>{{ activeModalSubmission.previous_code_noo_principal }}</span>
+                    <span class="text-[10px] font-sans font-bold bg-amber-100 text-amber-800 px-1.5 py-0.2 rounded border border-amber-300">Reuse on Approve</span>
+                  </p>
+                  <p class="text-[11px] text-amber-600 leading-tight">Kode sebelumnya (akan otomatis dipakai kembali saat di-approve)</p>
+                </div>
+                <p v-else class="text-[14px] font-mono font-medium text-slate-400">
+                  BELUM TERGENERATE
+                </p>
               </div>
               <div>
                 <span class="text-[12px] font-semibold text-[#6B7280] uppercase tracking-wider block mb-1">KODE CUST DISTRIBUTOR</span>
@@ -1768,20 +1822,25 @@ function getLineStyle(stepBefore, item) {
                     <button
                       v-if="!isLocked"
                       @click="isEditingStoreName = true"
-                      class="p-1 text-[#6B7280] hover:text-[#2563EB] hover:bg-[#EFF6FF] rounded-[8px] transition cursor-pointer"
-                      title="Edit Nama Toko / Outlet"
+                      class="px-2 py-0.5 text-xs font-bold text-slate-900 bg-amber-400 hover:bg-amber-300 active:bg-amber-500 rounded-md transition shadow-xs flex items-center gap-1 cursor-pointer border border-amber-300"
+                      title="Ubah / Rename Nama Toko"
                     >
-                      ✏️
+                      <svg class="w-3.5 h-3.5 text-slate-950 stroke-[2.5]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" />
+                      </svg>
+                      <span>Ubah</span>
                     </button>
                   </div>
-                  <div v-else class="flex items-center gap-1.5 mt-1">
+                  <div v-else class="flex flex-col gap-1.5 mt-1">
                     <input
                       type="text"
                       v-model="editedStoreName"
-                      class="px-3 py-1.5 text-[14px] font-normal text-[#374151] bg-white border border-[#2563EB] rounded-[8px] focus:ring-2 focus:ring-[#2563EB]"
+                      class="w-full px-3 py-1.5 text-[14px] font-normal text-[#374151] bg-white border border-[#2563EB] rounded-[8px] focus:ring-2 focus:ring-[#2563EB]"
                     />
-                    <button @click="saveStoreName" class="px-2.5 py-1.5 text-[13px] font-semibold text-white bg-[#16A34A] hover:bg-[#15803D] rounded-[8px] cursor-pointer">Simpan ✓</button>
-                    <button @click="isEditingStoreName = false" class="px-2 py-1.5 text-[13px] font-semibold text-[#374151] bg-[#F3F4F6] rounded-[8px] cursor-pointer">Batal ✕</button>
+                    <div class="flex items-center gap-2">
+                      <button @click="saveStoreName" class="px-3 py-1 text-[13px] font-semibold text-white bg-[#16A34A] hover:bg-[#15803D] rounded-[8px] cursor-pointer">Simpan ✓</button>
+                      <button @click="isEditingStoreName = false" class="px-2.5 py-1 text-[13px] font-semibold text-[#374151] bg-[#F3F4F6] rounded-[8px] cursor-pointer">Batal ✕</button>
+                    </div>
                   </div>
                 </div>
 
@@ -1843,8 +1902,9 @@ function getLineStyle(stepBefore, item) {
                   <span class="font-semibold text-[#111827]">{{ activeModalSubmission.kab_kota_noo || '-' }}, {{ activeModalSubmission.provinsi_noo || '-' }}</span>
                 </div>
                 <div>
-                  <span class="text-[14px] font-medium text-[#4B5563] block mb-1">Koordinat GPS</span>
-                  <span class="font-mono text-[#111827] font-bold">{{ activeModalSubmission.la }}, {{ activeModalSubmission.lg }} (Akurasi: {{ activeModalSubmission.accuracy_m || '-' }}m)</span>
+                  <span class="text-[14px] font-medium text-[#4B5563] block mb-1">GPS Koordinat</span>
+                  <p class="font-mono text-[#111827] font-bold">{{ activeModalSubmission.la }}, {{ activeModalSubmission.lg }}</p>
+                  <p class="text-[12px] text-[#15803D] font-semibold mt-0.5">Akurasi GPS: {{ activeModalSubmission.accuracy_m || '-' }} meter</p>
                 </div>
               </div>
             </div>
@@ -2398,8 +2458,15 @@ function getLineStyle(stepBefore, item) {
               </div>
 
               <div class="flex justify-end gap-2 pt-2">
-                <button type="button" @click="showKtpModal = false" class="px-4 py-2 text-[15px] font-semibold bg-white border border-[#D1D5DB] hover:bg-[#F3F4F6] text-[#374151] rounded-[8px]">Batal</button>
-                <button type="submit" :disabled="!ktpFile" class="px-5 py-2 text-[15px] font-semibold text-white bg-[#2563EB] hover:bg-[#1D4ED8] rounded-[8px] shadow-sm cursor-pointer disabled:opacity-50">Upload Foto KTP</button>
+                <button type="button" :disabled="isUploadingKtp" @click="showKtpModal = false" class="px-4 py-2 text-[15px] font-semibold bg-white border border-[#D1D5DB] hover:bg-[#F3F4F6] text-[#374151] rounded-[8px] disabled:opacity-50 cursor-pointer">Batal</button>
+                <button
+                  type="submit"
+                  :disabled="!ktpFile || isUploadingKtp"
+                  class="px-5 py-2 text-[15px] font-semibold text-white bg-[#2563EB] hover:bg-[#1D4ED8] rounded-[8px] shadow-sm flex items-center gap-2 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  <svg v-if="isUploadingKtp" class="animate-spin h-4 w-4 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg>
+                  <span>{{ isUploadingKtp ? 'Mengupload Foto...' : 'Upload Foto KTP' }}</span>
+                </button>
               </div>
             </form>
           </div>
