@@ -36,7 +36,9 @@ const editForm = useForm({
   is_active: true,
 });
 
-// Single-select Principal Area
+// Single-select Principal Area & Multiple Select Single Regions
+const selectedSingleRegionsAdd = ref([]);
+const selectedSingleRegions = ref([]);
 const selectedPrincipalAreaAdd = ref('');
 const selectedPrincipalAreaEdit = ref('');
 const isGlobalSelectedAdd = ref(false);
