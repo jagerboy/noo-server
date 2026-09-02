@@ -36,9 +36,14 @@ const editForm = useForm({
   is_active: true,
 });
 
-// State Multiple Select Single Region
+// State Multiple Select Single Region & Principal Areas
 const selectedSingleRegionsAdd = ref([]);
 const selectedSingleRegions = ref([]);
+const selectedPrincipalAreasAdd = ref([]);
+const selectedPrincipalAreasEdit = ref([]);
+
+const regionErrorAdd = ref('');
+const regionErrorEdit = ref('');
 
 // Mapping Sub-Region untuk auto select saat Principal Area di-klik
 const principalAreaSubRegionsMap = {
@@ -50,22 +55,58 @@ const principalAreaSubRegionsMap = {
   'INASUM': ['INASUM1', 'INASUM2'],
 };
 
-function onPrincipalAreaSelect(paCode, mode = 'edit') {
+// Toggle Principal Area & Auto Select / Unselect Sub-Regions
+function togglePrincipalArea(paCode, mode = 'edit') {
   const subRegions = principalAreaSubRegionsMap[paCode] || [];
-  if (mode === 'add') {
-    addForm.region_code = paCode;
-    selectedSingleRegionsAdd.value = [...subRegions];
+  const targetPA = mode === 'add' ? selectedPrincipalAreasAdd : selectedPrincipalAreasEdit;
+  const targetSingle = mode === 'add' ? selectedSingleRegionsAdd : selectedSingleRegions;
+
+  const idx = targetPA.value.indexOf(paCode);
+  if (idx > -1) {
+    // Unselect PA dan hapus sub-regionnya
+    targetPA.value.splice(idx, 1);
+    targetSingle.value = targetSingle.value.filter(r => !subRegions.includes(r));
   } else {
-    editForm.region_code = paCode;
-    selectedSingleRegions.value = [...subRegions];
+    // Select PA dan tambahkan semua sub-regionnya
+    targetPA.value.push(paCode);
+    subRegions.forEach(sr => {
+      if (!targetSingle.value.includes(sr)) {
+        targetSingle.value.push(sr);
+      }
+    });
+  }
+  syncRegionCodeForm(mode);
+}
+
+// Handler saat Checkbox "Semua Region (Global)" diklik
+function selectAllRegions(mode = 'edit') {
+  const allSingleCodes = (props.regions || []).map(r => r.region_code || r);
+  const allPACodes = (props.principalAreas || []).map(p => p.region_code);
+
+  if (mode === 'add') {
+    selectedSingleRegionsAdd.value = [...allSingleCodes];
+    selectedPrincipalAreasAdd.value = [...allPACodes];
+    addForm.region_code = ''; // Global Scope
+    regionErrorAdd.value = '';
+  } else {
+    selectedSingleRegions.value = [...allSingleCodes];
+    selectedPrincipalAreasEdit.value = [...allPACodes];
+    editForm.region_code = ''; // Global Scope
+    regionErrorEdit.value = '';
   }
 }
 
 function onSingleRegionToggle(mode = 'edit') {
+  syncRegionCodeForm(mode);
+}
+
+function syncRegionCodeForm(mode = 'edit') {
   if (mode === 'add') {
     addForm.region_code = selectedSingleRegionsAdd.value.join(',');
+    regionErrorAdd.value = '';
   } else {
     editForm.region_code = selectedSingleRegions.value.join(',');
+    regionErrorEdit.value = '';
   }
 }
 
@@ -73,9 +114,13 @@ function clearRegionSelection(mode = 'edit') {
   if (mode === 'add') {
     addForm.region_code = '';
     selectedSingleRegionsAdd.value = [];
+    selectedPrincipalAreasAdd.value = [];
+    regionErrorAdd.value = '';
   } else {
     editForm.region_code = '';
     selectedSingleRegions.value = [];
+    selectedPrincipalAreasEdit.value = [];
+    regionErrorEdit.value = '';
   }
 }
 
@@ -171,10 +216,15 @@ function handleSearch() {
 }
 
 function submitAddAccount() {
+  if (addForm.role !== 'SUPERADMIN' && selectedSingleRegionsAdd.value.length === 0 && addForm.region_code !== '') {
+    regionErrorAdd.value = 'Wilayah Operasional (Region Scope) wajib dipilih minimal 1 region.';
+    return;
+  }
   addForm.post(route('edp.account_management.store'), {
     onSuccess: () => {
       isAddModalOpen.value = false;
       addForm.reset();
+      clearRegionSelection('add');
     },
   });
 }
@@ -190,22 +240,27 @@ function openEditModal(acc) {
   // Auto populate selected single regions checkboxes
   if (acc.region_code) {
     const codes = acc.region_code.split(',').map(s => s.trim());
-    const paSubRegions = principalAreaSubRegionsMap[acc.region_code];
-    if (paSubRegions) {
-      selectedSingleRegions.value = [...paSubRegions];
-    } else {
-      selectedSingleRegions.value = codes;
-    }
+    selectedSingleRegions.value = codes;
+    selectedPrincipalAreasEdit.value = Object.keys(principalAreaSubRegionsMap).filter(pa => {
+      const sub = principalAreaSubRegionsMap[pa];
+      return sub.every(s => codes.includes(s));
+    });
   } else {
     selectedSingleRegions.value = [];
+    selectedPrincipalAreasEdit.value = [];
   }
 }
 
 function submitEditAccount() {
   if (!editingAccount.value) return;
+  if (editForm.role !== 'SUPERADMIN' && selectedSingleRegions.value.length === 0 && editForm.region_code !== '') {
+    regionErrorEdit.value = 'Wilayah Operasional (Region Scope) wajib dipilih minimal 1 region.';
+    return;
+  }
   editForm.put(route('edp.account_management.update', editingAccount.value.id), {
     onSuccess: () => {
       editingAccount.value = null;
+      clearRegionSelection('edit');
     },
   });
 }
@@ -499,38 +554,52 @@ function formatRole(role) {
                 </div>
               </div>
 
-              <!-- REGION SCOPE / AREA COVERAGE -->
+              <!-- REGION SCOPE / WILAYAH OPERASIONAL -->
               <div class="pt-2">
-                <label class="block text-xs font-bold uppercase tracking-wider text-gray-700 mb-2">REGION SCOPE / WILAYAH OPERASIONAL</label>
-                <div class="max-h-52 overflow-y-auto space-y-2 p-3 border border-gray-200 rounded-xl bg-gray-50/60">
-                  <!-- Global All Regions -->
-                  <label class="flex items-center gap-2.5 text-xs font-bold text-gray-900 cursor-pointer">
-                    <input type="radio" v-model="addForm.region_code" value="" @change="selectedSingleRegionsAdd = []" class="w-4 h-4 text-emerald-600 focus:ring-emerald-500" />
-                    <span>🌐 Semua Region (Global / Superadmin)</span>
-                  </label>
+                <div class="flex items-center justify-between mb-1.5">
+                  <label class="block text-xs font-bold uppercase tracking-wider text-gray-700">REGION SCOPE / WILAYAH OPERASIONAL <span class="text-rose-500">*</span></label>
+                  <button type="button" v-if="addForm.region_code || selectedSingleRegionsAdd.length > 0" @click="clearRegionSelection('add')" class="text-[11px] font-bold text-rose-600 hover:text-rose-800 underline cursor-pointer">Unselect / Reset Pilihan</button>
+                </div>
+                <div class="max-h-60 overflow-y-auto space-y-3 p-3.5 border border-gray-200 rounded-xl bg-gray-50/70">
+                  
+                  <!-- SECTION 1: GLOBAL / ALL REGIONS -->
+                  <div class="p-2.5 bg-white rounded-lg border border-gray-200 shadow-2xs">
+                    <div class="text-[10px] font-black text-gray-500 uppercase tracking-wider mb-1">SECTION 1: GLOBAL</div>
+                    <label class="flex items-center gap-2.5 text-xs font-bold text-gray-900 cursor-pointer">
+                      <input 
+                        type="checkbox" 
+                        :checked="addForm.region_code === '' && selectedSingleRegionsAdd.length === 0" 
+                        @change="selectAllRegions('add')" 
+                        class="w-4 h-4 text-purple-600 focus:ring-purple-500 rounded-xs" 
+                      />
+                      <span>🌐 Semua Region (Global Scope / Superadmin)</span>
+                    </label>
+                  </div>
 
-                  <!-- Principal Area -->
-                  <div v-if="principalAreas && principalAreas.length > 0" class="pt-2 border-t border-gray-200">
-                    <div class="text-[10px] font-extrabold text-blue-800 uppercase tracking-wider mb-1.5 flex items-center justify-between">
-                      <span>⭐ PRINCIPAL AREA (MENCAKUP BEBERAPA SUB-REGION)</span>
-                      <button type="button" v-if="addForm.region_code" @click="clearRegionSelection('add')" class="text-[10px] text-rose-600 hover:underline normal-case">Reset Pilihan</button>
-                    </div>
+                  <!-- SECTION 2: PRINCIPAL AREA -->
+                  <div v-if="principalAreas && principalAreas.length > 0" class="p-2.5 bg-white rounded-lg border border-blue-100 shadow-2xs">
+                    <div class="text-[10px] font-black text-blue-800 uppercase tracking-wider mb-1.5">SECTION 2: PRINCIPAL AREA (MENCAKUP BEBERAPA SUB-REGION)</div>
                     <div class="space-y-1.5">
-                      <label v-for="pa in principalAreas" :key="pa.region_code" class="flex items-center gap-2.5 text-xs text-gray-800 font-semibold cursor-pointer">
-                        <input type="radio" v-model="addForm.region_code" :value="pa.region_code" @change="onPrincipalAreaSelect(pa.region_code, 'add')" class="w-4 h-4 text-blue-600 focus:ring-blue-500" />
+                      <label v-for="pa in principalAreas" :key="pa.region_code" class="flex items-center gap-2.5 text-xs text-gray-800 font-bold cursor-pointer hover:bg-blue-50/50 p-1 rounded-md transition">
+                        <input 
+                          type="checkbox" 
+                          :checked="selectedPrincipalAreasAdd.includes(pa.region_code)" 
+                          @change="togglePrincipalArea(pa.region_code, 'add')" 
+                          class="w-4 h-4 text-blue-600 focus:ring-blue-500 rounded-xs" 
+                        />
                         <span>⭐ {{ pa.region_name }}</span>
                       </label>
                     </div>
                   </div>
 
-                  <!-- Single Regions (Multiple Select Checkboxes) -->
-                  <div class="pt-2 border-t border-gray-200">
-                    <div class="text-[10px] font-extrabold text-emerald-800 uppercase tracking-wider mb-1.5 flex items-center justify-between">
-                      <span>📍 SPESIFIK SINGLE REGION (BISA PILIH LEBIH DARI SATU)</span>
-                      <span v-if="selectedSingleRegionsAdd.length > 0" class="text-[10px] text-emerald-700 font-bold">({{ selectedSingleRegionsAdd.length }} Terpilih)</span>
+                  <!-- SECTION 3: SPESIFIK SINGLE REGION (MULTIPLE SELECT) -->
+                  <div class="p-2.5 bg-white rounded-lg border border-emerald-100 shadow-2xs">
+                    <div class="text-[10px] font-black text-emerald-800 uppercase tracking-wider mb-1.5 flex items-center justify-between">
+                      <span>SECTION 3: SPESIFIK SINGLE REGION (BISA PILIH LEBIH DARI SATU)</span>
+                      <span v-if="selectedSingleRegionsAdd.length > 0" class="text-[10px] text-emerald-700 font-extrabold bg-emerald-50 px-2 py-0.5 rounded-full border border-emerald-200">({{ selectedSingleRegionsAdd.length }} Terpilih)</span>
                     </div>
-                    <div class="space-y-1.5">
-                      <label v-for="r in regions" :key="r.region_code || r" class="flex items-center gap-2.5 text-xs text-gray-800 font-semibold cursor-pointer">
+                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-1.5">
+                      <label v-for="r in regions" :key="r.region_code || r" class="flex items-center gap-2 text-xs text-gray-800 font-semibold cursor-pointer hover:bg-emerald-50/50 p-1 rounded-md transition">
                         <input 
                           type="checkbox" 
                           :value="r.region_code || r" 
@@ -538,11 +607,13 @@ function formatRole(role) {
                           @change="onSingleRegionToggle('add')"
                           class="w-4 h-4 text-emerald-600 focus:ring-emerald-500 rounded-xs" 
                         />
-                        <span>{{ r.region_code ? `${r.region_code} - ${r.region_name}` : r }}</span>
+                        <span class="truncate">{{ r.region_code ? `${r.region_code} - ${r.region_name}` : r }}</span>
                       </label>
                     </div>
                   </div>
+
                 </div>
+                <p v-if="regionErrorAdd" class="text-[11px] font-bold text-rose-600 mt-1">⚠️ {{ regionErrorAdd }}</p>
               </div>
 
               <!-- Footer Buttons -->
@@ -598,38 +669,52 @@ function formatRole(role) {
                 </div>
               </div>
 
-              <!-- REGION SCOPE / AREA COVERAGE -->
+              <!-- REGION SCOPE / WILAYAH OPERASIONAL -->
               <div class="pt-2">
-                <label class="block text-xs font-bold uppercase tracking-wider text-gray-700 mb-2">REGION SCOPE / WILAYAH OPERASIONAL</label>
-                <div class="max-h-52 overflow-y-auto space-y-2 p-3 border border-gray-200 rounded-xl bg-gray-50/60">
-                  <!-- Global All Regions -->
-                  <label class="flex items-center gap-2.5 text-xs font-bold text-gray-900 cursor-pointer">
-                    <input type="radio" v-model="editForm.region_code" value="" @change="selectedSingleRegions = []" class="w-4 h-4 text-emerald-600 focus:ring-emerald-500" />
-                    <span>🌐 Semua Region (Global / Superadmin)</span>
-                  </label>
+                <div class="flex items-center justify-between mb-1.5">
+                  <label class="block text-xs font-bold uppercase tracking-wider text-gray-700">REGION SCOPE / WILAYAH OPERASIONAL <span class="text-rose-500">*</span></label>
+                  <button type="button" v-if="editForm.region_code || selectedSingleRegions.length > 0" @click="clearRegionSelection('edit')" class="text-[11px] font-bold text-rose-600 hover:text-rose-800 underline cursor-pointer">Unselect / Reset Pilihan</button>
+                </div>
+                <div class="max-h-60 overflow-y-auto space-y-3 p-3.5 border border-gray-200 rounded-xl bg-gray-50/70">
+                  
+                  <!-- SECTION 1: GLOBAL / ALL REGIONS -->
+                  <div class="p-2.5 bg-white rounded-lg border border-gray-200 shadow-2xs">
+                    <div class="text-[10px] font-black text-gray-500 uppercase tracking-wider mb-1">SECTION 1: GLOBAL</div>
+                    <label class="flex items-center gap-2.5 text-xs font-bold text-gray-900 cursor-pointer">
+                      <input 
+                        type="checkbox" 
+                        :checked="editForm.region_code === '' && selectedSingleRegions.length === 0" 
+                        @change="selectAllRegions('edit')" 
+                        class="w-4 h-4 text-purple-600 focus:ring-purple-500 rounded-xs" 
+                      />
+                      <span>🌐 Semua Region (Global Scope / Superadmin)</span>
+                    </label>
+                  </div>
 
-                  <!-- Principal Area -->
-                  <div v-if="principalAreas && principalAreas.length > 0" class="pt-2 border-t border-gray-200">
-                    <div class="text-[10px] font-extrabold text-blue-800 uppercase tracking-wider mb-1.5 flex items-center justify-between">
-                      <span>⭐ PRINCIPAL AREA (MENCAKUP BEBERAPA SUB-REGION)</span>
-                      <button type="button" v-if="editForm.region_code" @click="clearRegionSelection('edit')" class="text-[10px] text-rose-600 hover:underline normal-case">Reset Pilihan</button>
-                    </div>
+                  <!-- SECTION 2: PRINCIPAL AREA -->
+                  <div v-if="principalAreas && principalAreas.length > 0" class="p-2.5 bg-white rounded-lg border border-blue-100 shadow-2xs">
+                    <div class="text-[10px] font-black text-blue-800 uppercase tracking-wider mb-1.5">SECTION 2: PRINCIPAL AREA (MENCAKUP BEBERAPA SUB-REGION)</div>
                     <div class="space-y-1.5">
-                      <label v-for="pa in principalAreas" :key="pa.region_code" class="flex items-center gap-2.5 text-xs text-gray-800 font-semibold cursor-pointer">
-                        <input type="radio" v-model="editForm.region_code" :value="pa.region_code" @change="onPrincipalAreaSelect(pa.region_code, 'edit')" class="w-4 h-4 text-blue-600 focus:ring-blue-500" />
+                      <label v-for="pa in principalAreas" :key="pa.region_code" class="flex items-center gap-2.5 text-xs text-gray-800 font-bold cursor-pointer hover:bg-blue-50/50 p-1 rounded-md transition">
+                        <input 
+                          type="checkbox" 
+                          :checked="selectedPrincipalAreasEdit.includes(pa.region_code)" 
+                          @change="togglePrincipalArea(pa.region_code, 'edit')" 
+                          class="w-4 h-4 text-blue-600 focus:ring-blue-500 rounded-xs" 
+                        />
                         <span>⭐ {{ pa.region_name }}</span>
                       </label>
                     </div>
                   </div>
 
-                  <!-- Single Regions (Multiple Select Checkboxes) -->
-                  <div class="pt-2 border-t border-gray-200">
-                    <div class="text-[10px] font-extrabold text-emerald-800 uppercase tracking-wider mb-1.5 flex items-center justify-between">
-                      <span>📍 SPESIFIK SINGLE REGION (BISA PILIH LEBIH DARI SATU)</span>
-                      <span v-if="selectedSingleRegions.length > 0" class="text-[10px] text-emerald-700 font-bold">({{ selectedSingleRegions.length }} Terpilih)</span>
+                  <!-- SECTION 3: SPESIFIK SINGLE REGION (MULTIPLE SELECT) -->
+                  <div class="p-2.5 bg-white rounded-lg border border-emerald-100 shadow-2xs">
+                    <div class="text-[10px] font-black text-emerald-800 uppercase tracking-wider mb-1.5 flex items-center justify-between">
+                      <span>SECTION 3: SPESIFIK SINGLE REGION (BISA PILIH LEBIH DARI SATU)</span>
+                      <span v-if="selectedSingleRegions.length > 0" class="text-[10px] text-emerald-700 font-extrabold bg-emerald-50 px-2 py-0.5 rounded-full border border-emerald-200">({{ selectedSingleRegions.length }} Terpilih)</span>
                     </div>
-                    <div class="space-y-1.5">
-                      <label v-for="r in regions" :key="r.region_code || r" class="flex items-center gap-2.5 text-xs text-gray-800 font-semibold cursor-pointer">
+                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-1.5">
+                      <label v-for="r in regions" :key="r.region_code || r" class="flex items-center gap-2 text-xs text-gray-800 font-semibold cursor-pointer hover:bg-emerald-50/50 p-1 rounded-md transition">
                         <input 
                           type="checkbox" 
                           :value="r.region_code || r" 
@@ -637,11 +722,13 @@ function formatRole(role) {
                           @change="onSingleRegionToggle('edit')"
                           class="w-4 h-4 text-emerald-600 focus:ring-emerald-500 rounded-xs" 
                         />
-                        <span>{{ r.region_code ? `${r.region_code} - ${r.region_name}` : r }}</span>
+                        <span class="truncate">{{ r.region_code ? `${r.region_code} - ${r.region_name}` : r }}</span>
                       </label>
                     </div>
                   </div>
+
                 </div>
+                <p v-if="regionErrorEdit" class="text-[11px] font-bold text-rose-600 mt-1">⚠️ {{ regionErrorEdit }}</p>
               </div>
 
               <!-- STATUS AKUN RADIO BUTTONS -->
