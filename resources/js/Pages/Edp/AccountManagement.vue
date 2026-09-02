@@ -36,6 +36,49 @@ const editForm = useForm({
   is_active: true,
 });
 
+// State Multiple Select Single Region
+const selectedSingleRegionsAdd = ref([]);
+const selectedSingleRegions = ref([]);
+
+// Mapping Sub-Region untuk auto select saat Principal Area di-klik
+const principalAreaSubRegionsMap = {
+  'ASWSUM': ['ASWSUM1', 'ASWSUM2', 'ASWSUM3'],
+  'ASWJWA': ['ASWJWA1', 'ASWJWA2'],
+  'ASWPUL': ['ASWPUL1'],
+  'INAJWA': ['INAJWA1', 'INAJWA2'],
+  'INAPUL': ['INAPUL1'],
+  'INASUM': ['INASUM1', 'INASUM2'],
+};
+
+function onPrincipalAreaSelect(paCode, mode = 'edit') {
+  const subRegions = principalAreaSubRegionsMap[paCode] || [];
+  if (mode === 'add') {
+    addForm.region_code = paCode;
+    selectedSingleRegionsAdd.value = [...subRegions];
+  } else {
+    editForm.region_code = paCode;
+    selectedSingleRegions.value = [...subRegions];
+  }
+}
+
+function onSingleRegionToggle(mode = 'edit') {
+  if (mode === 'add') {
+    addForm.region_code = selectedSingleRegionsAdd.value.join(',');
+  } else {
+    editForm.region_code = selectedSingleRegions.value.join(',');
+  }
+}
+
+function clearRegionSelection(mode = 'edit') {
+  if (mode === 'add') {
+    addForm.region_code = '';
+    selectedSingleRegionsAdd.value = [];
+  } else {
+    editForm.region_code = '';
+    selectedSingleRegions.value = [];
+  }
+}
+
 // STATE MATRIKS HAK AKSES (Lengkap Sesuai Seluruh Menu Portal NOO+)
 const defaultMatrixData = [
   {
@@ -143,6 +186,19 @@ function openEditModal(acc) {
   editForm.role = acc.role || 'EDP_REGION';
   editForm.region_code = acc.region_code || '';
   editForm.is_active = Boolean(acc.is_active);
+
+  // Auto populate selected single regions checkboxes
+  if (acc.region_code) {
+    const codes = acc.region_code.split(',').map(s => s.trim());
+    const paSubRegions = principalAreaSubRegionsMap[acc.region_code];
+    if (paSubRegions) {
+      selectedSingleRegions.value = [...paSubRegions];
+    } else {
+      selectedSingleRegions.value = codes;
+    }
+  } else {
+    selectedSingleRegions.value = [];
+  }
 }
 
 function submitEditAccount() {
@@ -449,27 +505,39 @@ function formatRole(role) {
                 <div class="max-h-52 overflow-y-auto space-y-2 p-3 border border-gray-200 rounded-xl bg-gray-50/60">
                   <!-- Global All Regions -->
                   <label class="flex items-center gap-2.5 text-xs font-bold text-gray-900 cursor-pointer">
-                    <input type="radio" v-model="addForm.region_code" value="" class="w-4 h-4 text-emerald-600 focus:ring-emerald-500" />
+                    <input type="radio" v-model="addForm.region_code" value="" @change="selectedSingleRegionsAdd = []" class="w-4 h-4 text-emerald-600 focus:ring-emerald-500" />
                     <span>🌐 Semua Region (Global / Superadmin)</span>
                   </label>
 
                   <!-- Principal Area -->
                   <div v-if="principalAreas && principalAreas.length > 0" class="pt-2 border-t border-gray-200">
-                    <div class="text-[10px] font-extrabold text-blue-800 uppercase tracking-wider mb-1.5">⭐ PRINCIPAL AREA (MENCAKUP BEBERAPA SUB-REGION)</div>
+                    <div class="text-[10px] font-extrabold text-blue-800 uppercase tracking-wider mb-1.5 flex items-center justify-between">
+                      <span>⭐ PRINCIPAL AREA (MENCAKUP BEBERAPA SUB-REGION)</span>
+                      <button type="button" v-if="addForm.region_code" @click="clearRegionSelection('add')" class="text-[10px] text-rose-600 hover:underline normal-case">Reset Pilihan</button>
+                    </div>
                     <div class="space-y-1.5">
                       <label v-for="pa in principalAreas" :key="pa.region_code" class="flex items-center gap-2.5 text-xs text-gray-800 font-semibold cursor-pointer">
-                        <input type="radio" v-model="addForm.region_code" :value="pa.region_code" class="w-4 h-4 text-blue-600 focus:ring-blue-500" />
-                        <span>⭐ {{ pa.region_name }} ({{ pa.region_code }})</span>
+                        <input type="radio" v-model="addForm.region_code" :value="pa.region_code" @change="onPrincipalAreaSelect(pa.region_code, 'add')" class="w-4 h-4 text-blue-600 focus:ring-blue-500" />
+                        <span>⭐ {{ pa.region_name }}</span>
                       </label>
                     </div>
                   </div>
 
-                  <!-- Single Regions -->
+                  <!-- Single Regions (Multiple Select Checkboxes) -->
                   <div class="pt-2 border-t border-gray-200">
-                    <div class="text-[10px] font-extrabold text-emerald-800 uppercase tracking-wider mb-1.5">📍 SPESIFIK SINGLE REGION</div>
+                    <div class="text-[10px] font-extrabold text-emerald-800 uppercase tracking-wider mb-1.5 flex items-center justify-between">
+                      <span>📍 SPESIFIK SINGLE REGION (BISA PILIH LEBIH DARI SATU)</span>
+                      <span v-if="selectedSingleRegionsAdd.length > 0" class="text-[10px] text-emerald-700 font-bold">({{ selectedSingleRegionsAdd.length }} Terpilih)</span>
+                    </div>
                     <div class="space-y-1.5">
                       <label v-for="r in regions" :key="r.region_code || r" class="flex items-center gap-2.5 text-xs text-gray-800 font-semibold cursor-pointer">
-                        <input type="radio" v-model="addForm.region_code" :value="r.region_code || r" class="w-4 h-4 text-emerald-600 focus:ring-emerald-500" />
+                        <input 
+                          type="checkbox" 
+                          :value="r.region_code || r" 
+                          v-model="selectedSingleRegionsAdd"
+                          @change="onSingleRegionToggle('add')"
+                          class="w-4 h-4 text-emerald-600 focus:ring-emerald-500 rounded-xs" 
+                        />
                         <span>{{ r.region_code ? `${r.region_code} - ${r.region_name}` : r }}</span>
                       </label>
                     </div>
@@ -534,26 +602,41 @@ function formatRole(role) {
               <div class="pt-2">
                 <label class="block text-xs font-bold uppercase tracking-wider text-gray-700 mb-2">REGION SCOPE / WILAYAH OPERASIONAL</label>
                 <div class="max-h-52 overflow-y-auto space-y-2 p-3 border border-gray-200 rounded-xl bg-gray-50/60">
+                  <!-- Global All Regions -->
                   <label class="flex items-center gap-2.5 text-xs font-bold text-gray-900 cursor-pointer">
-                    <input type="radio" v-model="editForm.region_code" value="" class="w-4 h-4 text-emerald-600 focus:ring-emerald-500" />
+                    <input type="radio" v-model="editForm.region_code" value="" @change="selectedSingleRegions = []" class="w-4 h-4 text-emerald-600 focus:ring-emerald-500" />
                     <span>🌐 Semua Region (Global / Superadmin)</span>
                   </label>
 
+                  <!-- Principal Area -->
                   <div v-if="principalAreas && principalAreas.length > 0" class="pt-2 border-t border-gray-200">
-                    <div class="text-[10px] font-extrabold text-blue-800 uppercase tracking-wider mb-1.5">⭐ PRINCIPAL AREA (MENCAKUP BEBERAPA SUB-REGION)</div>
+                    <div class="text-[10px] font-extrabold text-blue-800 uppercase tracking-wider mb-1.5 flex items-center justify-between">
+                      <span>⭐ PRINCIPAL AREA (MENCAKUP BEBERAPA SUB-REGION)</span>
+                      <button type="button" v-if="editForm.region_code" @click="clearRegionSelection('edit')" class="text-[10px] text-rose-600 hover:underline normal-case">Reset Pilihan</button>
+                    </div>
                     <div class="space-y-1.5">
                       <label v-for="pa in principalAreas" :key="pa.region_code" class="flex items-center gap-2.5 text-xs text-gray-800 font-semibold cursor-pointer">
-                        <input type="radio" v-model="editForm.region_code" :value="pa.region_code" class="w-4 h-4 text-blue-600 focus:ring-blue-500" />
-                        <span>⭐ {{ pa.region_name }} ({{ pa.region_code }})</span>
+                        <input type="radio" v-model="editForm.region_code" :value="pa.region_code" @change="onPrincipalAreaSelect(pa.region_code, 'edit')" class="w-4 h-4 text-blue-600 focus:ring-blue-500" />
+                        <span>⭐ {{ pa.region_name }}</span>
                       </label>
                     </div>
                   </div>
 
+                  <!-- Single Regions (Multiple Select Checkboxes) -->
                   <div class="pt-2 border-t border-gray-200">
-                    <div class="text-[10px] font-extrabold text-emerald-800 uppercase tracking-wider mb-1.5">📍 SPESIFIK SINGLE REGION</div>
+                    <div class="text-[10px] font-extrabold text-emerald-800 uppercase tracking-wider mb-1.5 flex items-center justify-between">
+                      <span>📍 SPESIFIK SINGLE REGION (BISA PILIH LEBIH DARI SATU)</span>
+                      <span v-if="selectedSingleRegions.length > 0" class="text-[10px] text-emerald-700 font-bold">({{ selectedSingleRegions.length }} Terpilih)</span>
+                    </div>
                     <div class="space-y-1.5">
                       <label v-for="r in regions" :key="r.region_code || r" class="flex items-center gap-2.5 text-xs text-gray-800 font-semibold cursor-pointer">
-                        <input type="radio" v-model="editForm.region_code" :value="r.region_code || r" class="w-4 h-4 text-emerald-600 focus:ring-emerald-500" />
+                        <input 
+                          type="checkbox" 
+                          :value="r.region_code || r" 
+                          v-model="selectedSingleRegions"
+                          @change="onSingleRegionToggle('edit')"
+                          class="w-4 h-4 text-emerald-600 focus:ring-emerald-500 rounded-xs" 
+                        />
                         <span>{{ r.region_code ? `${r.region_code} - ${r.region_name}` : r }}</span>
                       </label>
                     </div>
