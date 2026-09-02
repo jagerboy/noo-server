@@ -38,6 +38,9 @@
     - **Perbaikan parsing `getCodeFromLabel`**: Menangani pemisahan ID cabang yang terpotong di UI Android secara aman agar `branch_id` (seperti `DAMGT001`) selalu terekstrak dengan presisi.
     - **Penyambungan PIN Branch Terpusat**: Menghapus `unset($b->pin_branch)` pada `MobileApiController.php` endpoint `/api/v1/master/branches` sehingga kolom `pin_branch` dari database PostgreSQL terkirim utuh ke aplikasi Android.
     - **Validasi PIN Cabang (`isPinValid`)**: Menggunakan perbandingan *case-insensitive*, penanganan *trimming*, dan perbandingan serba-luwes untuk memastikan PIN (seperti `3333`) pada cabang `DAMGT001` (Magetan) terverifikasi dengan akurat 100%.
+  - **Konfigurasi Network & Network Security (`ApiClient.kt`)**:
+    - `BASE_URL` disesuaikan ke `http://172.22.1.232:8000/api/v1/` menyesuaikan pemetaan Nginx Docker port `8000` di server produksi `172.22.1.232`.
+    - `network_security_config.xml` & `AndroidManifest.xml` dikonfigurasi `usesCleartextTraffic="true"` untuk mendukung HTTP non-SSL pada server lokal/internal.
   - **Frame Kamera KTP (`KtpOverlayView.kt`)**:
     - Lebar frame diperbesar hingga 93% dari lebar layar HP untuk foto *close-up* NIK/Nama yang tajam dan terbaca.
     - 100% aman di dalam Safe Zone 1:1 tanpa ada bagian KTP yang terpotong saat penempelan banner watermark foto.

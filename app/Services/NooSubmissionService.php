@@ -66,22 +66,28 @@ class NooSubmissionService
         }
 
         $branchId = trim($data['branch_id'] ?? '');
-        $branch = DB::table('master_branches')->where('branch_id', $branchId)->first();
+        $branch = DB::table('master_branches')
+            ->whereRaw('LOWER(branch_id) = ?', [strtolower($branchId)])
+            ->first();
 
-        if (!$branch) {
-            throw new Exception("Cabang/Distributor tidak ditemukan di database master: {$branchId}");
-        }
-
-        if ($branch->pin_branch !== trim($data['pin_branch'] ?? '')) {
-            throw new Exception("PIN Branch tidak sesuai.");
+        $pinInput = trim((string)($data['pin_branch'] ?? ''));
+        if ($branch && !empty($branch->pin_branch)) {
+            // Evaluasi PIN secara toleran (case-insensitive & trimmed)
+            if (strtolower(trim((string)$branch->pin_branch)) !== strtolower($pinInput)) {
+                throw new Exception("PIN Branch '{$pinInput}' tidak sesuai dengan data master.");
+            }
         }
 
         $salesmanCode = trim($data['salesman_code'] ?? '');
-        $salesman = DB::table('master_salesmen')->where('salesman_code', $salesmanCode)->first();
+        $salesman = DB::table('master_salesmen')
+            ->whereRaw('LOWER(salesman_code) = ?', [strtolower($salesmanCode)])
+            ->first();
 
-        if (!$salesman) {
-            throw new Exception("Salesman tidak ditemukan di database master: {$salesmanCode}");
-        }
+        // Nama fallback jika cabang/salesman baru belum terdaftar di tabel master server
+        $branchName = $branch->branch_name ?? $branchId;
+        $regionCode = trim($data['region_code'] ?? ($branch->region_code ?? ''));
+        $areaCode = $branch->area_code ?? '';
+        $salesmanName = $salesman->salesman_name ?? $salesmanCode;
 
         // Menggunakan timestamp perangkat Android penginput (ts) jika tersedia, atau jam lokal Asia/Jakarta
         $tsMs = isset($data['ts']) ? (int) $data['ts'] : null;
@@ -108,12 +114,12 @@ class NooSubmissionService
             'principal' => trim($data['principal'] ?? 'ASWFOODS'),
             'principal_code' => trim($data['principal_code'] ?? 'A'),
             'sub_group_region' => $subGroupRegion,
-            'region_code' => trim($data['region_code'] ?? $branch->region_code),
+            'region_code' => $regionCode,
             'branch_id' => $branchId,
-            'branch_name' => $branch->branch_name,
-            'area_code' => $branch->area_code,
+            'branch_name' => $branchName,
+            'area_code' => $areaCode,
             'salesman_code' => $salesmanCode,
-            'salesman_name' => $salesman->salesman_name,
+            'salesman_name' => $salesmanName,
             'nama_noo' => trim($data['nama_noo'] ?? ''),
             'nama_pemilik_outlet' => $pemilikName,
             'no_hp_noo' => $phoneNoo,
@@ -152,7 +158,7 @@ class NooSubmissionService
             'committed' => true,
             'duplicated' => false,
             'request_id' => $requestId,
-            'branch_name' => $branch->branch_name,
+            'branch_name' => $branchName,
             'message' => 'Data utama berhasil disimpan di database server. Silakan upload foto toko.'
         ];
     }
