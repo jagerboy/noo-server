@@ -1034,36 +1034,58 @@ class EdpMasterController extends Controller
         ]);
 
         $file = $request->file('file');
-        $handle = fopen($file->getRealPath(), 'r');
-        if (!$handle) {
-            return back()->with('error', 'Gagal membaca berkas CSV.');
-        }
-
-        $header = fgetcsv($handle);
+        $ext = strtolower($file->getClientOriginalExtension());
         $inserted = 0;
 
         try {
+            $rows = [];
+            if (in_array($ext, ['xlsx', 'xls'])) {
+                $spreadsheet = \PhpOffice\PhpSpreadsheet\IOFactory::load($file->getRealPath());
+                $sheet = $spreadsheet->getActiveSheet();
+                $rawRows = $sheet->toArray();
+                // Skip header row
+                if (count($rawRows) > 1) {
+                    $rows = array_slice($rawRows, 1);
+                }
+            } else {
+                $handle = fopen($file->getRealPath(), 'r');
+                if (!$handle) {
+                    return back()->with('error', 'Gagal membaca berkas CSV.');
+                }
+                fgetcsv($handle); // Skip header row
+                while (($data = fgetcsv($handle)) !== false) {
+                    $rows[] = $data;
+                }
+                fclose($handle);
+            }
+
             DB::beginTransaction();
 
-            while (($row = fgetcsv($handle)) !== false) {
-                if (empty($row) || count($row) === 0 || empty(trim($row[0]))) continue;
+            foreach ($rows as $row) {
+                if (empty($row) || !is_array($row)) continue;
+
+                // Normalize cells (handle null values safely)
+                $r = array_map(fn($v) => is_null($v) ? '' : trim((string)$v), $row);
+
+                // Skip if first column (or entire row) is empty
+                if (empty(implode('', $r)) || (isset($r[0]) && $r[0] === '')) continue;
 
                 switch (strtolower($type)) {
                     case 'branch':
-                        if (count($row) >= 8) {
-                            $branchId = strtoupper(trim($row[7]));
+                        if (count($r) >= 8 && !empty($r[7])) {
+                            $branchId = strtoupper($r[7]);
                             DB::table('master_branches')->updateOrInsert(
                                 ['branch_id' => $branchId],
                                 [
-                                    'region_code' => strtoupper(trim($row[0] ?? '')),
-                                    'region_name' => trim($row[1] ?? ''),
-                                    'principal_code' => strtoupper(trim($row[2] ?? 'A')),
-                                    'principal_name' => trim($row[3] ?? 'ASWFOODS'),
-                                    'entity_code_principal' => strtoupper(trim($row[4] ?? 'ASW')),
-                                    'entity_name_principal' => trim($row[5] ?? ''),
-                                    'area_code' => strtoupper(trim($row[6] ?? '')),
-                                    'branch_name' => trim($row[8] ?? ''),
-                                    'pin_branch' => trim($row[9] ?? '123456'),
+                                    'region_code' => strtoupper($r[0] ?? ''),
+                                    'region_name' => $r[1] ?? '',
+                                    'principal_code' => !empty($r[2]) ? strtoupper($r[2]) : 'A',
+                                    'principal_name' => !empty($r[3]) ? $r[3] : 'ASWFOODS',
+                                    'entity_code_principal' => !empty($r[4]) ? strtoupper($r[4]) : 'ASW',
+                                    'entity_name_principal' => $r[5] ?? '',
+                                    'area_code' => strtoupper($r[6] ?? ''),
+                                    'branch_name' => $r[8] ?? '',
+                                    'pin_branch' => !empty($r[9]) ? $r[9] : '123456',
                                     'is_active' => true,
                                     'updated_at' => now(),
                                 ]
@@ -1073,19 +1095,19 @@ class EdpMasterController extends Controller
                         break;
 
                     case 'salesman':
-                        if (count($row) >= 3) {
-                            $salesmanCode = strtoupper(trim($row[0]));
-                            $branchId = strtoupper(trim($row[2] ?? ''));
+                        if (count($r) >= 3 && !empty($r[0])) {
+                            $salesmanCode = strtoupper($r[0]);
+                            $branchId = strtoupper($r[2] ?? '');
 
                             if (!empty($branchId)) {
                                 $branchExists = DB::table('master_branches')->where('branch_id', $branchId)->exists();
                                 if (!$branchExists) {
                                     DB::table('master_branches')->insert([
-                                        'region_code' => isset($row[3]) ? strtoupper(trim($row[3])) : 'ASWSUM1',
+                                        'region_code' => !empty($r[3]) ? strtoupper($r[3]) : 'ASWSUM1',
                                         'region_name' => 'SUMATERA 1',
                                         'principal_code' => 'A',
                                         'principal_name' => 'ASWFOODS',
-                                        'entity_code_principal' => isset($row[4]) ? strtoupper(trim($row[4])) : 'ASW',
+                                        'entity_code_principal' => !empty($r[4]) ? strtoupper($r[4]) : 'ASW',
                                         'branch_id' => $branchId,
                                         'branch_name' => "DISTRIBUTOR {$branchId}",
                                         'pin_branch' => '123456',
@@ -1099,10 +1121,10 @@ class EdpMasterController extends Controller
                             DB::table('master_salesmen')->updateOrInsert(
                                 ['salesman_code' => $salesmanCode],
                                 [
-                                    'salesman_name' => trim($row[1] ?? ''),
+                                    'salesman_name' => $r[1] ?? '',
                                     'branch_id' => $branchId,
-                                    'region_code' => isset($row[3]) ? strtoupper(trim($row[3])) : null,
-                                    'entity_code_principal' => isset($row[4]) ? strtoupper(trim($row[4])) : null,
+                                    'region_code' => !empty($r[3]) ? strtoupper($r[3]) : null,
+                                    'entity_code_principal' => !empty($r[4]) ? strtoupper($r[4]) : null,
                                     'is_active' => true,
                                     'updated_at' => now(),
                                 ]
@@ -1112,9 +1134,9 @@ class EdpMasterController extends Controller
                         break;
 
                     case 'spv':
-                        if (count($row) >= 4) {
-                            $salescode = strtoupper(trim($row[0]));
-                            $branchId = strtoupper(trim($row[3] ?? ''));
+                        if (count($r) >= 4 && !empty($r[0])) {
+                            $salescode = strtoupper($r[0]);
+                            $branchId = strtoupper($r[3] ?? '');
 
                             if (!empty($branchId)) {
                                 $branchExists = DB::table('master_branches')->where('branch_id', $branchId)->exists();
@@ -1138,11 +1160,11 @@ class EdpMasterController extends Controller
                             DB::table('master_spvs')->updateOrInsert(
                                 ['salescode' => $salescode],
                                 [
-                                    'nama' => trim($row[1] ?? ''),
-                                    'password' => \Illuminate\Support\Facades\Hash::make(trim($row[2] ?? '123456')),
+                                    'nama' => $r[1] ?? '',
+                                    'password' => \Illuminate\Support\Facades\Hash::make(!empty($r[2]) ? $r[2] : '123456'),
                                     'branch_id' => $branchId,
-                                    'area' => isset($row[4]) ? trim($row[4]) : null,
-                                    'distributor_name' => isset($row[5]) ? trim($row[5]) : null,
+                                    'area' => !empty($r[4]) ? $r[4] : null,
+                                    'distributor_name' => !empty($r[5]) ? $r[5] : null,
                                     'is_active' => true,
                                     'updated_at' => now(),
                                 ]
@@ -1152,18 +1174,18 @@ class EdpMasterController extends Controller
                         break;
 
                     case 'counter_sequence':
-                        if (count($row) >= 5) {
-                            $principalCode = strtoupper(trim($row[0] ?? 'A'));
-                            $branchId = strtoupper(trim($row[2] ?? ''));
+                        if (count($r) >= 5 && !empty($r[2])) {
+                            $principalCode = !empty($r[0]) ? strtoupper($r[0]) : 'A';
+                            $branchId = strtoupper($r[2]);
                             DB::table('counter_sequences')->updateOrInsert(
                                 [
                                     'principal_code' => $principalCode,
                                     'branch_id' => $branchId,
                                 ],
                                 [
-                                    'area_code' => trim($row[1] ?? ''),
-                                    'prefix' => strtoupper(trim($row[3] ?? '')),
-                                    'last_seq' => (int) trim($row[4] ?? 0),
+                                    'area_code' => $r[1] ?? '',
+                                    'prefix' => strtoupper($r[3] ?? ''),
+                                    'last_seq' => (int) ($r[4] ?? 0),
                                     'last_updated_at' => now(),
                                     'updated_at' => now(),
                                 ]
@@ -1174,7 +1196,6 @@ class EdpMasterController extends Controller
                 }
             }
 
-            fclose($handle);
             DB::commit();
 
             $this->logAction('BULK_UPLOAD', 'MASTER_DATA', "Melakukan Bulk Upload Master {$type}: {$inserted} baris data berhasil diimpor.");
@@ -1182,7 +1203,6 @@ class EdpMasterController extends Controller
             return back()->with('success', "📦 Bulk Upload Master Data " . strtoupper($type) . " Berhasil! Total {$inserted} baris data berhasil diimpor & diperbarui ke sistem.");
         } catch (\Throwable $e) {
             DB::rollBack();
-            if (is_resource($handle)) fclose($handle);
             return back()->with('error', 'Gagal memproses Bulk Upload: ' . $e->getMessage());
         }
     }
