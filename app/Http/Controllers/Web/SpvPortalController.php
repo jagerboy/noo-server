@@ -88,7 +88,7 @@ class SpvPortalController extends Controller
         $allSpvSubmissions = $statsBase->get();
         $stats = [
             'total' => $allSpvSubmissions->count(),
-            'pendingReview' => $allSpvSubmissions->where('status', NooStatusEnum::PUSHED_TO_SPV->value)->count(),
+            'pendingReview' => $allSpvSubmissions->filter(fn($i) => in_array($i->status, ['PUSHED_TO_SPV', 'ADMIN_APPROVED', NooStatusEnum::PUSHED_TO_SPV->value]))->count(),
             'approvedSpv' => $allSpvSubmissions->filter(fn($i) => in_array($i->status, ['APPROVED_SPV', 'APPROVED_BY_SPV', NooStatusEnum::APPROVED_SPV->value]))->count(),
             'approvedEdp' => $allSpvSubmissions->filter(fn($i) => in_array($i->status, ['APPROVED_EDP', 'EDP_APPROVED', NooStatusEnum::APPROVED_EDP->value]))->count(),
             'rejected' => $allSpvSubmissions->filter(fn($i) => in_array($i->status, ['REJECTED_SPV', 'SPV_REJECTED', 'REJECTED_EDP', 'EDP_REJECTED', 'ADMIN_REJECTED', 'REJECTED_ADMIN']))->count(),

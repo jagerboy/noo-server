@@ -78,6 +78,8 @@ const filteredSubmissions = computed(() => {
     const matchesStatus =
       statusFilter.value === 'ALL'
         ? true
+        : statusFilter.value === 'PUSHED_TO_SPV'
+        ? ['PUSHED_TO_SPV', 'ADMIN_APPROVED'].includes(item.status)
         : statusFilter.value === 'REJECTED'
         ? ['REJECTED_SPV', 'SPV_REJECTED', 'REJECTED_EDP', 'EDP_REJECTED', 'ADMIN_REJECTED', 'REJECTED_ADMIN'].includes(item.status)
         : item.status === statusFilter.value;
@@ -101,12 +103,14 @@ const sortSelect = computed({
     return `${sortKey.value}_${sortDir.value}`;
   },
   set(val) {
-    if (!val) return;
-    const parts = val.split('_');
-    const dir = parts.pop();
-    const key = parts.join('_');
-    sortKey.value = key;
-    sortDir.value = dir;
+    if (val === 'submitted_at_desc') {
+      sortKey.value = 'default_order';
+      sortDir.value = 'asc';
+    } else {
+      const parts = val.split('_');
+      sortDir.value = parts.pop();
+      sortKey.value = parts.join('_');
+    }
   },
 });
 
@@ -146,7 +150,7 @@ const stats = computed(() => {
   if (props.stats) return props.stats;
   const list = rawSubmissions.value;
   const total = list.length;
-  const pendingSpv = list.filter((i) => i.status === 'PUSHED_TO_SPV').length;
+  const pendingSpv = list.filter((i) => ['PUSHED_TO_SPV', 'ADMIN_APPROVED'].includes(i.status)).length;
   const approvedSpv = list.filter((i) => ['APPROVED_SPV', 'APPROVED_BY_SPV', 'PUSHED_TO_EDP'].includes(i.status)).length;
   const approvedEdp = list.filter((i) => ['APPROVED_EDP', 'EDP_APPROVED'].includes(i.status)).length;
   const rejected = list.filter((i) => ['REJECTED_SPV', 'SPV_REJECTED', 'REJECTED_EDP', 'EDP_REJECTED', 'ADMIN_REJECTED', 'REJECTED_ADMIN'].includes(i.status)).length;
