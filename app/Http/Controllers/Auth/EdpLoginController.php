@@ -46,6 +46,13 @@ class EdpLoginController extends Controller
         ->where('is_active', true)
         ->first();
 
+        // Cek kecocokan user dan password
+        if (!$user) {
+            return back()->withErrors([
+                'username' => 'USERNAME atau Password yang Anda masukkan salah.',
+            ]);
+        }
+
         // Cek kecocokan password (mendukung Plain Text & Bcrypt Hash secara aman)
         $storedPassword = (string) $user->password;
         $passwordValid = ($storedPassword === $password);
