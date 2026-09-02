@@ -519,9 +519,8 @@ const isBulkModalOpen = ref(false);
     <!-- BULK UPLOAD MODAL -->
     <BulkUploadModal
       :isOpen="isBulkModalOpen"
-      title="Bulk Import Master SPV Area (CSV)"
-      uploadRoute="edp.master_spv.bulk"
-      sampleCsvUrl="/samples/master_spv_sample.csv"
+      type="spv"
+      title="Master SPV Area"
       @close="isBulkModalOpen = false"
     />
   </EdpLayout>

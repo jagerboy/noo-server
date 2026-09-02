@@ -322,12 +322,10 @@ const isBulkModalOpen = ref(false);
       </div>
     </div>
 
-    <!-- BULK UPLOAD MODAL -->
     <BulkUploadModal
       :isOpen="isBulkModalOpen"
-      title="Bulk Import Master Salesman (CSV)"
-      uploadRoute="edp.master_salesman.bulk"
-      sampleCsvUrl="/samples/master_salesman_sample.csv"
+      type="salesman"
+      title="Master Salesman"
       @close="isBulkModalOpen = false"
     />
   </EdpLayout>

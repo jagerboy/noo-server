@@ -371,12 +371,10 @@ function toggleShowPins() {
       </div>
     </div>
 
-    <!-- BULK UPLOAD MODAL -->
     <BulkUploadModal
       :isOpen="isBulkModalOpen"
-      title="Bulk Import Master Branch (CSV)"
-      uploadRoute="edp.master_branch.bulk"
-      sampleCsvUrl="/samples/master_branch_sample.csv"
+      type="branch"
+      title="Master Branch"
       @close="isBulkModalOpen = false"
     />
   </EdpLayout>
