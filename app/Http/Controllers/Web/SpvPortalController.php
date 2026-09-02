@@ -33,15 +33,24 @@ class SpvPortalController extends Controller
             return redirect()->route('spv_login.create');
         }
 
-        // Cari cabang-cabang yang dinaungi SPV ini dari tabel master_spvs
-        $salescode = $user->salesman_code ?? '';
+        // Live Query: Cari seluruh cabang yang dinaungi SPV ini secara real-time dari master_spvs (hanya yang is_active = true)
+        $salescode = $user->salesman_code ?? $user->salescode ?? $user->username ?? '';
         $myBranches = [];
 
         if (!empty($salescode)) {
             $myBranches = DB::table('master_spvs')
                 ->where('salescode', $salescode)
+                ->where('is_active', true)
+                ->whereNotNull('branch_id')
+                ->where('branch_id', '!=', '')
                 ->pluck('branch_id')
+                ->unique()
                 ->toArray();
+        }
+
+        // Fallback jika tidak menemukan branch dari salescode, gunakan branch_id di session (bila ada)
+        if (empty($myBranches) && !empty($user->branch_id)) {
+            $myBranches = [$user->branch_id];
         }
 
         $query = DB::table('noo_submissions')
@@ -55,9 +64,6 @@ class SpvPortalController extends Controller
 
         if (!empty($myBranches)) {
             $query->whereIn('branch_id', $myBranches);
-        } else if (!empty($user->branch_id)) {
-            $myBranches = [$user->branch_id];
-            $query->where('branch_id', $user->branch_id);
         } else {
             $query->whereRaw('1 = 0');
         }
