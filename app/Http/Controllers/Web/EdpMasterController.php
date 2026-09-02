@@ -1171,11 +1171,13 @@ class EdpMasterController extends Controller
                             }
 
                             DB::table('master_spvs')->updateOrInsert(
-                                ['salescode' => $salescode],
+                                [
+                                    'salescode' => $salescode,
+                                    'branch_id' => $branchId,
+                                ],
                                 [
                                     'nama' => $r[1] ?? '',
                                     'password' => \Illuminate\Support\Facades\Hash::make(!empty($r[2]) ? $r[2] : '123456'),
-                                    'branch_id' => $branchId,
                                     'area' => !empty($r[4]) ? $r[4] : null,
                                     'distributor_name' => !empty($r[5]) ? $r[5] : null,
                                     'is_active' => true,
