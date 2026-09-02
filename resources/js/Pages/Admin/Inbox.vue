@@ -80,18 +80,28 @@ function cancelEditNamaOutlet() {
 
 function submitUpdateNamaOutlet() {
   if (!editNamaForm.nama_noo.trim()) return;
+  const newNama = editNamaForm.nama_noo.trim();
+  const requestId = editNamaForm.request_id;
+  
+  // Langsung sembunyikan form edit input/button Simpan & Batal
+  isEditingNamaOutlet.value = false;
+
   editNamaForm.post(route('admin.update_nama_outlet'), {
     preserveScroll: true,
     onSuccess: () => {
       if (selectedSubmission.value) {
-        selectedSubmission.value.nama_noo = editNamaForm.nama_noo.trim();
+        selectedSubmission.value.nama_noo = newNama;
       }
-      const targetSub = props.submissions.find(s => s.request_id === editNamaForm.request_id);
+      const rawList = Array.isArray(props.submissions) ? props.submissions : (props.submissions?.data || []);
+      const targetSub = rawList.find(s => s.request_id === requestId);
       if (targetSub) {
-        targetSub.nama_noo = editNamaForm.nama_noo.trim();
+        targetSub.nama_noo = newNama;
       }
-      isEditingNamaOutlet.value = false;
     },
+    onError: () => {
+      // Tampilkan kembali jika gagal
+      isEditingNamaOutlet.value = true;
+    }
   });
 }
 
