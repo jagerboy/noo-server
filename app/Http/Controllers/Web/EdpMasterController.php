@@ -1036,6 +1036,7 @@ class EdpMasterController extends Controller
         $file = $request->file('file');
         $ext = strtolower($file->getClientOriginalExtension());
         $inserted = 0;
+        $failedRows = [];
 
         try {
             $rows = [];
@@ -1043,7 +1044,6 @@ class EdpMasterController extends Controller
                 $spreadsheet = \PhpOffice\PhpSpreadsheet\IOFactory::load($file->getRealPath());
                 $sheet = $spreadsheet->getActiveSheet();
                 $rawRows = $sheet->toArray();
-                // Skip header row
                 if (count($rawRows) > 1) {
                     $rows = array_slice($rawRows, 1);
                 }
@@ -1052,28 +1052,31 @@ class EdpMasterController extends Controller
                 if (!$handle) {
                     return back()->with('error', 'Gagal membaca berkas CSV.');
                 }
-                fgetcsv($handle); // Skip header row
+                fgetcsv($handle);
                 while (($data = fgetcsv($handle)) !== false) {
                     $rows[] = $data;
                 }
                 fclose($handle);
             }
 
-            DB::beginTransaction();
+            foreach ($rows as $index => $row) {
+                $rowNumber = $index + 2;
 
-            foreach ($rows as $row) {
                 if (empty($row) || !is_array($row)) continue;
 
-                // Normalize cells (handle null values safely)
                 $r = array_map(fn($v) => is_null($v) ? '' : trim((string)$v), $row);
 
-                // Skip if first column (or entire row) is empty
-                if (empty(implode('', $r)) || (isset($r[0]) && $r[0] === '')) continue;
+                if (empty(implode('', $r))) continue;
 
-                switch (strtolower($type)) {
-                    case 'branch':
-                        if (count($r) >= 8 && !empty($r[7])) {
-                            $branchId = strtoupper($r[7]);
+                try {
+                    switch (strtolower($type)) {
+                        case 'branch':
+                            $branchId = strtoupper($r[7] ?? '');
+                            if (empty($branchId)) {
+                                $failedRows[] = "Baris {$rowNumber}: 'branch_id' (kolom H) tidak boleh kosong.";
+                                continue 2;
+                            }
+
                             DB::table('master_branches')->updateOrInsert(
                                 ['branch_id' => $branchId],
                                 [
@@ -1084,38 +1087,43 @@ class EdpMasterController extends Controller
                                     'entity_code_principal' => !empty($r[4]) ? strtoupper($r[4]) : 'ASW',
                                     'entity_name_principal' => $r[5] ?? '',
                                     'area_code' => strtoupper($r[6] ?? ''),
-                                    'branch_name' => $r[8] ?? '',
+                                    'branch_name' => $r[8] ?? "CABANG {$branchId}",
                                     'pin_branch' => !empty($r[9]) ? $r[9] : '123456',
                                     'is_active' => true,
                                     'updated_at' => now(),
                                 ]
                             );
                             $inserted++;
-                        }
-                        break;
+                            break;
 
-                    case 'salesman':
-                        if (count($r) >= 3 && !empty($r[0])) {
-                            $salesmanCode = strtoupper($r[0]);
+                        case 'salesman':
+                            $salesmanCode = strtoupper($r[0] ?? '');
                             $branchId = strtoupper($r[2] ?? '');
 
-                            if (!empty($branchId)) {
-                                $branchExists = DB::table('master_branches')->where('branch_id', $branchId)->exists();
-                                if (!$branchExists) {
-                                    DB::table('master_branches')->insert([
-                                        'region_code' => !empty($r[3]) ? strtoupper($r[3]) : 'ASWSUM1',
-                                        'region_name' => 'SUMATERA 1',
-                                        'principal_code' => 'A',
-                                        'principal_name' => 'ASWFOODS',
-                                        'entity_code_principal' => !empty($r[4]) ? strtoupper($r[4]) : 'ASW',
-                                        'branch_id' => $branchId,
-                                        'branch_name' => "DISTRIBUTOR {$branchId}",
-                                        'pin_branch' => '123456',
-                                        'is_active' => true,
-                                        'created_at' => now(),
-                                        'updated_at' => now(),
-                                    ]);
-                                }
+                            if (empty($salesmanCode)) {
+                                $failedRows[] = "Baris {$rowNumber}: 'salesman_code' (kolom A) wajib diisi.";
+                                continue 2;
+                            }
+                            if (empty($branchId)) {
+                                $failedRows[] = "Baris {$rowNumber} (Salesman '{$salesmanCode}'): 'branch_id' (kolom C) kosong / tidak diisi.";
+                                continue 2;
+                            }
+
+                            $branchExists = DB::table('master_branches')->where('branch_id', $branchId)->exists();
+                            if (!$branchExists) {
+                                DB::table('master_branches')->insert([
+                                    'region_code' => !empty($r[3]) ? strtoupper($r[3]) : 'ASWSUM1',
+                                    'region_name' => 'SUMATERA 1',
+                                    'principal_code' => 'A',
+                                    'principal_name' => 'ASWFOODS',
+                                    'entity_code_principal' => !empty($r[4]) ? strtoupper($r[4]) : 'ASW',
+                                    'branch_id' => $branchId,
+                                    'branch_name' => "DISTRIBUTOR {$branchId}",
+                                    'pin_branch' => '123456',
+                                    'is_active' => true,
+                                    'created_at' => now(),
+                                    'updated_at' => now(),
+                                ]);
                             }
 
                             DB::table('master_salesmen')->updateOrInsert(
@@ -1130,31 +1138,36 @@ class EdpMasterController extends Controller
                                 ]
                             );
                             $inserted++;
-                        }
-                        break;
+                            break;
 
-                    case 'spv':
-                        if (count($r) >= 4 && !empty($r[0])) {
-                            $salescode = strtoupper($r[0]);
+                        case 'spv':
+                            $salescode = strtoupper($r[0] ?? '');
                             $branchId = strtoupper($r[3] ?? '');
 
-                            if (!empty($branchId)) {
-                                $branchExists = DB::table('master_branches')->where('branch_id', $branchId)->exists();
-                                if (!$branchExists) {
-                                    DB::table('master_branches')->insert([
-                                        'region_code' => 'ASWSUM1',
-                                        'region_name' => 'SUMATERA 1',
-                                        'principal_code' => 'A',
-                                        'principal_name' => 'ASWFOODS',
-                                        'entity_code_principal' => 'ASW',
-                                        'branch_id' => $branchId,
-                                        'branch_name' => "DISTRIBUTOR {$branchId}",
-                                        'pin_branch' => '123456',
-                                        'is_active' => true,
-                                        'created_at' => now(),
-                                        'updated_at' => now(),
-                                    ]);
-                                }
+                            if (empty($salescode)) {
+                                $failedRows[] = "Baris {$rowNumber}: 'salescode' (kolom A) wajib diisi.";
+                                continue 2;
+                            }
+                            if (empty($branchId)) {
+                                $failedRows[] = "Baris {$rowNumber} (SPV '{$salescode}'): 'branch_id' (kolom D) kosong / tidak diisi.";
+                                continue 2;
+                            }
+
+                            $branchExists = DB::table('master_branches')->where('branch_id', $branchId)->exists();
+                            if (!$branchExists) {
+                                DB::table('master_branches')->insert([
+                                    'region_code' => 'ASWSUM1',
+                                    'region_name' => 'SUMATERA 1',
+                                    'principal_code' => 'A',
+                                    'principal_name' => 'ASWFOODS',
+                                    'entity_code_principal' => 'ASW',
+                                    'branch_id' => $branchId,
+                                    'branch_name' => "DISTRIBUTOR {$branchId}",
+                                    'pin_branch' => '123456',
+                                    'is_active' => true,
+                                    'created_at' => now(),
+                                    'updated_at' => now(),
+                                ]);
                             }
 
                             DB::table('master_spvs')->updateOrInsert(
@@ -1170,13 +1183,16 @@ class EdpMasterController extends Controller
                                 ]
                             );
                             $inserted++;
-                        }
-                        break;
+                            break;
 
-                    case 'counter_sequence':
-                        if (count($r) >= 5 && !empty($r[2])) {
+                        case 'counter_sequence':
+                            $branchId = strtoupper($r[2] ?? '');
+                            if (empty($branchId)) {
+                                $failedRows[] = "Baris {$rowNumber}: 'branch_id' (kolom C) wajib diisi.";
+                                continue 2;
+                            }
+
                             $principalCode = !empty($r[0]) ? strtoupper($r[0]) : 'A';
-                            $branchId = strtoupper($r[2]);
                             DB::table('counter_sequences')->updateOrInsert(
                                 [
                                     'principal_code' => $principalCode,
@@ -1191,19 +1207,31 @@ class EdpMasterController extends Controller
                                 ]
                             );
                             $inserted++;
-                        }
-                        break;
+                            break;
+                    }
+                } catch (\Throwable $rowEx) {
+                    $failedRows[] = "Baris {$rowNumber}: Gagal diimpor ({$rowEx->getMessage()})";
                 }
             }
 
-            DB::commit();
+            $this->logAction('BULK_UPLOAD', 'MASTER_DATA', "Bulk Upload Master {$type}: {$inserted} berhasil, " . count($failedRows) . " gagal.");
 
-            $this->logAction('BULK_UPLOAD', 'MASTER_DATA', "Melakukan Bulk Upload Master {$type}: {$inserted} baris data berhasil diimpor.");
+            if (count($failedRows) === 0) {
+                return back()->with('success', "📦 Bulk Upload Master Data " . strtoupper($type) . " Berhasil! Total {$inserted} baris data berhasil diimpor & diperbarui.");
+            }
 
-            return back()->with('success', "📦 Bulk Upload Master Data " . strtoupper($type) . " Berhasil! Total {$inserted} baris data berhasil diimpor & diperbarui ke sistem.");
+            $errorDetailMsg = implode(' | ', array_slice($failedRows, 0, 5));
+            if (count($failedRows) > 5) {
+                $errorDetailMsg .= " (dan " . (count($failedRows) - 5) . " baris lainnya)...";
+            }
+
+            if ($inserted > 0) {
+                return back()->with('warning', "⚠️ Bulk Upload Selesai Sebagian. Berhasil: {$inserted} baris. Gagal: " . count($failedRows) . " baris. Rincian: {$errorDetailMsg}");
+            }
+
+            return back()->with('error', "❌ Bulk Upload Gagal (" . count($failedRows) . " baris bermasalah). Rincian: {$errorDetailMsg}");
+
         } catch (\Throwable $e) {
-            DB::rollBack();
             return back()->with('error', 'Gagal memproses Bulk Upload: ' . $e->getMessage());
         }
     }
-}
