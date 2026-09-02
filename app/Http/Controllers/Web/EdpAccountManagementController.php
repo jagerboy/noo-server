@@ -58,11 +58,20 @@ class EdpAccountManagementController extends Controller
             ->orderBy('region_code')
             ->get();
 
-        // Mengelompokkan prefiks Region (contoh: ASWSUM untuk ASWSUM1, ASWSUM2, ASWSUM3)
-        $principalAreasMap = [];
+        // Definisi Principal Area standar
+        $defaultPrincipalAreasMap = [
+            'ASWSUM' => ['region_code' => 'ASWSUM', 'region_name' => 'Principal Area ASW SUMATERA (ASWSUM)'],
+            'ASWJWA' => ['region_code' => 'ASWJWA', 'region_name' => 'Principal Area ASW JAWA (ASWJWA)'],
+            'ASWPUL' => ['region_code' => 'ASWPUL', 'region_name' => 'Principal Area ASW PULAU (ASWPUL)'],
+            'INAJWA' => ['region_code' => 'INAJWA', 'region_name' => 'Principal Area INA JAWA (INAJWA)'],
+            'INAPUL' => ['region_code' => 'INAPUL', 'region_name' => 'Principal Area INA PULAU (INAPUL)'],
+            'INASUM' => ['region_code' => 'INASUM', 'region_name' => 'Principal Area INA SUMATERA (INASUM)'],
+        ];
+
+        // Mengelompokkan prefiks Region dari DB jika ada tambahan
+        $principalAreasMap = $defaultPrincipalAreasMap;
         foreach ($regions as $r) {
             $code = (string) $r->region_code;
-            // Ambil prefiks area tanpa angka di belakang (misal ASWSUM dari ASWSUM1, ASWSUM2)
             $prefix = preg_replace('/\d+$/', '', $code);
             if (!empty($prefix) && !isset($principalAreasMap[$prefix])) {
                 $cleanName = trim(preg_replace('/[0-9\-\.\_]+$/', '', (string) $r->region_name));
@@ -73,6 +82,40 @@ class EdpAccountManagementController extends Controller
             }
         }
         $principalAreas = array_values($principalAreasMap);
+
+        // Tambahkan single region standar jika belum ada di database
+        $defaultSingleRegionsMap = [
+            'ASWSUM1' => 'ASW SUMATERA 1',
+            'ASWSUM2' => 'ASW SUMATERA 2',
+            'ASWSUM3' => 'ASW SUMATERA 3',
+            'ASWJWA1' => 'ASW JAWA 1',
+            'ASWJWA2' => 'ASW JAWA 2',
+            'ASWPUL1' => 'ASW PULAU 1',
+            'INAJWA1' => 'INA JAWA 1',
+            'INAJWA2' => 'INA JAWA 2',
+            'INAPUL1' => 'INA PULAU 1',
+            'INASUM1' => 'INA SUMATERA 1',
+            'INASUM2' => 'INA SUMATERA 2',
+        ];
+
+        $existingRegionCodes = $regions->pluck('region_code')->toArray();
+        $regionsArray = $regions->toArray();
+
+        foreach ($defaultSingleRegionsMap as $code => $name) {
+            if (!in_array($code, $existingRegionCodes)) {
+                $regionsArray[] = (object) [
+                    'region_code' => $code,
+                    'region_name' => $name,
+                ];
+            }
+        }
+
+        // Urutkan regions berdasarkan region_code
+        usort($regionsArray, function ($a, $b) {
+            return strcmp((string)$a->region_code, (string)$b->region_code);
+        });
+
+        $regions = collect($regionsArray);
 
         return Inertia::render('Edp/AccountManagement', [
             'accounts' => $accounts,
