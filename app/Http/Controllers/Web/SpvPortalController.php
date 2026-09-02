@@ -33,16 +33,24 @@ class SpvPortalController extends Controller
             return redirect()->route('spv_login.create');
         }
 
-        // Live Query: Cari seluruh cabang yang dinaungi SPV ini secara real-time dari master_spvs (hanya yang is_active = true)
-        $salescode = $user->salesman_code ?? $user->salescode ?? $user->username ?? '';
+        // Live Query: Cari seluruh cabang yang dinaungi SPV ini secara real-time dari master_spvs
+        $salescode = trim((string)($user->salesman_code ?? $user->salescode ?? $user->username ?? ''));
+        $spvName = trim((string)($user->name ?? $user->nama ?? ''));
         $myBranches = [];
 
-        if (!empty($salescode)) {
+        if (!empty($salescode) || !empty($spvName)) {
             $myBranches = DB::table('master_spvs')
-                ->where('salescode', $salescode)
                 ->where('is_active', true)
                 ->whereNotNull('branch_id')
                 ->where('branch_id', '!=', '')
+                ->where(function ($q) use ($salescode, $spvName) {
+                    if (!empty($salescode)) {
+                        $q->where('salescode', 'ILIKE', $salescode);
+                    }
+                    if (!empty($spvName)) {
+                        $q->orWhere('nama', 'ILIKE', $spvName);
+                    }
+                })
                 ->pluck('branch_id')
                 ->unique()
                 ->toArray();
