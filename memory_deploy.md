@@ -37,7 +37,7 @@
    - Data `master_branches`, `master_salesmen`, `master_spvs`, `users`, `counter_sequences`, dll. berhasil masuk.
 
 7. **Fitur & Fix Terbaru yang Diimplementasikan**:
-   - **Fix Login Error (500)**: Penambahan pengecekan null `$user` sebelum mengakses property `password` di `EdpLoginController.php`.
+   - **Fix Login Error (500)**: Penambahan pengecekan null `$user` & `$spvFirst` sebelum mengakses property `password` di `EdpLoginController.php` dan `SpvLoginController.php`.
    - **Fix Master Branch Filter**: Pembersihan awalan `ADMIN.` dari `region_code` serta pencocokan prefix `LIKE 'ASW%'` untuk `entity_code_principal` pada `EdpMasterController.php`.
    - **Region Scope Management (3 Section)**: 
      - Section 1 (Global Scope): Checkbox Semua Region.

@@ -52,6 +52,12 @@ class SpvLoginController extends Controller
             ->where('is_active', true)
             ->first();
 
+        if (!$spvFirst) {
+            return back()->withErrors([
+                'username' => 'Username atau Password SPV yang Anda masukkan salah.',
+            ]);
+        }
+
         // Cek kecocokan password (mendukung Plain Text & Bcrypt Hash secara aman)
         $storedPassword = (string) $spvFirst->password;
         $passwordValid = ($storedPassword === $password);
