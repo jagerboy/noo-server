@@ -916,28 +916,28 @@ class EdpMasterController extends Controller
 
     public function downloadTemplate(string $type)
     {
-        $headers = [
-            'Content-Type' => 'text/csv',
-            'Content-Disposition' => "attachment; filename=TEMPLATE_MASTER_" . strtoupper($type) . ".csv",
-        ];
-
         $columns = [];
         $sampleRow = [];
+        $title = '';
 
         switch (strtolower($type)) {
             case 'branch':
+                $title = 'MASTER BRANCH';
                 $columns = ['region_code', 'region_name', 'principal_code', 'principal_name', 'entity_code_principal', 'entity_name_principal', 'area_code', 'branch_id', 'branch_name', 'pin_branch'];
                 $sampleRow = ['ASWSUM1', 'SUMATERA 1', 'A', 'ASWFOODS', 'ASW', 'ASWFOODS MEDAN', 'SUM1', 'DAMDN003', 'CV. DWI TUNGGAL SENTOSA', '123456'];
                 break;
             case 'salesman':
+                $title = 'MASTER SALESMAN';
                 $columns = ['salesman_code', 'salesman_name', 'branch_id', 'region_code', 'entity_code_principal'];
                 $sampleRow = ['SEAMDN32', 'KURNIA SE', 'DAMDN003', 'ASWSUM1', 'ASW'];
                 break;
             case 'spv':
+                $title = 'MASTER SPV AREA';
                 $columns = ['salescode', 'nama', 'password', 'branch_id', 'area', 'distributor_name'];
                 $sampleRow = ['SPVMEDAN01', 'BUDI SPV MEDAN', '123456', 'DAMDN003', 'SUM1', 'CV. DWI TUNGGAL SENTOSA'];
                 break;
             case 'counter_sequence':
+                $title = 'COUNTER SEQUENCE';
                 $columns = ['principal_code', 'area_code', 'branch_id', 'prefix', 'last_seq'];
                 $sampleRow = ['A', 'SUM1', 'DAMDN003', 'MED', '15'];
                 break;
@@ -945,14 +945,82 @@ class EdpMasterController extends Controller
                 abort(404, 'Template tidak ditemukan.');
         }
 
-        $callback = function () use ($columns, $sampleRow) {
-            $file = fopen('php://output', 'w');
-            fputcsv($file, $columns);
-            fputcsv($file, $sampleRow);
-            fclose($file);
-        };
+        $spreadsheet = new \PhpOffice\PhpSpreadsheet\Spreadsheet();
+        $sheet = $spreadsheet->getActiveSheet();
+        $sheet->setTitle($title);
 
-        return response()->stream($callback, 200, $headers);
+        $spreadsheet->getDefaultStyle()->getFont()->setName('Calibri')->setSize(10);
+
+        // Header placement
+        $colIndex = 'A';
+        foreach ($columns as $column) {
+            $sheet->setCellValue($colIndex . '1', $column);
+            $colIndex++;
+        }
+
+        // Header Styling
+        $lastCol = chr(ord('A') + count($columns) - 1);
+        $headerRange = "A1:{$lastCol}1";
+
+        $sheet->getStyle($headerRange)->applyFromArray([
+            'font' => [
+                'bold' => true,
+                'color' => ['rgb' => 'FFFFFF'],
+                'size' => 11,
+            ],
+            'fill' => [
+                'fillType' => \PhpOffice\PhpSpreadsheet\Style\Fill::FILL_SOLID,
+                'startColor' => ['rgb' => '1E3A8A'], // Royal Navy Blue
+            ],
+            'alignment' => [
+                'horizontal' => \PhpOffice\PhpSpreadsheet\Style\Alignment::HORIZONTAL_CENTER,
+                'vertical' => \PhpOffice\PhpSpreadsheet\Style\Alignment::VERTICAL_CENTER,
+            ],
+            'borders' => [
+                'allBorders' => [
+                    'borderStyle' => \PhpOffice\PhpSpreadsheet\Style\Border::BORDER_THIN,
+                    'color' => ['rgb' => '0F172A'],
+                ],
+            ],
+        ]);
+        $sheet->getRowDimension(1)->setRowHeight(28);
+
+        // Sample Data Placement & Styling
+        $colIndex = 'A';
+        foreach ($sampleRow as $val) {
+            $sheet->setCellValue($colIndex . '2', $val);
+            $colIndex++;
+        }
+
+        $sampleRange = "A2:{$lastCol}2";
+        $sheet->getStyle($sampleRange)->applyFromArray([
+            'alignment' => [
+                'vertical' => \PhpOffice\PhpSpreadsheet\Style\Alignment::VERTICAL_CENTER,
+            ],
+            'borders' => [
+                'allBorders' => [
+                    'borderStyle' => \PhpOffice\PhpSpreadsheet\Style\Border::BORDER_THIN,
+                    'color' => ['rgb' => 'CBD5E1'],
+                ],
+            ],
+        ]);
+        $sheet->getRowDimension(2)->setRowHeight(22);
+
+        // Auto-fit column widths
+        foreach (range('A', $lastCol) as $col) {
+            $sheet->getColumnDimension($col)->setAutoSize(true);
+        }
+
+        // Stream Excel file
+        $filename = "TEMPLATE_MASTER_" . strtoupper($type) . ".xlsx";
+        $writer = new \PhpOffice\PhpSpreadsheet\Writer\Xlsx($spreadsheet);
+
+        return response()->streamDownload(function () use ($writer) {
+            $writer->save('php://output');
+        }, $filename, [
+            'Content-Type' => 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+            'Cache-Control' => 'max-age=0',
+        ]);
     }
 
     public function bulkUpload(Request $request, string $type): RedirectResponse
