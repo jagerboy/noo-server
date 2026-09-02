@@ -64,7 +64,7 @@ Route::get('/init-db-columns', function () {
 });
 
 Route::get('/', function () {
-    return redirect()->route('edp_login.create');
+    return redirect('/principal');
 });
 
 // Dynamic Photo Stream Server Route (Guaranteed bypass of static public/storage folder checks)
@@ -106,6 +106,28 @@ Route::get('/media-photo/{path}', function ($path) {
         'Cache-Control' => 'public, max-age=86400',
     ]);
 })->where('path', '.*')->name('media.photo');
+
+// Entrypoint & Redirection khusus berdasarkan Sesi Device User
+Route::get('/admin-distributor', function () {
+    if (session()->has('distributor_user')) {
+        return redirect()->route('admin.inbox');
+    }
+    return redirect()->route('distributor_login.create');
+});
+
+Route::get('/spv', function () {
+    if (session()->has('spv_user')) {
+        return redirect()->route('spv.inbox');
+    }
+    return redirect()->route('spv_login.create');
+});
+
+Route::get('/principal', function () {
+    if (Auth::check()) {
+        return redirect()->route('edp.dashboard');
+    }
+    return redirect()->route('edp_login.create');
+});
 
 // Rute Login Bertingkat khusus Admin Distributor
 Route::get('/distributor-login', [DistributorLoginController::class, 'create'])->name('distributor_login.create');
