@@ -50,8 +50,19 @@ class EdpPortalController extends Controller
         $query = DB::table('noo_submissions')
             ->whereNotNull('pushed_to_edp_at');
 
-        if ($userRole !== 'SUPERADMIN' && !empty($regionCode)) {
-            $query->where('region_code', 'LIKE', "{$regionCode}%");
+        $cleanRegionCode = preg_replace('/^ADMIN\./i', '', $regionCode ?? '');
+        $regionList = array_filter(array_map('trim', explode(',', $cleanRegionCode)));
+
+        if ($userRole !== 'SUPERADMIN' && !empty($regionList)) {
+            if ($userRole === 'EDP_REGION') {
+                $query->whereIn('region_code', $regionList);
+            } elseif ($userRole === 'ADMIN_PRINCIPAL') {
+                $query->where(function ($q) use ($regionList) {
+                    foreach ($regionList as $r) {
+                        $q->orWhere('region_code', 'LIKE', "{$r}%");
+                    }
+                });
+            }
         }
         if ($userRole === 'ADMIN_PRINCIPAL' && !empty($user->entity_code_principal)) {
             $query->where(function ($q) use ($user) {
@@ -184,10 +195,28 @@ class EdpPortalController extends Controller
         $entitiesQuery = DB::table('master_branches')->select('entity_code_principal', 'entity_name_principal', 'region_code')->distinct()->whereNotNull('entity_code_principal');
         $branchesQuery = DB::table('master_branches')->select('branch_id', 'branch_name', 'region_code', 'entity_code_principal');
 
-        if ($userRole !== 'SUPERADMIN' && !empty($regionCode)) {
-            $regionsQuery->where('region_code', 'LIKE', "{$regionCode}%");
-            $entitiesQuery->where('region_code', 'LIKE', "{$regionCode}%");
-            $branchesQuery->where('region_code', 'LIKE', "{$regionCode}%");
+        if ($userRole !== 'SUPERADMIN' && !empty($regionList)) {
+            if ($userRole === 'EDP_REGION') {
+                $regionsQuery->whereIn('region_code', $regionList);
+                $entitiesQuery->whereIn('region_code', $regionList);
+                $branchesQuery->whereIn('region_code', $regionList);
+            } elseif ($userRole === 'ADMIN_PRINCIPAL') {
+                $regionsQuery->where(function ($q) use ($regionList) {
+                    foreach ($regionList as $r) {
+                        $q->orWhere('region_code', 'LIKE', "{$r}%");
+                    }
+                });
+                $entitiesQuery->where(function ($q) use ($regionList) {
+                    foreach ($regionList as $r) {
+                        $q->orWhere('region_code', 'LIKE', "{$r}%");
+                    }
+                });
+                $branchesQuery->where(function ($q) use ($regionList) {
+                    foreach ($regionList as $r) {
+                        $q->orWhere('region_code', 'LIKE', "{$r}%");
+                    }
+                });
+            }
         }
 
         if ($userRole === 'ADMIN_PRINCIPAL' && !empty($user->entity_code_principal)) {

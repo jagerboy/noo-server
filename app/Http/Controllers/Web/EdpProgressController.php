@@ -56,19 +56,36 @@ class EdpProgressController extends Controller
             ->select('region_code', 'entity_code_principal', 'branch_id', 'branch_name')
             ->whereNotNull('branch_id');
 
-        if ($userRole === 'EDP_REGION' && !empty($regionCode)) {
-            $regionsQuery->where('region_code', $regionCode);
-            $entitiesQuery->where('region_code', $regionCode);
-            $branchesQuery->where('region_code', $regionCode);
-        } elseif ($userRole === 'ADMIN_PRINCIPAL' && !empty($regionCode)) {
-            $regionsQuery->where('region_code', 'LIKE', "{$regionCode}%");
-            $entitiesQuery->where('region_code', 'LIKE', "{$regionCode}%");
-            $branchesQuery->where('region_code', 'LIKE', "{$regionCode}%");
+        $cleanRegionCode = preg_replace('/^ADMIN\./i', '', $regionCode ?? '');
+        $regionList = array_filter(array_map('trim', explode(',', $cleanRegionCode)));
+
+        if (!empty($regionList)) {
+            if ($userRole === 'EDP_REGION') {
+                $regionsQuery->whereIn('region_code', $regionList);
+                $entitiesQuery->whereIn('region_code', $regionList);
+                $branchesQuery->whereIn('region_code', $regionList);
+            } elseif ($userRole === 'ADMIN_PRINCIPAL') {
+                $regionsQuery->where(function ($q) use ($regionList) {
+                    foreach ($regionList as $r) {
+                        $q->orWhere('region_code', 'LIKE', "{$r}%");
+                    }
+                });
+                $entitiesQuery->where(function ($q) use ($regionList) {
+                    foreach ($regionList as $r) {
+                        $q->orWhere('region_code', 'LIKE', "{$r}%");
+                    }
+                });
+                $branchesQuery->where(function ($q) use ($regionList) {
+                    foreach ($regionList as $r) {
+                        $q->orWhere('region_code', 'LIKE', "{$r}%");
+                    }
+                });
+            }
         }
 
         if ($userRole === 'ADMIN_PRINCIPAL' && !empty($user->entity_code_principal)) {
-            $entitiesQuery->where('entity_code_principal', $user->entity_code_principal);
-            $branchesQuery->where('entity_code_principal', $user->entity_code_principal);
+            $entitiesQuery->where('entity_code_principal', 'LIKE', "{$user->entity_code_principal}%");
+            $branchesQuery->where('entity_code_principal', 'LIKE', "{$user->entity_code_principal}%");
         }
 
         return [
@@ -88,19 +105,37 @@ class EdpProgressController extends Controller
 
         $baseQuery = DB::table('noo_submissions');
 
+        $cleanRegionCode = preg_replace('/^ADMIN\./i', '', $user->region_code ?? '');
+        $regionList = array_filter(array_map('trim', explode(',', $cleanRegionCode)));
+
         // Filter Scope berdasarkan Role Sesuai Spesifikasi Security
-        if ($userRole !== 'SUPERADMIN' && !empty($user->region_code)) {
-            $baseQuery->where('region_code', 'LIKE', "{$user->region_code}%");
+        if ($userRole !== 'SUPERADMIN' && !empty($regionList)) {
+            if ($userRole === 'EDP_REGION') {
+                $baseQuery->whereIn('region_code', $regionList);
+            } elseif ($userRole === 'ADMIN_PRINCIPAL') {
+                $baseQuery->where(function ($q) use ($regionList) {
+                    foreach ($regionList as $r) {
+                        $q->orWhere('region_code', 'LIKE', "{$r}%");
+                    }
+                });
+            }
         }
 
         if ($userRole === 'ADMIN_PRINCIPAL' && !empty($user->entity_code_principal)) {
             $matchingBranches = DB::table('master_branches')
-                ->where('entity_code_principal', $user->entity_code_principal)
+                ->where('entity_code_principal', 'LIKE', "{$user->entity_code_principal}%")
+                ->orWhere('principal_code', 'LIKE', "{$user->entity_code_principal}%")
                 ->pluck('branch_id')
+                ->filter()
                 ->toArray();
-            if (!empty($matchingBranches)) {
-                $baseQuery->whereIn('branch_id', $matchingBranches);
-            }
+
+            $baseQuery->where(function ($q) use ($user, $matchingBranches) {
+                $q->where('principal', 'ILIKE', "%{$user->entity_code_principal}%")
+                  ->orWhere('principal_code', 'ILIKE', "%{$user->entity_code_principal}%");
+                if (!empty($matchingBranches)) {
+                    $q->orWhereIn('branch_id', $matchingBranches);
+                }
+            });
         }
 
         // Metrics global scope

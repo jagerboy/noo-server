@@ -341,9 +341,6 @@ Saya bekerja sendiri (Solo Developer). Kode harus bisa menjelaskan dirinya sendi
   - **Operator EDP Regional (`EDP_REGION`)**:
     - Scope wilayah terisolasi per `region_code` (misal: `ASWSUM1`, `ASWJWA2`).
     - Home Dashboard, Inbox Submisi NOO (Approve/Generate Kode Principal, Reject, Ubah Nama/Alamat, Revisi KTP 1x, Toggle Status RO, Ekspor Excel), Progress Tracking NOO, dan View Master Data.
-  - **Admin Principal (`ADMIN_PRINCIPAL`)**:
-    - Scope multi-subregion / brand principal (`entity_code_principal`, misal ASW / INA).
-    - Seluruh fitur EDP Regional + CRUD Master Data (Branch, Salesman, SPV, Outlet Types, Counter Sequence), Reset Approval EDP / Pembatalan Reject, dan Audit Logs.
   - **Superadmin (`SUPERADMIN`)**:
     - Full Global Access ke seluruh region dan entitas.
     - Seluruh fitur Admin Principal + Manajemen Akun & User Role Manager, Unlock Revisi KTP, Bulk Upload CSV Master Data, dan Menu Monitoring RO (Target vs Realisasi).
@@ -353,6 +350,29 @@ Saya bekerja sendiri (Solo Developer). Kode harus bisa menjelaskan dirinya sendi
     - **Preservasi Kode Saat Reset (`resetEdpApproval`)**: Saat toko di-reset oleh Superadmin/Admin, nilai `code_noo_principal` lama (misal: `CAPSP00929`) diamankan ke kolom `previous_code_noo_principal` dan `code_noo_principal` diset `null`. Counter sequence utama tidak diganggu gugat.
     - **Otomatis Reuse Saat Re-Approve (`approve`)**: Ketika toko tersebut diperbaiki (nama, alamat, KTP) dan disetujui kembali, backend mendeteksi `previous_code_noo_principal` dan menggunakannya kembali sebagai kode toko (`CAPSP00929`) tanpa menambah sequence `counter_sequences`. Sequence berikutnya (`CAPSP00934`) tetap tersimpan untuk toko baru.
     - **Visual Transparan di Modal Detail (`Edp/Inbox.vue`)**: Menampilkan badge info di modal toko yang di-reset: *"CAPSP00929 (Reuse on Approve - Kode sebelumnya yang akan otomatis dipakai kembali saat di-approve)"*.
-
+49. **Penyempurnaan Download Template Excel Master Data (`EdpMasterController.php`)**:
+    - Format unduhan template master data (`Master Branch`, `Master Salesman`, `Master SPV`, `Counter Sequence`) diubah menjadi berkas **Excel (.xlsx)** resmi menggunakan `PhpSpreadsheet`.
+    - Dilengkapi dengan *styling header* Royal Navy Blue (`#1E3A8A`), teks tebal putih, *auto-fit column width*, serta sampel data yang terstruktur rapi.
+50. **Bulk Upload Berbasis Row-Level Error Reporting & Excel/CSV Reader (`EdpMasterController.php`)**:
+    - Pengunggahan berkas bulk upload kini mendukung format `.xlsx`, `.xls`, dan `.csv` menggunakan `PhpOffice\PhpSpreadsheet\IOFactory`.
+    - Mengubah transaksi `bulkUpload()` dari *all-or-nothing rollback* menjadi **Row-Level Processing**: Baris data yang valid tetap berhasil diimpor, sedangkan baris yang salah (misal: `branch_id` kosong) dilewati tanpa menghentikan seluruh proses.
+    - Memberikan umpan balik (feedback) pesan flash yang spesifik menyebutkan nomor baris Excel dan alasan kegagalan data.
+51. **Dukungan Multi-Branch Coverage SPV Area (`EdpMasterController.php`)**:
+    - Mengubah kunci penyimpan/pembaruan `updateOrInsert()` pada `master_spvs` menjadi **kunci kombinasi `['salescode', 'branch_id']`**.
+    - Memungkinkan satu orang SPV (dengan `salescode` dan `nama` yang sama) untuk mengkover lebih dari 1 cabang distributor tanpa menimpa (*overwrite*) cabang yang sudah di-assign sebelumnya.
+52. **Dynamic Live Query Coverage SPV Area (`SpvPortalController.php` & `Inbox.vue`)**:
+    - **Live Query Real-Time**: Mengubah query penentuan cabang yang dinaungi SPV di `SpvPortalController::index()` menjadi pencarian real-time berdasarkan `salescode` / `nama` SPV aktif dari database.
+    - **Tanpa Perlu Re-Login**: Setiap ada penambahan/pemindahan area distributor ke SPV via UI EDP Master, SPV cukup menekan F5/Refresh pada browser dan data submisi toko di cabang baru tersebut langsung muncul di inbox SPV Area.
+    - **Penyelarasan Key Metrics**: Memperbaiki pencocokan key `stats.pendingSpv` antara backend dan Vue 3 Inbox agar angka indikator **PENDING REVIEW** tampil secara akurat.
+53. **Penyelarasan Filtering Region Scope Akun pada Counter Sequence (`EdpMasterController.php`)**:
+    - **Integrasi Penuh dengan Manajemen Akun**: Menyinkronkan logic pembacaan scope wilayah `region_code` pada method `counterSequence()` dengan sanitasi prefix `ADMIN.` dan pemecahan multi-region (koma).
+    - **Pencocokan Scope Akun yang Presisi**: Menghubungkan filtering scope Principal Area (seperti `ASWSUM`, `ASWJWA`, `INAJWA`) langsung ke tabel `master_branches` sehingga saat login sebagai Admin Principal (misal `admin.aswsum`), seluruh data cabang di bawah area operasionalnya (`ASWSUM1`, `ASWSUM2`, `ASWSUM3`) langsung tampil akurat di tabel Counter Sequence.
+54. **Server-Side Global Sorting Data Tabel Counter Sequence (`EdpMasterController.php` & `CounterSequence.vue`)**:
+    - Mengubah logic pengurutan tabel dari *client-side single-page sorting* menjadi **Server-Side Global Sorting** (`sort_by` & `sort_dir`).
+    - Pengurutan kolom (Branch ID, Branch Name, Principal Code, Prefix, Last Seq, Last Updated) kini diterapkan di level query database database untuk seluruh total data terlepas batasan paginasi (10/20/semua data), serta arah sort tetap dipertahankan saat berpindah halaman.
+55. **Fitur Ekspor Excel (.xlsx) Audit Activity & System Logs (`EdpLogsController.php`, `ExcelExportService.php`, & `Logs.vue`)**:
+    - **Metode `generateActivityLogsExcel`**: Menambahkan pembuatan berkas Excel resmi untuk riwayat log aktivitas dengan format profesional (Header Emerald `#059669`, font tebal putih, metadata tanggal & filter, border rapi, zebra striping `#F9FAFB`, dan lebar kolom proporsional).
+    - **Filter-Aware Export**: Ekspor data otomatis mematuhi filter peran pengguna (Role) dan kata kunci pencarian yang sedang aktif di UI Logs.
+    - **UI Button & Rute**: Menyediakan tombol *Export Excel (.xlsx)* di halaman Logs & Audit dengan endpoint rute `edp.logs.export_excel`.
 
 
