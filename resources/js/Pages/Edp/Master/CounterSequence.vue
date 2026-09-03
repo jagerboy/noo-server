@@ -84,8 +84,8 @@ function onEntityChange() {
   applyFilters();
 }
 
-const sortKey = ref('branch_id');
-const sortDir = ref('asc');
+const sortKey = ref(props.filters?.sort_by || 'branch_id');
+const sortDir = ref(props.filters?.sort_dir || 'asc');
 
 function handleSort(key) {
   if (sortKey.value === key) {
@@ -94,23 +94,11 @@ function handleSort(key) {
     sortKey.value = key;
     sortDir.value = 'asc';
   }
+  applyFilters();
 }
 
 const sortedSequences = computed(() => {
-  const list = [...(props.sequences?.data || props.sequences || [])];
-  if (!sortKey.value) return list;
-
-  return list.sort((a, b) => {
-    let valA = a[sortKey.value] ?? '';
-    let valB = b[sortKey.value] ?? '';
-
-    if (typeof valA === 'string') valA = valA.toLowerCase();
-    if (typeof valB === 'string') valB = valB.toLowerCase();
-
-    if (valA < valB) return sortDir.value === 'asc' ? -1 : 1;
-    if (valA > valB) return sortDir.value === 'asc' ? 1 : -1;
-    return 0;
-  });
+  return props.sequences?.data || props.sequences || [];
 });
 
 const editForm = useForm({
@@ -127,6 +115,8 @@ function applyFilters() {
       region_code: selectedRegion.value,
       entity: selectedEntity.value,
       branch_id: selectedBranch.value,
+      sort_by: sortKey.value,
+      sort_dir: sortDir.value,
     },
     { preserveState: true, replace: true }
   );
@@ -137,6 +127,8 @@ function resetFilters() {
   selectedRegion.value = '';
   selectedEntity.value = '';
   selectedBranch.value = '';
+  sortKey.value = 'branch_id';
+  sortDir.value = 'asc';
   applyFilters();
 }
 

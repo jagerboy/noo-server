@@ -844,13 +844,27 @@ class EdpMasterController extends Controller
             $perPage = 100000;
         }
 
-        $sequences = $query->orderBy('counter_sequences.branch_id', 'asc')->paginate($perPage)->withQueryString();
+        $sortKey = $request->input('sort_by', 'branch_id');
+        $sortDir = strtolower($request->input('sort_dir', 'asc')) === 'desc' ? 'desc' : 'asc';
+
+        $allowedSorts = [
+            'branch_id' => 'counter_sequences.branch_id',
+            'branch_name' => 'master_branches.branch_name',
+            'principal_code' => 'counter_sequences.principal_code',
+            'prefix' => 'counter_sequences.prefix',
+            'last_seq' => 'counter_sequences.last_seq',
+            'last_updated_at' => 'counter_sequences.last_updated_at',
+        ];
+
+        $orderColumn = $allowedSorts[$sortKey] ?? 'counter_sequences.branch_id';
+
+        $sequences = $query->orderBy($orderColumn, $sortDir)->paginate($perPage)->withQueryString();
 
         return Inertia::render('Edp/Master/CounterSequence', [
             'sequences' => $sequences,
             'canEditSequence' => true,
             'canWriteFull' => $this->checkCanWrite(),
-            'filters' => $request->only(['search', 'region_code', 'entity', 'branch_id']),
+            'filters' => $request->only(['search', 'region_code', 'entity', 'branch_id', 'sort_by', 'sort_dir']),
             'filterOptions' => $this->getFilterOptions($user),
         ]);
     }
