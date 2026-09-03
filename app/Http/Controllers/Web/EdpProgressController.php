@@ -196,8 +196,10 @@ class EdpProgressController extends Controller
             });
         }
 
-        $perPage = (int) $request->input('per_page', 15);
-        if ($perPage <= 0) $perPage = 15;
+        $perPage = (int) $request->input('per_page', 10);
+        if ($perPage <= 0) {
+            $perPage = 100000;
+        }
 
         $sortKey = $request->input('sort_key', 'created_at');
         $sortDir = strtolower($request->input('sort_dir', 'desc')) === 'asc' ? 'asc' : 'desc';
