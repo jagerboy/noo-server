@@ -802,14 +802,23 @@ class EdpMasterController extends Controller
             ->join('master_branches', 'counter_sequences.branch_id', '=', 'master_branches.branch_id')
             ->select('counter_sequences.*', 'master_branches.branch_name', 'master_branches.region_code', 'master_branches.entity_code_principal');
 
-        if ($user->role === 'EDP_REGION' && !empty($user->region_code)) {
-            $query->where('master_branches.region_code', $user->region_code);
-        } elseif ($user->role === 'ADMIN_PRINCIPAL' && !empty($user->region_code)) {
-            $query->where('master_branches.region_code', 'LIKE', "{$user->region_code}%");
+        $cleanRegionCode = preg_replace('/^ADMIN\./i', '', $user->region_code ?? '');
+        $regionList = array_filter(array_map('trim', explode(',', $cleanRegionCode)));
+
+        if (!empty($regionList)) {
+            if ($user->role === 'EDP_REGION') {
+                $query->whereIn('master_branches.region_code', $regionList);
+            } elseif ($user->role === 'ADMIN_PRINCIPAL') {
+                $query->where(function ($q) use ($regionList) {
+                    foreach ($regionList as $r) {
+                        $q->orWhere('master_branches.region_code', 'LIKE', "{$r}%");
+                    }
+                });
+            }
         }
 
         if ($user->role === 'ADMIN_PRINCIPAL' && !empty($user->entity_code_principal)) {
-            $query->where('master_branches.entity_code_principal', $user->entity_code_principal);
+            $query->where('master_branches.entity_code_principal', 'LIKE', "{$user->entity_code_principal}%");
         }
 
         if ($request->filled('region_code')) {
