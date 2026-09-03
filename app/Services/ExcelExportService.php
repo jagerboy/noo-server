@@ -480,4 +480,117 @@ class ExcelExportService
         $writer->save('php://output');
         return ob_get_clean();
     }
+
+    /**
+     * Membuat file Excel (.xlsx) untuk riwayat Audit Activity & System Logs.
+     */
+    public function generateActivityLogsExcel(array $logs, string $filterRole = 'ALL', string $search = ''): string
+    {
+        $spreadsheet = new Spreadsheet();
+        $sheet = $spreadsheet->getActiveSheet();
+        $sheet->setTitle('Audit Logs');
+
+        $spreadsheet->getDefaultStyle()->getFont()->setName('Calibri')->setSize(10);
+
+        // Row 2: Title Header
+        $sheet->setCellValue('A2', 'AUDIT ACTIVITY & SYSTEM LOGS - PORTAL NOO+');
+        $sheet->getStyle('A2')->getFont()->setBold(true)->setSize(16)->setColor(new Color('111827'));
+
+        // Row 3: Meta Information
+        $generatedAt = date('d/m/Y H:i:s');
+        $infoText = "Waktu Unduh: {$generatedAt} | Filter Role: {$filterRole}" . ($search ? " | Pencarian: {$search}" : "");
+        $sheet->setCellValue('A3', $infoText);
+        $sheet->getStyle('A3')->getFont()->setItalic(true)->setSize(10)->setColor(new Color('4B5563'));
+
+        // Row 5: Table Header
+        $headers = [
+            'A5' => 'NO',
+            'B5' => 'WAKTU / TANGGAL',
+            'C5' => 'PENGGUNA (USERNAME)',
+            'D5' => 'PERAN (ROLE)',
+            'E5' => 'AKSI (ACTION)',
+            'F5' => 'MODUL',
+            'G5' => 'DESKRIPSI AUDIT',
+            'H5' => 'IP ADDRESS',
+        ];
+
+        foreach ($headers as $cell => $text) {
+            $sheet->setCellValue($cell, $text);
+        }
+
+        // Header Styling (#107C41 / Emerald-700 with White Text)
+        $sheet->getStyle('A5:H5')->getFill()->setFillType(Fill::FILL_SOLID)->getStartColor()->setRGB('059669');
+        $sheet->getStyle('A5:H5')->getFont()->setBold(true)->setSize(10)->setColor(new Color('FFFFFF'));
+        $sheet->getStyle('A5:H5')->getAlignment()->setHorizontal(Alignment::HORIZONTAL_CENTER)->setVertical(Alignment::VERTICAL_CENTER);
+        $sheet->getRowDimension(5)->setRowHeight(26);
+
+        $startRow = 6;
+        $currentRow = $startRow;
+
+        $roleLabels = [
+            'SUPERADMIN' => 'Superadmin',
+            'ADMIN_PRINCIPAL' => 'Admin Principal',
+            'EDP_REGION' => 'EDP Region',
+            'SPV_AREA' => 'SPV Area',
+            'ADMIN_DISTRIBUTOR' => 'Admin Distributor',
+        ];
+
+        foreach ($logs as $index => $log) {
+            $log = (array) $log;
+            $createdTime = !empty($log['created_at']) ? date('d/m/Y H:i:s', strtotime((string)$log['created_at'])) : '-';
+            $userRole = (string)($log['user_role'] ?? '-');
+            $roleDisplay = $roleLabels[$userRole] ?? str_replace('_', ' ', $userRole);
+
+            $rowData = [
+                $index + 1,
+                $createdTime,
+                $log['username'] ?? '-',
+                $roleDisplay,
+                $log['action'] ?? '-',
+                $log['module'] ?? '-',
+                $log['description'] ?? '-',
+                $log['ip_address'] ?? '-',
+            ];
+
+            $sheet->fromArray($rowData, null, "A{$currentRow}");
+
+            // Row height & zebra striping
+            $sheet->getRowDimension($currentRow)->setRowHeight(20);
+            if ($index % 2 === 1) {
+                $sheet->getStyle("A{$currentRow}:H{$currentRow}")->getFill()
+                    ->setFillType(Fill::FILL_SOLID)->getStartColor()->setRGB('F9FAFB');
+            }
+
+            // Text Alignments
+            $sheet->getStyle("A{$currentRow}")->getAlignment()->setHorizontal(Alignment::HORIZONTAL_CENTER)->setVertical(Alignment::VERTICAL_CENTER);
+            $sheet->getStyle("B{$currentRow}")->getAlignment()->setHorizontal(Alignment::HORIZONTAL_CENTER)->setVertical(Alignment::VERTICAL_CENTER);
+            $sheet->getStyle("C{$currentRow}")->getAlignment()->setHorizontal(Alignment::HORIZONTAL_LEFT)->setVertical(Alignment::VERTICAL_CENTER);
+            $sheet->getStyle("D{$currentRow}")->getAlignment()->setHorizontal(Alignment::HORIZONTAL_CENTER)->setVertical(Alignment::VERTICAL_CENTER);
+            $sheet->getStyle("E{$currentRow}")->getAlignment()->setHorizontal(Alignment::HORIZONTAL_CENTER)->setVertical(Alignment::VERTICAL_CENTER);
+            $sheet->getStyle("F{$currentRow}")->getAlignment()->setHorizontal(Alignment::HORIZONTAL_CENTER)->setVertical(Alignment::VERTICAL_CENTER);
+            $sheet->getStyle("G{$currentRow}")->getAlignment()->setHorizontal(Alignment::HORIZONTAL_LEFT)->setVertical(Alignment::VERTICAL_CENTER);
+            $sheet->getStyle("H{$currentRow}")->getAlignment()->setHorizontal(Alignment::HORIZONTAL_CENTER)->setVertical(Alignment::VERTICAL_CENTER);
+
+            // Borders
+            $sheet->getStyle("A{$currentRow}:H{$currentRow}")->getBorders()->getAllBorders()
+                ->setBorderStyle(Border::BORDER_THIN)->getColor()->setRGB('E5E7EB');
+
+            $currentRow++;
+        }
+
+        // Set column widths
+        $sheet->getColumnDimension('A')->setAutoSize(false)->setWidth(6);
+        $sheet->getColumnDimension('B')->setAutoSize(false)->setWidth(20);
+        $sheet->getColumnDimension('C')->setAutoSize(false)->setWidth(22);
+        $sheet->getColumnDimension('D')->setAutoSize(false)->setWidth(18);
+        $sheet->getColumnDimension('E')->setAutoSize(false)->setWidth(20);
+        $sheet->getColumnDimension('F')->setAutoSize(false)->setWidth(18);
+        $sheet->getColumnDimension('G')->setAutoSize(false)->setWidth(48);
+        $sheet->getColumnDimension('H')->setAutoSize(false)->setWidth(16);
+
+        $writer = new Xlsx($spreadsheet);
+        ob_start();
+        $writer->save('php://output');
+        return ob_get_clean();
+    }
 }

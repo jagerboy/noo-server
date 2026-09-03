@@ -264,6 +264,7 @@ Route::middleware('auth')->group(function () {
 
         // Audit Logs
         Route::get('/logs', [EdpLogsController::class, 'index'])->name('logs');
+        Route::get('/logs/export-excel', [EdpLogsController::class, 'exportExcel'])->name('logs.export_excel');
     });
 });
 
