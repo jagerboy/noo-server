@@ -1537,8 +1537,10 @@ function getLineStyle(stepBefore, item) {
             <span>NOO Verification</span>
           </h1>
           <p class="text-[14px] text-[#6B7280] leading-[1.5]">
-            Verifikasi Final EDP Principal, Penerbitan Kode Customer Principal, & Rekapitulasi Approval. 
-            <br>(Region Scope: <span class="font-semibold text-slate-800">{{ userRegion || 'Semua Region' }}</span>)
+            Verifikasi Final EDP Principal, Penerbitan Kode Customer Principal, & Rekapitulasi Approval.
+          </p>
+          <p class="text-[13px] text-[#6B7280]">
+            (Region Scope: <span class="font-semibold text-slate-800">{{ userRegion || 'Semua Region' }}</span>)
           </p>
         </div>
 
