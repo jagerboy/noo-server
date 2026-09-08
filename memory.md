@@ -1,378 +1,86 @@
-# 🌍 Project: NOO+ v2.0 Ecosystem Migration
+# NOO+ Server Documentation & Architecture Decisions
 
-## 📍 Status & Kemajuan Proyek Terakhir
-- **Analisis Sistem Lama (Apps Script & Spreadsheets)**:
-  - Telah mempelajari seluruh alur kerja `NOO_API`, `DISTRIBUTOR_PORTAL`, `PORTAL_SPV_NEW`, `NOO_EDP_PORTAL`, dan `NOO_MASTER_PORTAL`.
-  - Memahami struktur tabel Google Sheets (`NOO_INBOX`, `JKS_QUEUE`, `EDP_REVIEW_QUEUE`, `COUNTER_SEQ`, dll) serta alur pengunggahan foto ke Google Drive.
-- **Duplikasi Aplikasi Mobile**:
-  - Aplikasi Android `NOO` telah berhasil diduplikasi menjadi `NOO+ v2.0` di folder `c:\Users\ITSALES-02\AndroidStudioProjects\NOO+ v2.0`.
-  - `settings.gradle.kts` diubah menjadi `rootProject.name = "NOO+ v2.0"`.
-  - `app/build.gradle.kts` diubah menjadi `applicationId = "com.example.noo2"`, `versionCode = 1`, `versionName = "2.0"`.
-- **Portal Web Monolith (Laravel 12 + Vue 3 Inertia + Light Mode Theme)**:
-  - Portal Admin Distributor, SPV Area, dan Portal Principal telah terpisah secara arsitektur, rute, dan domain (`DOMAIN_DISTRIBUTOR`, `DOMAIN_SPV`, `DOMAIN_EDP`).
-  - Halaman login menggunakan **Cascading Login** (Principal `A - ASWFOODS` & `I - INAFOODS` ➔ Region ➔ Entity ➔ Branch ➔ PIN Branch) yang terurut Ascending (A-Z).
-  - Tampilan UI seluruh portal web mengadopsi **Design System Light Mode**:
-    - **Font Family**: Google Font `Inter`
-    - **Page Title**: `32px / 700` (`#111827`)
-    - **Section Title**: `22px / 600` (`#1F2937`)
-    - **Body Text**: `14px / 400 / line-height 20px` (`#374151`)
-    - **Form Input**: `16px / 400`, **Form Label**: `14px / 500`
-    - **Table Header**: `14px / 600` (`#1F2937` on `#F3F4F6`), **Content**: `14px / 400`
-    - **Button Text**: `15px / 600` (`#2563EB` hover `#1D4ED8`)
-    - **Badge Status**: `13px / 600` (Approved `#DCFCE7`/`#15803D`, Pending `#FEF3C7`/`#B45309`, Rejected `#FEE2E2`/`#B91C1C`, Info `#DBEAFE`/`#1D4ED8`)
-    - **Border Radius**: 8–10px
-  - Tabel Inbox menggunakan `table-fixed w-full` dengan 2 kolom Cust Code (Distributor & Principal) yang simetris tanpa offside.
-  - Penginputan `custcode_distributor` & `admin_notes` dilakukan langsung pada Modal Preview Detail.
-  - Foto toko dilindungi (Anti-Save / Disable Right Click) dengan Security Watermark Teks tanpa embel-embel ASWFOODS/INAFOODS.
-  - Filter isolasi cabang diperketat per `branch_id` pada model `User` (`$fillable`).
-- **Modul Android NOO+ v2.0 (Lokasi, EXIF, & Filter Sub-Grup)**:
-  - **Verifikasi EXIF Geotagging & Centroid (<15m)**:
-    - Penanaman koordinat GPS instan ke metadata EXIF file JPEG saat shutter kamera foto depan & dalam ditekan (`LocationCentroidHelper.kt`).
-    - Algoritma continuous satellite sampling 30 detik untuk menghasilkan koordinat Centroid toko yang presisi dan bebas drift.
-    - Validasi Haversine distance (`distDepan <= 15m ATAU distDalam <= 15m`). Jika melebihi 15m, `etLatitude` & `etLongitude` otomatis dikosongkan dan `MaterialAlertDialogBuilder` utuh ditampilkan.
-    - Penanganan dialog pop-up utuh untuk foto yang belum diambil atau koordinat GPS foto yang gagal terdeteksi.
-  - **Filter Sub-Grup Daerah Principal & Verifikasi PIN Cabang (`MainActivity.kt` & `MobileApiController.php`)**:
-    - Dropdown Principal memiliki 6 pilihan sub-grup daerah: `ASWFOODS - SUMATERA`, `ASWFOODS - JAWA`, `ASWFOODS - PULAU`, `INAFOODS - JAWA`, `INAFOODS - PULAU`, `INAFOODS - SUMATERA`.
-    - Penyaringan Region mendukung prefix `ASWJWA` (`ASWJWA1`, `ASWJWA2` -> `ASW JAWA 1`, `ASW JAWA 2`) secara terpisah saat memilih `ASWFOODS - JAWA` tanpa tersatukan ke `ASWFOODS - SUMATERA`.
-    - Menyaring Region, Entity, Branch, dan Salesman secara bertangga (cascading).
-    - **Perbaikan parsing `getCodeFromLabel`**: Menangani pemisahan ID cabang yang terpotong di UI Android secara aman agar `branch_id` (seperti `DAMGT001`) selalu terekstrak dengan presisi.
-    - **Penyambungan PIN Branch Terpusat**: Menghapus `unset($b->pin_branch)` pada `MobileApiController.php` endpoint `/api/v1/master/branches` sehingga kolom `pin_branch` dari database PostgreSQL terkirim utuh ke aplikasi Android.
-    - **Validasi PIN Cabang (`isPinValid`)**: Menggunakan perbandingan *case-insensitive*, penanganan *trimming*, dan perbandingan serba-luwes untuk memastikan PIN (seperti `3333`) pada cabang `DAMGT001` (Magetan) terverifikasi dengan akurat 100%.
-  - **Konfigurasi Network & Network Security (`ApiClient.kt`)**:
-    - `BASE_URL` disesuaikan ke `http://172.22.1.232:8000/api/v1/` menyesuaikan pemetaan Nginx Docker port `8000` di server produksi `172.22.1.232`.
-    - `network_security_config.xml` & `AndroidManifest.xml` dikonfigurasi `usesCleartextTraffic="true"` untuk mendukung HTTP non-SSL pada server lokal/internal.
-  - **Frame Kamera KTP (`KtpOverlayView.kt`)**:
-    - Lebar frame diperbesar hingga 93% dari lebar layar HP untuk foto *close-up* NIK/Nama yang tajam dan terbaca.
-    - 100% aman di dalam Safe Zone 1:1 tanpa ada bagian KTP yang terpotong saat penempelan banner watermark foto.
+## Master Data - Master Salesman (`/principal/master-salesman`)
+- **Controller**: `app/Http/Controllers/Web/EdpMasterController.php` (`masterSalesman`, `getFilterOptions`)
+- **View**: `resources/js/Pages/Edp/Master/MasterSalesman.vue`
+- **Fitur Filter Bertingkat (Cascading Filter)**:
+  - Tersedia 4 filter: **REGION**, **ENTITY**, **CABANG / BRANCH**, dan **CARI SALESMAN**.
+  - Berlaku untuk seluruh role: `SUPERADMIN`, `ADMIN_PRINCIPAL`, dan `EDP_REGION`.
+  - Filter bertingkat:
+    1. Memilih **Region** akan menyaring daftar **Entity** dan daftar **Cabang** yang tersedia.
+    2. Memilih **Entity** akan menyaring daftar **Cabang** yang terikat dengan entity tersebut (baik dengan region maupun tanpa region terpilih).
+    3. Jika Region atau Entity diubah ke pilihan yang tidak lagi memuat Entity/Cabang yang sedang aktif, pilihan dropdown yang terdampak otomatis di-reset.
+  - **Instant Client-Side Filtering**: Dilakukan pada browser (Vue 3 `computed`) untuk kecepatan respons tanpa perlu reload halaman atau mencemari query URL.
+  - **Entity Column**: Kolom `Entity` ditampilkan di tabel Master Salesman untuk memverifikasi entitas principal masing-masing salesman.
 
----
+## Executive Dashboard Principal (`/principal/dashboard`)
+- **Controller**: `app/Http/Controllers/Web/EdpDashboardController.php` (`index`, `exportChartExcel`, `exportChartPdf`)
+- **Service**: `app/Services/ExcelExportService.php` (`generateDashboardChartExcel`)
+- **View**: `resources/js/Pages/Edp/Dashboard.vue`
+- **Print/PDF Template**: `resources/views/edp/dashboard_chart_pdf.blade.php`
+- **Sinkronisasi Filter Grafik**:
+  - Filter tahun mandiri di masing-masing 4 grafik telah dihilangkan seluruhnya.
+  - Seluruh grafik tersinkronisasi mengikuti filter global (Bulan & Tahun) dari bilah filter utama di atas halaman.
+- **Fitur Export (Excel, PDF, JPG)**:
+  - Tersedia pada 3 grafik utama:
+    1. **Perbandingan Status Submisi NOO** (`comparison`)
+    2. **Analisis Submisi vs Approval per Region Area** (`areas`)
+    3. **Sebaran Submisi per Tipe Outlet / Channel** (`outlet_types`)
+  - Grafik **Top Cabang Submisi NOO Terbanyak** tidak memiliki tombol ekspor (sesuai instruksi pengguna).
+  - Desain tombol: Dropdown menu minimalis elegan `Export ▼` (tanpa emoji/ikon berlebihan).
+  - **Excel (.xlsx)**: Dihasilkan via `PhpSpreadsheet` dengan judul besar laporan eksekutif, metadata filter aktif, tabel ringkasan metrik statistik grafik, dan tabel detail data pengajuan NOO lengkap (Region, Entity, Cabang Distributor, Nama Toko, Salesman, Tanggal Submisi, Status, dan Tipe Outlet).
+  - **PDF Document**: Dihasilkan via Blade print view dengan styling khusus cetak `@page { size: A4 landscape; margin: 10mm; }`, tabel `table-layout: fixed` dengan `word-wrap: break-word` (menjamin **fit to width** tanpa overflow/terpotong), otomatis memicu dialog cetak/simpan PDF browser.
+  - **Gambar JPG (.jpg)**: Dihasilkan via HTML5 high-res Canvas rendering langsung di browser dan diunduh instan sebagai file gambar `.jpg` resmi beresolusi tajam.
 
-# 🧠 Aturan Dokumentasi & Komentar (WAJIB DIPATUHI)
-Saya bekerja sendiri (Solo Developer). Kode harus bisa menjelaskan dirinya sendiri.
+## Portal SPV Area - Login (`/spv-login`)
+- **Controller**: `app/Http/Controllers/Auth/SpvLoginController.php` (`create`, `store`, `destroy`)
+- **View**: `resources/js/Pages/Auth/SpvLogin.vue`
+- **Asset Visual**: `Photo-Pabrik-ASW-Foods-Revisi.jpg` (disajikan via `public/Photo-Pabrik-ASW-Foods-Revisi.jpg` dan fallback route `routes/web.php`)
+- **Desain Antarmuka (UI/UX)**:
+  - **Split-Card Layout Modern**: Menggunakan kanvas luar dengan latar gradien halus berkarakter (`#E2E8F0` via `#E8EDF5` to `#DCE4EF`) dan kartu kontainer `rounded-[26px] sm:rounded-[30px]` berbayang lembut (`shadow-[0_20px_60px_-15px_rgba(15,23,42,0.12)]`).
+  - **Sisi Kiri (Form Kredensial SPV)**:
+    - Form bersih dan intuitif dengan brand identity NOO+, ASWFOODS, dan INAFOODS.
+    - Input Salescode otomatis diformat huruf kapital (`uppercase`).
+    - Input Password dilengkapi tombol **Eye / Eye-Slash toggle** (SVG icon inline) untuk melihat/sembunyikan password.
+    - Opsi **"Ingat Salescode di perangkat ini"** dengan penyimpanan otomatis ke `localStorage` (`noo_spv_remembered_salescode`).
+    - Animasi getar responsif (`animate-shake`) saat terjadi kesalahan autentikasi serta alert pesan error modern.
+    - Tombol masuk dengan gradien korporat dinamis (Royal Purple `#542B85` ke Navy `#1E2B7B`) dilengkapi indikator loading spinner animasi SVG.
+  - **Sisi Kanan (Hero Visual Pabrik & Text Blur Fade)**:
+    - Menampilkan foto fasilitas manufaktur **Pabrik ASW Foods Revisi** (`Photo-Pabrik-ASW-Foods-Revisi.jpg`) dengan posisi yang dinaikkan (`object-[center_70%]`, `translate-y-8 md:translate-y-10`, `scale-[1.18] md:scale-[1.20]`) sehingga atap lengkung kuning dan kompleks gedung pabrik tampak jelas dan tidak tertutup teks.
+    - Teks deskripsi resmi di bagian bawah foto bertuliskan **"NOO+ (New Open Outlet) - SPV Area"** dengan **background teks berbentuk blur fade ringkas** (`bg-gradient-to-t from-black/95 via-black/75 to-transparent backdrop-blur-[2px]`) yang proporsional dan tidak menutupi gedung pabrik.
+  - **Dukungan Tampilan Desktop & Tablet**:
+    - Kontainer fleksibel `max-w-md md:max-w-3xl lg:max-w-[940px]`.
+    - Pada tablet (iPad / Android Tablet 768px - 1024px) dan desktop, tata letak dual-panel (form kredensial 6 cols & visual hero pabrik 6 cols) tampil proporsional, lapang, dan bebas dari distorsi.
 
-1. **Bahasa Komentar:**
-   - SELURUH komentar dalam kode WAJIB menggunakan **Bahasa Indonesia**.
+## Portal SPV Area - Inbox Submisi (`/spv/inbox`)
+- **Controller**: `app/Http/Controllers/Web/SpvPortalController.php` (`index`, `approve`, `reject`)
+- **View**: `resources/js/Pages/Spv/Inbox.vue`
+- **Dukungan Tampilan Desktop & Tablet**:
+  - **Header & Metric Cards**: Menggunakan grid responsif 2 kolom di ponsel dan 4 kolom di tablet & desktop (`grid-cols-2 sm:grid-cols-4`) dengan kartu berukuran proporsional (`min-w-[110px] md:min-w-[125px]`).
+  - **Filter Bar**: Ditata sejajar di tablet dan desktop (`md:flex-row md:items-center md:justify-between`) sehingga pencarian dan dropdown filter status/sort tidak menumpuk vertikal dan menghemat ruang layar tablet.
+  - **Tabel Submisi**: Mendukung lebar minimum adaptif `min-w-[860px] md:min-w-[920px] lg:min-w-[960px]` dengan padding sel responsif (`px-3 md:px-4 py-2.5 md:py-3.5`), teks rapi, dan tombol "Kelola & Rute" yang pas di tablet.
+  - **Modal Detail & Rute**: Dialog modal dengan tinggi maksimal adaptif (`max-h-[88vh] md:max-h-[85vh]`), header/body/footer proporsional, tombol pemilihan hari rute (H1-H7) dan minggu rute (M1-M4) yang ramah sentuhan (*touch-friendly*) di tablet.
 
-2. **Kualitas Komentar:**
-   - Jangan menjelaskan SYNTAX (Contoh salah: `// Ini loop`).
-   - Jelaskan **TUJUAN BISNIS** (Contoh benar: `// Loop rekomendasi PO untuk memfilter stok distributor yang kosong`).
-   - Setiap `Function` atau `Method` wajib memiliki komentar blok di atasnya yang menjelaskan:
-     - Apa fungsinya?
-     - Apa parameternya?
-     - Apa yang dikembalikan (return)?
-
----
-
-# 🛠 Standar Coding & Arsitektur Baru
-
-1. **Architecture:** Monolith.
-2. **Stack:** Laravel 12, Vue 3 (Composition API), Inertia.js, Tailwind CSS, PostgreSQL.
-3. **Design System:** Light Mode Theme, Inter Font, Prescribed Typography & Color Palette Tokens.
-
-4. **Laravel (Backend):**
-   - Gunakan **Strict Types** (`declare(strict_types=1);`) di baris pertama file PHP.
-   - Hindari logic berat di Controller. Pindahkan kalkulasi/workflow ke folder `app/Services`.
-   - Gunakan **Enum** untuk status workflow NOO dan Role (`App\Enums\...`).
-
-5. **Vue.js (Frontend):**
-   - **DILARANG** menggunakan Class-Based Component.
-   - **WAJIB** menggunakan `<script setup lang="js">`.
-   - Pecah UI yang rumit menjadi komponen kecil di folder `Components`.
-
-6. **Docker Workflow:**
-   - Environment berjalan di Docker.
-   - Jika diminta menjalankan perintah artisan/composer, gunakan prefix:
-     `docker-compose exec app [command]`
-
-7. **Network & Access Requirement:**
-   - Database PostgreSQL & Storage Server menjadi **Single Source of Truth** terpusat.
-   - **Portal Admin Distributor**: Akses publik (Domain Publik / Reverse Proxy) tanpa menggunakan Google Sheets/Apps Script lagi.
-   - **Portal SPV Area, Portal Principal, & NOO Master**: Diakses melalui jaringan internal/port server Ubuntu perusahaan.
-
----
-
-# 🚫 Larangan Keras
-- Jangan pernah menghapus komentar yang sudah ada kecuali kodenya dihapus.
-- Jangan gunakan jQuery.
-- Jangan gunakan `any` atau `mixed` type jika tipe datanya sudah jelas.
-- Dilarang lagi menggunakan komponen Apapun yang berhubungan dengan Google (Google Apps Script, Google Sheets, Google Drive).
-
----
-
-# 📌 Rencana Pengerjaan Selanjutnya (Next Steps)
-1. Verifikasi alur submit dari Android ke Portal Admin Distributor (Light Mode).
-2. Membangun & menyesuaikan UI Portal SPV Area dan Portal Principal dengan Design System Light Mode yang seragam.
-3. Menjalankan pengujian end-to-end workflow NOO dari SE ➔ Admin Distributor ➔ SPV Area ➔ Portal Principal.
-
----
-
-## 🚀 Perbaruan Fitur & Optimasi Terbaru (NOO+ v2.0)
-
-1. **Sticky Network & GPS Monitor Bar (`NetworkGpsMonitor.kt`)**:
-   - Menampilkan status Latensi Ping, Kecepatan Internet, Akurasi GPS (dalam meter), dan Indikator Sinyal (🟢/🟡/🔴) secara real-time.
-   - Pinned sticky di bagian atas `MainActivity` & `OutletFormActivity` sehingga tetap terlihat jelas saat form di-scroll.
-   - Menggunakan `pingClient` dedicated (Timeout 1.5s) ke endpoint lightweight `/api/v1/echo` dengan instant live fallback ke socket Google DNS (`8.8.8.8:53`) untuk akurasi latensi tanpa membebankan database.
-
-2. **Modal Preview Foto Ukuran Besar (Anti Blur)**:
-   - Menambahkan preview foto resolusi tinggi saat thumbnail foto yang diambil (Depan, Dalam, KTP) diklik pada `OutletFormActivity`.
-   - Menggunakan `MaterialAlertDialogBuilder` dengan tombol tutup untuk memastikan foto yang diambil tidak blur/buram sebelum di-submit.
-
-3. **Efisiensi Kuota Internet Super Hemat (Data Saver)**:
-   - **Disk HTTP Cache (OkHttp 10MB)** & **GZIP Compression (`Accept-Encoding: gzip`)** di `ApiClient.kt`.
-   - **Persistent Local Disk Cache (`MasterCache.kt`)**: Menyimpan `MasterResponse` di `SharedPreferences` sehingga aplikasi langsung terbuka tanpa perlu re-download data master setiap kali diluncurkan.
-   - **Kompresi Foto Otomatis**: Foto toko dikompresi dari 5–8 MB menjadi **~150–250 KB per foto** (Kualitas 60%, Max Width 900px).
-   - **Total Kuota Data**: Pendaftaran 1 Toko Baru (Form + 3 Foto) hanya memakan **~0.4 - 0.7 MB**, hemat >95% kuota data harian user.
-
-4. **Proteksi Instant Double-Submit**:
-   - Memasukkan penguncian variabel `isSubmitting = true` & `updateSubmitButtonState()` secara **sinkron di milidetik pertama UI Thread** saat tombol submit diklik.
-   - Tombol Submit seketika ter-disable (`isEnabled = false`), teks berubah menjadi `"Mengirim..."`, dan warna berubah redup, mencegah terjadinya duplikasi data toko jika tombol diklik berulang kali dengan cepat.
-
-5. **Splash Screen Non-Blocking**:
-   - Splash screen diberikan timeout maksimal **2.5 detik** (`splashScreen.setKeepOnScreenCondition { !masterReady && !splashTimeout }`) dan melepas kondisi secara otomatis agar aplikasi tidak pernah freeze/stuck saat koneksi lambat.
-
-6. **Indikator Loading & Progress Tracking Toko Ditolak**:
-   - Menambahkan indikator loading dan penonaktifan tombol konfirmasi (disable) saat klik konfirmasi Tolak / Approve di modal verifikasi.
-   - Progress bar / timeline status pada modal detail tracking untuk toko yang **Rejected** berubah warna menjadi **Merah** secara spesifik pada stage tempat proses terhenti (bukan seluruh baris).
-   - Header dan tombol close pada modal detail progress tracking diset `sticky top-0` agar tetap berada di atas saat modal di-scroll.
-
-7. **Sidebar Menu Hover & Animate Icon Toggle**:
-   - Submenu Master Data (semi-hide) tetap muncul saat kursor berada di atasnya (on hover) dan otomatis tersembunyi ketika kursor keluar.
-   - Tombol toggle sidebar menu pada topbar memiliki animasi transisi smooth dari ikon garis 3 (hamburger) ke ikon silang (`✕`).
-
-8. **Format Default Counter Sequence Cabang Baru**:
-   - Saat cabang baru ditambahkan di Master Branch (`storeBranch`), record Counter Sequence dibuat secara otomatis dengan format:
-     - `principal_code`: `principal_code` / `entity_code_principal` (contoh: `A` / `ASW`)
-     - `prefix`: karakter ke-3, 4, dan 5 dari `branch_id` (contoh: `DAMDN003` ➔ `MDN`)
-     - `last_seq`: `0`
-   - Dilengkapi fungsi auto-sync sequence untuk cabang yang belum memiliki record sequence.
-
-9. **Manajemen Akun & User Role Manager (`AccountManagement.vue`)**:
-   - **Dua Tab Navigasi**: Tab 👥 `Daftar Pengguna` & Tab 🛡️ `Matriks Hak Akses (User Role Manager)`.
-   - **Form Add & Edit Akun**: Username, Nama, & Password tetap menggunakan textfield biasa. Role & Region Scope disetting via Radio Buttons terstruktur. Status Akun via Radio Buttons (`Aktif`/`Non-Aktif`).
-   - **Matriks Hak Akses (User Role Manager)**: Permisssion matrix table yang mengelompokkan otorisasi menu portal (`NOO VERIFICATION`, `PROGRESS TRACKING NOO`, `NOO MASTER DATA`, `MANAJEMEN AKUN DAN LOGS & AUDIT`) untuk masing-masing peran (**EDP Region**, **Admin Principal**, **Superadmin**).
-   - **Tombol Edit & Simpan Matriks**: Tombol `✏️ Edit Matriks` di header card yang mengaktifkan checkbox otorisasi saat diklik oleh Superadmin, dilengkapi tombol `💾 Simpan Matriks` & `Batal` beserta local success banner.
-
-10. **Notifikasi Master Data & Tombol Close Banner**:
-    - Seluruh aksi Master Data (Bulk Upload, Add, Edit, Delete) kini menghasilkan notifikasi detail:
-      - **Bulk Upload**: Menampilkan total persis baris data (`{inserted}`) yang diimpor.
-      - **Add/Edit/Delete**: Menampilkan nama & kode item data yang diproses.
-      - Auto-creation cabang distributor jika `branch_id` belum terdaftar pada bulk upload Salesman/SPV untuk mencegah FK constraint error.
-    - Banner Notifikasi di atas halaman (`EdpLayout.vue`) dilengkapi tombol close (`✕`) untuk menyembunyikan notifikasi secara manual.
-
-11. **Perbaikan Pemetaan Region Portal Distributor (`DistributorLoginController.php`)**:
-    - Memperbaiki logika pencocokan prefix `region_code` untuk `ASW_JAWA` (`ASWJWA1`) yang sebelumnya terhambat hardcoded prefix `ASWJAWA` (double A).
-    - Dengan pencocokan fleksibel `ASW` & `JWA`/`JAWA`, memilih Principal **ASW JAWA** di halaman login distributor kini menampilkan region **`ASWJWA1 - ASW JAWA 1`** dan seluruh cabang distributornya secara sempurna.
-
-12. **Section Preview Maps Modal SPV Inbox (`Spv/Inbox.vue`)**:
-    - Menambahkan section independen **`🌐 Preview Peta Lokasi Toko`** berbasis Google Maps `roadmap` embed (`output=embed`) tanpa tombol/mode Google Streetview pada Modal Detail Preview SPV Inbox (`/spv/inbox`), presisi persis seperti layout modal preview principal/inbox (`Edp/Inbox.vue`).
-    - Diletakkan di bawah section *Track Record Persetujuan (Progress Tracker)* dan di atas *Berkas Foto Toko & KTP*.
-
-13. **Integrasi Identitas Warna Korporat (ASWFOODS & INAFOODS)**:
-    - **Palet Logo ASWFOODS**: Merah (`#D9232A`) & Biru Navy (`#1E2B7B`).
-    - **Palet Logo INAFOODS**: Royal Purple (`#542B85`) & Crown Gold (`#F59E0B`).
-    - Menambahkan token warna di `tailwind.config.js` (`asw.red`, `asw.blue`, `ina.purple`, `ina.gold`) dan CSS Custom Properties (`--asw-red`, `--asw-blue`, `--ina-purple`, `--ina-gold`) di `resources/css/app.css`.
-
-14. **Diferensiasi UI Design & Theme Gradient 3 Portal Utama**:
-    - **Portal Admin Distributor** (`AdminLayout.vue` & `DistributorLogin.vue`): Tema visual berbasis Merah ASW (`#D9232A`) & Navy (`#1E2B7B`) dengan lencana `DISTRIBUTOR AREA`.
-    - **Portal SPV Area** (`SpvLayout.vue` & `SpvLogin.vue`): Tema visual berbasis INAFOODS Royal Purple (`#542B85`) & Crown Gold (`#F59E0B`) dengan `border-b-2 border-[#F59E0B]` dan lencana mahkota `👑 SPV SUPERVISOR`.
-    - **Portal Principal** (`EdpLayout.vue` & `EdpLogin.vue`): Tema visual Executive Dark Multi-Gradient Dual Brand (`from-[#0F172A] via-[#1E2B7B] via-[#542B85] to-[#D9232A]`) sebagai otoritas master terpusat (ASWFOODS + INAFOODS).
-
-15. **Pembaruan Sebutan Portal Utama Menjadi "PORTAL PRINCIPAL"**:
-    - Mengubah secara menyeluruh sebutan portal utama dari *"Portal EDP"* menjadi **`PORTAL PRINCIPAL`** (menegaskan bahwa EDP hanyalah salah satu role/peran di dalam Portal Principal untuk NOO).
-    - Memperbarui header layout navbar (`EdpLayout.vue`), halaman login (`EdpLogin.vue`), executive dashboard (`Dashboard.vue`), dan manajemen akun (`AccountManagement.vue`).
-
-16. **Penghapusan Total Ikon Mata Bawaan Browser**:
-    - Menambahkan aturan CSS khusus (`::-ms-reveal`, `::-ms-clear`, `::-webkit-contacts-auto-fill-button`, `::-webkit-credentials-auto-fill-button`) pada `resources/css/app.css` untuk mematikan ikon mata bawaan browser pada seluruh textfield password.
-
-17. **Perbaikan Pemetaan Dropdown Cabang Distributor Cascading (`DITLG001` - `INA02`)**:
-    - Menambahkan properti `'branch_id'` dan `'branch_name'` pada item array `$branchesByRegionEntity` di `DistributorLoginController.php`.
-    - Memperbarui template dropdown `DistributorLogin.vue` agar membaca fallback `b.branch_id || b.code` dan `b.label` sehingga tidak ada lagi cabang distributor yang ter-render `undefined - undefined` (`"-"`).
-
-18. **Logo Badge Header Murni `NOO+`**:
-    - Memastikan logo badge pada header topbar seluruh portal murni menampilkan teks **`NOO+`** tanpa imbuhan teks "ASW" atau "INA" yang menempel pada badge.
-
-19. **Format Dinamis Peran Role per Region & Perbaikan Layout Dropdown Filter Tahun**:
-    - **Pemformatan Peran Admin Principal per Region**: Di header topbar (`EdpLayout.vue`) dan badge dashboard (`Dashboard.vue`), peran `ADMIN_PRINCIPAL` otomatis diformat sesuai wilayahnya (`Admin Principal ASW Sumatera`, `Admin Principal ASW Jawa`, `Admin Principal ASW Pulau`, `Admin Principal INA Jawa`, `Admin Principal INA Pulau`, `Admin Principal INA Sumatera`), `EDP_REGION` menjadi `EDP Regional`, dan `SUPERADMIN` menjadi `Superadmin`.
-    - **Perbaikan Dropdown Filter Tahun**: Menambahkan `min-w-[125px]` dan padding kanan `pr-8` pada ke-4 elemen `<select>` filter tahun chart dashboard sehingga opsi `"Semua Tahun"` ter-render lapang tanpa tertutup ikon panah.
-
-20. **Penyelarasan Urutan Filter Status & Pemindahan Dropdown Sort pada Inbox**:
-    - **Urutan Filter Status Berdasarkan Role ($role)**: Mengurutkan opsi status dropdown secara sekuensial sesuai dengan workflow approval di `Admin/Inbox.vue`, `Spv/Inbox.vue`, dan `Edp/Inbox.vue`.
-    - **Dropdown Sort Mandiri**: Memindahkan pengurutan dari klik header tabel ke dropdown `Urutkan:` di sebelah `Filter Status:`, serta membersihkan indikator arah pada header tabel (`th`).
-
-21. **Standardisasi Tipografi Global & Identitas Warna Corporate**:
-    - Memuat skala tipografi global Inter (`H1`: 20/24px 600, `H2`: 18/20px 600, `H3`: 16px 500, `Body`: 14px 400 line-height 1.5, `Caption`: 12px 400) dan CSS custom properties warna merek ASWFOODS (`#D9232A` & `#1E2B7B`) serta INAFOODS (`#542B85` & `#F59E0B`) di `resources/css/app.css`.
-
-22. **Pembaruan Terminologi Kunjungan Salesman (P2 ➔ F2 & P4 ➔ F4)**:
-    - Mengubah seluruh sebutan dan logika frekuensi kunjungan dari `P2` (Periode 2 minggu sekali) menjadi **`F2`** dan `P4` (Periode 4 minggu sekali / setiap minggu) menjadi **`F4`** di UI modal `Spv/Inbox.vue`, `Edp/ProgressTracking.vue`, dan `Edp/MonitoringRo.vue`.
-
-23. **Perbaikan Responsivitas Mobile (`SpvLogin.vue` & `Spv/Inbox.vue`)**:
-    - **`SpvLogin.vue`**: Menghapus kuncian `100vh overflow-hidden` pada container dan menggantinya dengan `overflow-y-auto` dengan padding responsif (`p-3 sm:p-4`) agar form login pada HP tidak terpotong.
-    - **`Spv/Inbox.vue`**: Mengoptimalkan container modal detail rute (`max-h-[92vh]`) dan grid tombol jadwal hari kunjungan H1-H7 (`grid-cols-2 sm:grid-cols-4 lg:grid-cols-7`) agar ramah layar sentuh mobile.
-
-24. **Pengisolasian Ketat Data Monitoring RO per `region_code` User (`EdpDashboardController.php`)**:
-    - Memastikan bahwa pengguna selain `SUPERADMIN` (misal role `EDP_REGION` seperti `ASWSUM2`) secara ketat hanya melihat data cabang dan salesman yang berada persis di dalam `region_code` miliknya (`region_code === $userRegion`), serta mengisolasi opsi cascading filter (Region, Entity, Branch) sesuai hak akses region user.
-
-25. **Pembaruan Visual Stacked Bar Chart (Gradient Pill Bar Graph) pada Monitoring RO**:
-    - Mengubah tampilan grafik **Stacked Bar Chart • Vertical Analytics (Model Bar in Bar)** pada `MonitoringRo.vue` menggunakan desain modern **Gradient Pill Bar Graph**:
-      - Background pill track untuk Target RO (`slate-200/80`).
-      - Gradient pill active bar untuk Realisasi (`Blue-600` ➔ `Indigo-600` ➔ `Blue-700` atau `Emerald-500` ➔ `Teal-500` ➔ `Emerald-600` jika Achieved ≥ 100%).
-      - Melengkapi dengan tooltip hover card interaktif dan tetap **mempertahankan kartu tabel data detail** per cabang di bawahnya.
-
-26. **Pembaruan Konsep Monitoring RO, Fitur Toggle RO Status (Tabel & Bulk) & Redesain UI Tabel**:
-    - **Otomatisasi & Kontrol Status RO (`is_ro`)**:
-      - Menambahkan kolom `is_ro` (boolean default `true`) pada tabel `noo_submissions` (Migration `2026_08_13_000010_add_is_ro_to_noo_submissions.php`).
-      - Setiap NOO yang di-approve EDP/Principal secara otomatis berstatus `is_ro = true`.
-      - **Toggle Switch Button pada Tabel & Modal Detail**: Menambahkan tombol toggle switch bergaya iOS (`bg-[#16A34A]` / `bg-[#9CA3AF]`) di setiap baris tabel Inbox Principal (`Edp/Inbox.vue`) untuk toko yang berstatus Approved EDP untuk mengubah status `🟢 RO Aktif` ⇄ `⚪ RO Off` secara instan.
-      - **Redesain UI/UX Ubah Status RO Massal (Bulk Action)**: Memperbarui tampilan Bulk Action Bar menjadi card executive light-mode (`bg-white border-2 border-blue-600 shadow-xl`) dengan pill count toko terpilih, deskripsi aksi yang jelas, serta tombol `✅ Set Aktifkan RO (Bulk)` dan `🚫 Set Nonaktifkan RO (Bulk)`.
-      - **Modal Filter & Urutkan Data (Dedicated Modal Filter)**: Menyembunyikan filter card inline yang besar dan menggantinya dengan toolbar ringkas di atas tabel (Search Input + Tombol `🎛️ Filter & Urutkan Data`). Memindahkan seluruh control filter (Region, Entity, Branch, Status, dan Sort) ke dalam **Modal Filter & Urutkan Data** tersendiri.
-      - **Perbaikan Dropdown Sort Overlap**: Memperbaiki tampilan dropdown `Urutkan Tampilan Tabel (Sort)` di dalam modal filter dengan `w-full text-xs font-semibold p-3 pr-10 appearance-none` dan ikon panah `▼` terpisah sehingga teks opsi tidak menutupi ikon panah.
-    - **Monitoring RO Berbasis Target Lifetime / Selamanya & Tanggal Approval EDP**:
-      - Target RO (F2: 150 RO, F4: 300 RO) bersifat lifetime / selamanya per salesman.
-      - Filter bulan/tahun pengajuan memfilter berdasarkan tanggal/bulan/tahun pengajuan/approval EDP (`edp_reviewed_at`).
-    - **Dropdown Multiselect Checkbox Filter Bulan**:
-      - Menambahkan komponen dropdown multiselect checkbox `Bulan Approved EDP` dengan pill count badge (contoh `Status (1) ▾`), preset button (Q1-Q4, Semester 1-2, Semua), dan daftar checkbox 12 bulan untuk pemantauan progres bertingkat (per kuartal/semester).
-    - **Redesain UI Tabel Rekapitulasi Monitoring RO**:
-      - Merombak tampilan tabel data rekapitulasi salesman per cabang pada `MonitoringRo.vue` dengan desain executive light mode: header accordion cabang interaktif, badge status kunjungan (`F2`/`F4`), target RO, pill count realisasi, progress pill bar dengan persentase real-time, dan status badge target (`🎉 Achieved` / `⏳ In Progress`).
-
-27. **Perbaikan Navigasi Filter Inertia, Loading Overlay, Clean URL Params & Multiselect Checkbox Bulan**:
-    - **Perbaikan Error `ReferenceError: selectedEdpMonths & monthDropdownRef is not defined`**: Mendeklarasikan `selectedEdpMonths`, `isMonthDropdownOpen`, dan `monthDropdownRef` pada baris utama variabel `ref` utama di `Edp/Inbox.vue`.
-    - **Perbaikan Error `ReferenceError: onMounted is not defined`**: Menambahkan `onMounted` dan `onUnmounted` ke dalam import statement dari `vue` pada `Edp/Inbox.vue`.
-    - **Pembersihan Preset Tombol Cepat Filter Bulan**: Menghapus seluruh preset tombol cepat (`Q1-Q4`, `Semester 1-2`, `Semua`) pada dropdown multiselect bulan di `Edp/Inbox.vue` dan `Edp/MonitoringRo.vue` sesuai permintaan user.
-    - **Pembersihan URL Bar (URL Parameter Clean)**: Mengeliminasi parameter kosong (`edp_month=&edp_year=&principal=...`) agar tidak muncul mengotori URL browser saat memfilter. Menggunakan objek parameter bersih pada Inertia dan `replaceState` saat reset agar URL tetap bersih (`http://localhost:8000/principal/inbox`).
-    - **Multiselect Checkbox Bulan Approval EDP (Seragam Monitoring RO)**: Menyesuaikan filter `Bulan Approval EDP` pada `Edp/Inbox.vue` agar menggunakan komponen multiselect checkbox seperti di `MonitoringRo.vue`.
-    - **Perbaikan Filter Data Tidak Berubah**: Memperbaiki bug navigasi filter Inertia dengan `{ preserveScroll: true, replace: true }` serta pencarian backend `EdpPortalController.php` yang mencocokkan `branch_id` maupun `branch_name`.
-    - **Perbaikan Loading Overlay Bloat / Offside**: Mengisolasi *Loading Spinner Overlay* dengan menambahkan CSS `isolation: isolate` (`isolate`) dan mengganti `backdrop-blur` dengan `bg-white/85` pada kontainer tabel di `Edp/Inbox.vue` sehingga efek loading berada 100% di dalam area tabel tanpa pernah meluap/bocor melampaui header navbar.
-
-28. **Optimasi Seamless Flow Modal Export Approved NOO & Active Sheet Excel**:
-    - **Filter Distributor Hanya Menampilkan Cabang Ber-Data (Strict Available Branches)**: Mengubah kueri backend `getApprovedExportData` dan `getRejectedExportData` di `EdpPortalController.php` agar daftar distributor di dropdown dipetik (*pluck*) langsung dari cabang yang memiliki data submisi pada range tanggal tersebut. Cabang yang memiliki 0 data pada tanggal tersebut tidak akan pernah muncul di dropdown.
-    - **Prominent Executive Loading Spinner Overlay**: Menambahkan komponen animasi *Loading Spinner Overlay* yang menonjol dan transparan di dalam area tabel modal ekspor `Edp/Inbox.vue` saat data sedang dimuat dari server.
-    - **Instant Data Loading on Distributor Select**: Mengonfigurasi modal export di `Edp/Inbox.vue` agar saat distributor dipilih dari dropdown, data NOO Approved langsung dimuat (*auto-fetch*) secara instan tanpa perlu menekan tombol terpisah.
-    - **Otomatis Select All Data**: Seluruh data baris toko yang berhasil dimuat langsung ter-centang (*Select All*) secara otomatis. Pengguna dapat memilih semua atau membatalkan centang toko tertentu.
-    - **Default Active Sheet "Template"**: Menambahkan `$spreadsheet->setActiveSheetIndex(0)` di `ExcelExportService.php` sehingga saat berkas `.xlsx` hasil ekspor dibuka di MS Excel / Google Sheets, sheet pertama yang aktif terbuka adalah Sheet 1 **"Template"**.
-
-29. **Multiselect Checkbox Dropdown Bulan Pengajuan di Principal Dashboard**:
-    - **Keseragaman Komponen Multiselect Bulan**: Mengganti elemen native `<select>` pada filter `BULAN PENGAJUAN` di `Edp/Dashboard.vue` dengan komponen multiselect  checkbox dropdown yang seragam dengan `Inbox.vue` dan `MonitoringRo.vue`.
-    - **Dukungan Multi-Month Query Backend**: Memperbarui `EdpDashboardController.php` untuk mendukung parameter `months=1,2,3` via `EXTRACT(MONTH FROM COALESCE(submitted_at, created_at)) IN (...)`.
-
-30. **Redesain Grafik Monitoring RO Menjadi Summary Distributor & Live Hover Detail Bar**:
-    - **Grafik Summary per Distributor**: Mengubah grafik horizontal `MonitoringRo.vue` dari yang sebelumnya menampilkan seluruh baris salesman individual menjadi **1 baris akumulasi total RO per Distributor/Cabang**.
-    - **Skala Sumbu-X Dinamis**: Menghitung skala sumbu-X secara otomatis berpatokan pada target akumulasi cabang terbesar (`maxBranchTarget`).
-    - **Live Executive Hover Detail Bar**: Mengganti tooltip pop-up melayang dengan *Live Executive Hover Detail Bar* di atas kontainer grafik (bebas dari isu *clipping* top/bottom).
-
-31. **Refactoring Multi-Select Coverage Cabang Master SPV Area (`MasterSpv.vue` & `EdpMasterController.php`)**:
-    - **Grouped SPV Table Display**: Mengelompokkan data `master_spvs` berdasarkan `salescode` sehingga setiap SPV unik hanya memiliki **1 baris utuh** pada tabel Master SPV, lengkap dengan badge pill coverage seluruh cabang distributor yang diampu.
-    - **Multi-Select Branch Picker (Add & Edit Modal)**: Mengganti dropdown single-select cabang dengan **Multi-Select Branch Picker** (Tag Pills & Searchable Checkbox List). Admin dapat menambah/mencabut centang coverage cabang distributor dengan sangat fleksibel.
-    - **Back-End Multi-Branch Synchronization**: Backend `EdpMasterController.php` (`storeSpv`, `updateSpv`, `destroySpv`) secara otomatis menyinkronkan data cabang untuk `salescode` tersebut, serta menyelaraskan `nama`, `password`, dan `area` secara atomic sekali simpan.
-
-32. **Pembersihan Total Emoji Dekoratif (Clean Professional Typography)**:
-    - **Eliminasi Emoji Semak**: Menghapus seluruh emoji dekoratif yang berlebihan (seperti 🛡️, 📈, 📊, 🔍, 👥, 🏢, 👔, 🎯, 🏪, 💡, 🎉, ⏳, 👑, 🔄) dari seluruh judul halaman, filter bar, card header, tombol aksi, dan tabel pada `MasterSpv.vue`, `MonitoringRo.vue`, `AccountManagement.vue`, `ProgressTracking.vue`, `MasterSalesman.vue`, `MasterBranch.vue`, `MasterEdp.vue`, dan `Inbox.vue`.
-    - **Clean UI & Typography**: Tampilan antarmuka seluruh portal kini tampak bersih, rapi, elegan, dan profesional tanpa pernak-pernik ikonik yang mengganggu mata.
-
-33. **Redesain Total UI (Clean Corporate & Human-Designed Enterprise)**:
-    - **Eliminasi AI & Vibe Coding Aesthetics**: Mengganti header multi-gradient rainbow, warna-warni neomint/neon, serta efek glow berlebihan dengan gaya visual *Clean Corporate Executive Slate* (`#0F172A`).
-    - **SVG Native & Professional Controls**: Mengganti seluruh ikon emoji dan tombol gaya template AI dengan ikon SVG clean native dan kontrol antarmuka standar enterprise.
-    - **Corporate Cards & Clean Palettes**: Merapikan seluruh kartu metrik, header tabel, tombol filter, dan modal menjadi struktur bersih dengan border slate-200 dan font-weights yang seimbang.
-
-34. **Konstruksi Fondasi UI Components & Design System Tokens**:
-    - **Tailwind Tokens Configuration (`tailwind.config.js`)**: Mengonfigurasi `noo-primary` (`#2B358F`), `noo-secondary` (`#3B2B85`), `noo-accent` (`#F59D1A`), dan `noo-danger` (`#E31837`) serta typography font-family `Inter` (sans) dan `Plus Jakarta Sans` (heading).
-    - **Reusable `BaseButton.vue`**: Mengimplementasikan `<script setup>` dengan `defineOptions({ inheritAttrs: false })`, mendukung varian `primary`, `secondary`, `outline`, `danger`, serta ukuran `sm`, `md`, `lg` responsif dan loading spinner native SVG.
-    - **Reusable `BaseCard.vue`**: Mengimplementasikan komponen pembungkus berlatar `bg-white rounded-xl border border-slate-200` dengan named slot `#header` (`font-heading font-semibold text-slate-900`), slot `default` body (`font-sans font-normal text-slate-600`), dan named slot `#footer` (`bg-slate-50 border-t`).
-    - **Penerapan Lintas Portal**: Mengintegrasikan `BaseButton` dan `BaseCard` di seluruh Portal Admin Distributor, SPV Area, dan EDP Principal.
-
-36. **Standardisasi Modal Detail Inbox (Preview Maps, GPS Layout, & Metric Badges)**:
-    - **Penyelarasan Horizontal Metric Stat Badges**: Memastikan posisi angka dan judul pada seluruh kartu metrik (`Admin/Inbox.vue` dan `Spv/Inbox.vue`) sejajar presisi secara horizontal dengan container `flex flex-col justify-between h-full` dan `min-h-[32px]` pada label judul.
-    - **Penyelarasan Format GPS Koordinat & Akurasi**: Menyeragamkan tampilan GPS di modal detail `Admin/Inbox.vue`, `Spv/Inbox.vue`, dan `Edp/Inbox.vue` menjadi format bersih 2-baris (Baris 1: `la, lg`, Baris 2: `Akurasi GPS: X meter`) serta menghapus tautan teks *"Lihat Lokasi Google Maps"*.
-    - **Integrasi Section Preview Maps Modal Admin Distributor**: Menambahkan section independen **Preview Peta Lokasi Toko** (Google Maps iframe embed) di modal detail `Admin/Inbox.vue` seragam dengan yang ada di `Spv/Inbox.vue` dan `Edp/Inbox.vue`.
-
-38. **Watermark Revisi Foto KTP, Realtime Modal Update, Pagination & Default Workflow Ordering**:
-    - **Watermark Otomatis Revisi Foto KTP Pemilik**: Mengimplementasikan generator watermark pada `KtpRevisionService.php` dengan judul `FOTO KTP OWNER (REVISI)`, memuat rincian lengkap Salesman (`SE: nama (code)`), `Outlet: nama_noo`, `Branch: branch_id`, `LA / LG GPS`, dan timestamp eksekusi pada banner bawah yang proporsional.
-    - **Realtime Image Refresh & Auto-Disable Button Revisi (`Edp/Inbox.vue`)**: Memperbaiki reaktivitas `activeModalSubmission` setelah upload revisi KTP sukses agar foto thumbnail & preview langsung berganti ke foto ber-watermark baru (cache-buster `?v=...`) dan tombol revisi otomatis beralih ke state non-aktif `🔒 Revisi Max (1x)`.
-    - **Integrasi Pagination di Seluruh Inbox Portal**: Menambahkan komponen `<Pagination>` di `Admin/Inbox.vue` dan `Spv/Inbox.vue` serta menyelaraskan dukungan paginator Laravel di `AdminDistributorController.php` dan `SpvPortalController.php`.
-    - **Penyelarasan Urutan Default (Workflow-Aware Default Ordering)**:
-        - **Admin Distributor**: Memprioritaskan data yang masih berstatus pending Admin (`SE_SUBMITTED`) di urutan paling atas, lalu diurutkan berdasarkan `submitted_at` terbaru (DESC).
-        - **SPV Area**: Memprioritaskan data yang masih berstatus pending SPV (`PUSHED_TO_SPV`) di urutan paling atas, lalu diurutkan berdasarkan tanggal admin melakukan submit terbaru (`COALESCE(pushed_to_spv_at, submitted_at, created_at)` DESC).
-        - **Principal (EDP)**: Memprioritaskan data yang masih pending review EDP (`PUSHED_TO_EDP`, `APPROVED_SPV`) di urutan paling atas, lalu diurutkan berdasarkan `COALESCE(spv_approved_at, pushed_to_spv_at, submitted_at, created_at)` DESC.
-39. **Pencegahan Error Overflow Kolom Flags & Sanitasi Riwayat Revisi KTP**:
-    - **Perubahan Tipe Kolom `flags` ke TEXT**: Mengubah tipe data kolom `flags` pada tabel `noo_submissions` menjadi `TEXT` tanpa batasan karakter `varchar(255)` agar dapat menampung jejak audit dan flag revisi tanpa batas panjang.
-    - **Sanitasi Riwayat Flag Unlock & Revisi KTP**: Menambahkan kolom dedicated `is_ktp_revised`, `ktp_revised_at`, `ktp_revised_by`, `ktp_unlocked_at`, `ktp_unlocked_by` pada tabel `noo_submissions`.
-40. **Penyempurnaan Tombol Rename Nama Toko & Proteksi Status Submisi**:
-    - **Visual Pop-Out Icon & Tombol Rename**: Memperbarui tombol ubah nama toko pada modal detail `Admin/Inbox.vue` dan `Edp/Inbox.vue` dengan styling badge warna kuning/amber cerah berlatar kontras (`bg-amber-400 text-slate-950 font-bold`) disertai label teks jelas ("Ubah Nama") agar langsung terbaca dan terlihat oleh pengguna.
-    - **Proteksi Pengubahan Nama**: Di Portal Admin Distributor, tombol ubah nama hanya muncul saat status toko masih `SE_SUBMITTED` (`canEditNamaOutlet`). Sekali toko disubmit ke SPV, nama toko tidak dapat diubah lagi oleh admin distributor.
-41. **Penyelarasan Tipografi & Banner Non-Destruktif Watermark Revisi KTP**:
-    - **Font Modern TrueType Sans-Serif**: Menggunakan font TrueType Arial / Arial Bold (`resources/fonts/arial.ttf` & `arialbd.ttf`) pada `KtpRevisionService.php` agar gaya, ketebalan, dan ukuran font watermark identik dengan watermark foto lainnya (Foto Depan Toko & Foto Dalam Toko).
-    - **Watermark Non-Destruktif (Extended Canvas)**: Gambar asli KTP 1:1 dipertahankan 100% utuh di bagian atas tanpa tertimpa, dan banner watermark ditempatkan di bagian bawah (kanvas diperpanjang) sehingga teks watermark tidak menutupi informasi KTP.
-42. **Loading State & Button Disable Upload Foto Revisi KTP (`Edp/Inbox.vue`)**:
-    - Menambahkan state `isUploadingKtp` dengan animasi spinner berputar dan teks dynamic *"Mengupload Foto..."*, serta menonaktifkan tombol submit & batal selama proses unggah berlangsung untuk mencegah double-click.
-43. **Isolasi State Filter & Pengikatan Query Params pada Seluruh Aksi Modal (`Edp/Inbox.vue` & `EdpPortalController.php`)**:
-    - **Pencegahan Reset Filter Tabel**: Menghapus watcher penimpaan reaktif `props.filters` pada client, serta membuat helper backend `redirectWithFilters()` di `EdpPortalController.php` dan `getActiveQueryParams()` di `Edp/Inbox.vue`.
-    - **Sinkronisasi Sempurna**: Setiap aksi modal (Approve, Reject, Cancel Rejection, Update Nama/Alamat, Revisi KTP, Unlock KTP, Reset Approval, Toggle RO) otomatis melampirkan filter aktif, sehingga tabel toko tetap terfilter secara konsisten sesuai pilihan pengguna (misal: tetap pada filter *Belum Diproses*).
-44. **Sanitasi String Nama Toko (`NooSubmissionService.php`)**:
-    - Menambahkan method statis `sanitizeOutletName(?string $name): string` untuk membersihkan whitespace berlebih pada nama toko dan mencegah error *undefined method*.
-45. **Proteksi Hak Akses Manajemen Akun Khusus Superadmin**:
-    - Membatasi akses menu & endpoint Manajemen Akun (`EdpAccountManagementController.php` & `EdpLayout.vue`) menjadi khusus `SUPERADMIN`. Role `ADMIN_PRINCIPAL` dan `EDP_REGION` tidak lagi dapat melihat maupun mengakses tab/menu Manajemen Akun.
-46. **Penyembunyian Menu Monitoring RO Selama Masa Finalisasi**:
-    - Menu Monitoring RO di sidebar (`EdpLayout.vue`) dan endpoint backend (`EdpDashboardController::monitoringRo`) kini disembunyikan dan dibatasi khusus untuk `SUPERADMIN` selama masa penyempurnaan, sehingga tidak muncul di role EDP dan Admin Principal.
-47. **Kelengkapan Matriks Hak Akses (`AccountManagement.vue`)**:
-    - Menambahkan seluruh menu dan modul portal secara komprehensif ke dalam tabel Matriks Hak Akses (Home Dashboard, NOO Verification, Monitoring RO, Progress Tracking NOO, NOO Master Data Branch/Salesman/SPV/Outlet Types/Counter Sequence, Manajemen Akun, dan Audit Logs).
-
----
-
-## 🏛️ Rangkuman Arsitektur & Hak Akses Portal Monolith NOO+ v2.0 (Final)
-
-### 1. Portal Admin Distributor (`/admin-distributor/*`)
-- **Akses**: Publik / Domain Distributor (`distributor.auth` session-based).
-- **Fitur Utama**:
-  - Inbox NOO Toko baru dari SE Salesman (`SE_SUBMITTED`).
-  - Verifikasi data & foto toko dengan Security Watermark Overlay.
-  - Preview Google Maps lokasi koordinat toko.
-  - Pengisian Kode Customer Distributor (`custcode_distributor`) & Catatan Admin.
-  - Ubah Nama Outlet (hanya jika belum disubmit ke SPV).
-  - Submit ke SPV Area (`PUSHED_TO_SPV`) atau Tolak Submisi (`ADMIN_REJECTED`).
-
-### 2. Portal SPV Area (`/spv/*`)
-- **Akses**: Internal Server / Domain SPV (`spv.auth` session-based).
-- **Fitur Utama**:
-  - Inbox verifikasi toko yang telah disubmit Admin (`PUSHED_TO_SPV`).
-  - Preview detail outlet, GPS Haversine distance, dan galeri foto.
-  - Approve ke Principal EDP (`APPROVED_SPV` / `PUSHED_TO_EDP`) atau Tolak Submisi (`SPV_REJECTED`).
-
-### 3. Portal Principal EDP (`/principal/*` - Auth User)
-- **Role Permissions**:
-  - **Operator EDP Regional (`EDP_REGION`)**:
-    - Scope wilayah terisolasi per `region_code` (misal: `ASWSUM1`, `ASWJWA2`).
-    - Home Dashboard, Inbox Submisi NOO (Approve/Generate Kode Principal, Reject, Ubah Nama/Alamat, Revisi KTP 1x, Toggle Status RO, Ekspor Excel), Progress Tracking NOO, dan View Master Data.
-  - **Superadmin (`SUPERADMIN`)**:
-    - Full Global Access ke seluruh region dan entitas.
-    - Seluruh fitur Admin Principal + Manajemen Akun & User Role Manager, Unlock Revisi KTP, Bulk Upload CSV Master Data, dan Menu Monitoring RO (Target vs Realisasi).
-
-48. **Reusable Customer Code Principal pada Reset Approval NOO**:
-    - **Kolom `previous_code_noo_principal`**: Menambahkan kolom `previous_code_noo_principal` pada tabel `noo_submissions` via migration `2026_09_01_000001_add_previous_code_noo_principal_to_noo_submissions_table.php`.
-    - **Preservasi Kode Saat Reset (`resetEdpApproval`)**: Saat toko di-reset oleh Superadmin/Admin, nilai `code_noo_principal` lama (misal: `CAPSP00929`) diamankan ke kolom `previous_code_noo_principal` dan `code_noo_principal` diset `null`. Counter sequence utama tidak diganggu gugat.
-    - **Otomatis Reuse Saat Re-Approve (`approve`)**: Ketika toko tersebut diperbaiki (nama, alamat, KTP) dan disetujui kembali, backend mendeteksi `previous_code_noo_principal` dan menggunakannya kembali sebagai kode toko (`CAPSP00929`) tanpa menambah sequence `counter_sequences`. Sequence berikutnya (`CAPSP00934`) tetap tersimpan untuk toko baru.
-    - **Visual Transparan di Modal Detail (`Edp/Inbox.vue`)**: Menampilkan badge info di modal toko yang di-reset: *"CAPSP00929 (Reuse on Approve - Kode sebelumnya yang akan otomatis dipakai kembali saat di-approve)"*.
-49. **Penyempurnaan Download Template Excel Master Data (`EdpMasterController.php`)**:
-    - Format unduhan template master data (`Master Branch`, `Master Salesman`, `Master SPV`, `Counter Sequence`) diubah menjadi berkas **Excel (.xlsx)** resmi menggunakan `PhpSpreadsheet`.
-    - Dilengkapi dengan *styling header* Royal Navy Blue (`#1E3A8A`), teks tebal putih, *auto-fit column width*, serta sampel data yang terstruktur rapi.
-50. **Bulk Upload Berbasis Row-Level Error Reporting & Excel/CSV Reader (`EdpMasterController.php`)**:
-    - Pengunggahan berkas bulk upload kini mendukung format `.xlsx`, `.xls`, dan `.csv` menggunakan `PhpOffice\PhpSpreadsheet\IOFactory`.
-    - Mengubah transaksi `bulkUpload()` dari *all-or-nothing rollback* menjadi **Row-Level Processing**: Baris data yang valid tetap berhasil diimpor, sedangkan baris yang salah (misal: `branch_id` kosong) dilewati tanpa menghentikan seluruh proses.
-    - Memberikan umpan balik (feedback) pesan flash yang spesifik menyebutkan nomor baris Excel dan alasan kegagalan data.
-51. **Dukungan Multi-Branch Coverage SPV Area (`EdpMasterController.php`)**:
-    - Mengubah kunci penyimpan/pembaruan `updateOrInsert()` pada `master_spvs` menjadi **kunci kombinasi `['salescode', 'branch_id']`**.
-    - Memungkinkan satu orang SPV (dengan `salescode` dan `nama` yang sama) untuk mengkover lebih dari 1 cabang distributor tanpa menimpa (*overwrite*) cabang yang sudah di-assign sebelumnya.
-52. **Dynamic Live Query Coverage SPV Area (`SpvPortalController.php` & `Inbox.vue`)**:
-    - **Live Query Real-Time**: Mengubah query penentuan cabang yang dinaungi SPV di `SpvPortalController::index()` menjadi pencarian real-time berdasarkan `salescode` / `nama` SPV aktif dari database.
-    - **Tanpa Perlu Re-Login**: Setiap ada penambahan/pemindahan area distributor ke SPV via UI EDP Master, SPV cukup menekan F5/Refresh pada browser dan data submisi toko di cabang baru tersebut langsung muncul di inbox SPV Area.
-    - **Penyelarasan Key Metrics**: Memperbaiki pencocokan key `stats.pendingSpv` antara backend dan Vue 3 Inbox agar angka indikator **PENDING REVIEW** tampil secara akurat.
-53. **Penyelarasan Filtering Region Scope Akun pada Counter Sequence (`EdpMasterController.php`)**:
-    - **Integrasi Penuh dengan Manajemen Akun**: Menyinkronkan logic pembacaan scope wilayah `region_code` pada method `counterSequence()` dengan sanitasi prefix `ADMIN.` dan pemecahan multi-region (koma).
-    - **Pencocokan Scope Akun yang Presisi**: Menghubungkan filtering scope Principal Area (seperti `ASWSUM`, `ASWJWA`, `INAJWA`) langsung ke tabel `master_branches` sehingga saat login sebagai Admin Principal (misal `admin.aswsum`), seluruh data cabang di bawah area operasionalnya (`ASWSUM1`, `ASWSUM2`, `ASWSUM3`) langsung tampil akurat di tabel Counter Sequence.
-54. **Server-Side Global Sorting Data Tabel Counter Sequence (`EdpMasterController.php` & `CounterSequence.vue`)**:
-    - Mengubah logic pengurutan tabel dari *client-side single-page sorting* menjadi **Server-Side Global Sorting** (`sort_by` & `sort_dir`).
-    - Pengurutan kolom (Branch ID, Branch Name, Principal Code, Prefix, Last Seq, Last Updated) kini diterapkan di level query database database untuk seluruh total data terlepas batasan paginasi (10/20/semua data), serta arah sort tetap dipertahankan saat berpindah halaman.
-55. **Fitur Ekspor Excel (.xlsx) Audit Activity & System Logs (`EdpLogsController.php`, `ExcelExportService.php`, & `Logs.vue`)**:
-    - **Metode `generateActivityLogsExcel`**: Menambahkan pembuatan berkas Excel resmi untuk riwayat log aktivitas dengan format profesional (Header Emerald `#059669`, font tebal putih, metadata tanggal & filter, border rapi, zebra striping `#F9FAFB`, dan lebar kolom proporsional).
-    - **Filter-Aware Export**: Ekspor data otomatis mematuhi filter peran pengguna (Role) dan kata kunci pencarian yang sedang aktif di UI Logs.
-    - **UI Button & Rute**: Menyediakan tombol *Export Excel (.xlsx)* di halaman Logs & Audit dengan endpoint rute `edp.logs.export_excel`.
-
-
+## Portal Admin Distributor - Login (`/distributor-login`)
+- **Controller**: `app/Http/Controllers/Auth/DistributorLoginController.php` (`create`, `store`, `destroy`, `getBootstrapData`)
+- **View**: `resources/js/Pages/Auth/DistributorLogin.vue`
+- **Inspirasi Desain**: Dribbble Form Prototype (Dual-Panel Split Container)
+- **Tata Letak & Fitur**:
+  - **Panel Kiri (Form Kredensial Bertingkat Ringkas & Tanpa Scroll)**:
+    - Desain proporsional hemat vertikal sehingga muat 100% di layar laptop/desktop tanpa scrollbar (`md:overflow-hidden`, padding responsif compact).
+    - Seluruh dropdown dibuat satu baris penuh (*full-width*) agar nama Region dan Entity tidak terpotong (...).
+    - Menghilangkan duplikasi ikon dropdown (hanya 1 ikon chevron bersih pada setiap select via `style="background-image: none !important;"`).
+    - Dilengkapi **satu tombol reset tunggal (`✕ Reset Pilihan`)** terpusat di baris Principal Area yang muncul secara dinamis jika salah satu atau seluruh dropdown telah dipilih, mereset seluruh pilihan bertingkat sekaligus.
+    - Dropdown bertingkat (*cascading*): **Principal Area** (ASW SUMATERA, ASW JAWA, ASW PULAU, INA JAWA, INA PULAU, INA SUMATERA), **Region**, **Entity Principal**, dan **Branch / Distributor**.
+    - Input **PIN Branch** dalam format password dengan inline **Eye / Eye-Slash toggle** (SVG icon), proteksi kerahasiaan, dan pesan error informatif.
+    - Opsi **"Ingat pilihan cabang di perangkat ini"** dengan penyimpanan otomatis di `localStorage` (`noo_distributor_remembered_branch`).
+    - Animasi getar (`animate-shake`) saat terjadi kegagalan otentikasi.
+    - Tombol masuk dengan gradien korporat dinamis (Navy `#1E2B7B` ke Royal Blue `#2563EB`) dilengkapi indikator loading spinner animasi SVG.
+  - **Panel Kanan (Slide Animated Alur NOO+ - Dribbble Style)**:
+    - Background gradien biru korporat (`from-[#1E2B7B] via-[#1D4ED8] to-[#2563EB]`) berpadu dengan partikel melayang (*floating confetti shapes*).
+    - Stack kartu mengambang (*floating 3D-card mockups*) interaktif yang memvisualisasikan 4 tahapan alur NOO+:
+      1. **Tahap 1**: *Salesman Input di Lapangan* (Mockup visual frame aplikasi mobile Android NOO+ v2.0 form **Inputan SE** yang lengkap dengan: Data Toko Baru, **GPS Locked & Akurasi 3.2m**, serta **2 Foto Fisik Toko: Tampak Depan & Tampak Dalam** terlampir, plus tombol submit data).
+      2. **Tahap 2**: *Admin Input Customer Code Distributor* (Mockup ERP cabang, input customer code versi distributor untuk di-mapping-kan ke Eskalink).
+      3. **Tahap 3**: *SPV Mengisi & Menentukan JKS* (Mockup validasi rute kunjungan, penetapan hari H1-H7 & minggu M1-M4, verifikasi radius outlet).
+      4. **Tahap 4**: *Principal (EDP) Melakukan Approval NOO* (Validasi Customer Master dan inject data outlet baru ke Eskalink).
+    - Navigasi slide otomatis (interval 5.5 detik, pause saat hover), indikator titik (*morphing pagination dots*), dan tombol chevron prev/next.
