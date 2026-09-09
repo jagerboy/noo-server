@@ -11,8 +11,8 @@ Route::get('/user', function (Request $request) {
     return $request->user();
 })->middleware('auth:sanctum');
 
-// Grouping Endpoint REST API v1 khusus untuk Aplikasi Mobile Android NOO+ v2.0
-Route::prefix('v1')->group(function () {
+// Grouping Endpoint REST API v1 khusus untuk Aplikasi Mobile Android NOO+ v2.0 dengan proteksi Throttling
+Route::prefix('v1')->middleware(['throttle:120,1'])->group(function () {
     // Tes koneksi server
     Route::get('/echo', [MobileApiController::class, 'echo']);
     Route::post('/echo', [MobileApiController::class, 'echo']);
@@ -23,6 +23,9 @@ Route::prefix('v1')->group(function () {
 
     // Endpoint submisi toko dari aplikasi mobile Android
     Route::post('/noo/submit-meta', [MobileApiController::class, 'submitMeta']);
+    Route::post('/submit-meta', [MobileApiController::class, 'submitMeta']);
     Route::post('/noo/upload-photo', [MobileApiController::class, 'uploadPhoto']);
+    Route::post('/upload-photo', [MobileApiController::class, 'uploadPhoto']);
 });
+
 

@@ -21,25 +21,37 @@ use App\Http\Controllers\Auth\EdpLoginController;
 
 Route::get('/logo-noo-plus.png', function () {
     $dest = public_path('images/logo-noo-plus.png');
-    $src = 'C:/Users/ITSALES-02/.gemini/antigravity-ide/brain/8b28e86b-f8d0-4871-b68d-6be343488240/media__1787738319645.png';
-    if (!file_exists($dest)) {
-        if (!is_dir(public_path('images'))) {
-            @mkdir(public_path('images'), 0777, true);
-        }
-        if (file_exists($src)) {
-            @copy($src, $dest);
-        }
-    }
     if (file_exists($dest)) {
-        return response()->file($dest);
-    }
-    if (file_exists($src)) {
-        return response()->file($src);
+        return response()->file($dest, [
+            'Content-Type' => 'image/png',
+            'Cache-Control' => 'public, max-age=604800, immutable',
+        ]);
     }
     abort(404);
 });
 
+Route::get('/Photo-Pabrik-ASW-Foods-Revisi.jpg', function () {
+    $dest = public_path('images/Photo-Pabrik-ASW-Foods-Revisi.jpg');
+    if (!file_exists($dest)) {
+        $dest = public_path('Photo-Pabrik-ASW-Foods-Revisi.jpg');
+    }
+    if (!file_exists($dest)) {
+        $dest = base_path('Photo-Pabrik-ASW-Foods-Revisi.jpg');
+    }
+    if (file_exists($dest)) {
+        return response()->file($dest, [
+            'Content-Type' => 'image/jpeg',
+            'Cache-Control' => 'public, max-age=604800, immutable',
+        ]);
+    }
+    abort(404);
+});
+
+// Utility verification endpoint (Khusus Superadmin terotentikasi)
 Route::get('/init-db-columns', function () {
+    if (!Auth::check() || Auth::user()->role !== 'SUPERADMIN') {
+        abort(403, 'Akses terbatas untuk Superadmin.');
+    }
     try {
         \Illuminate\Support\Facades\DB::statement('ALTER TABLE noo_submissions ADD COLUMN IF NOT EXISTS is_ktp_revised boolean DEFAULT false');
         \Illuminate\Support\Facades\DB::statement('ALTER TABLE noo_submissions ADD COLUMN IF NOT EXISTS ktp_revised_at timestamp null');
@@ -61,18 +73,24 @@ Route::get('/init-db-columns', function () {
             'error' => $e->getMessage()
         ], 500);
     }
-});
+})->middleware('auth');
+
 
 Route::get('/', function () {
     return redirect('/principal');
 });
 
-// Dynamic Photo Stream Server Route (Guaranteed bypass of static public/storage folder checks)
+// Dynamic Photo Stream Server Route (Guaranteed bypass of static public/storage folder checks with Security Guards)
 Route::get('/media-photo/{path}', function ($path) {
     $cleanPath = ltrim(urldecode($path), '/');
     if (str_starts_with($cleanPath, 'public/')) $cleanPath = substr($cleanPath, 7);
     if (str_starts_with($cleanPath, 'storage/')) $cleanPath = substr($cleanPath, 8);
     if (str_starts_with($cleanPath, 'media-photo/')) $cleanPath = substr($cleanPath, 12);
+
+    // Proteksi Keamanan: Cegah serangan Directory Traversal (misal: ../ atau ..\)
+    if (str_contains($cleanPath, '..') || str_contains($cleanPath, '\\')) {
+        abort(403, 'Akses tidak diizinkan.');
+    }
 
     $fullPath = storage_path('app/public/' . $cleanPath);
     if (!file_exists($fullPath)) {
@@ -82,6 +100,13 @@ Route::get('/media-photo/{path}', function ($path) {
         } else {
             abort(404);
         }
+    }
+
+    // Pastikan path yang dituju strictly berada di dalam direktori storage/app
+    $realFullPath = realpath($fullPath);
+    $storageRoot = realpath(storage_path('app'));
+    if (!$realFullPath || !$storageRoot || !str_starts_with($realFullPath, $storageRoot)) {
+        abort(403, 'Akses di luar direktori storage dilarang.');
     }
 
     $mime = @mime_content_type($fullPath);
@@ -129,21 +154,22 @@ Route::get('/principal', function () {
     return redirect()->route('edp_login.create');
 });
 
-// Rute Login Bertingkat khusus Admin Distributor
+// Rute Login Bertingkat khusus Admin Distributor (dengan Rate Limiting Brute Force Protection)
 Route::get('/distributor-login', [DistributorLoginController::class, 'create'])->name('distributor_login.create');
 Route::get('/distributor-login/bootstrap', [DistributorLoginController::class, 'getBootstrapData'])->name('distributor_login.bootstrap');
-Route::post('/distributor-login', [DistributorLoginController::class, 'store'])->name('distributor_login.store');
+Route::post('/distributor-login', [DistributorLoginController::class, 'store'])->middleware('throttle:10,1')->name('distributor_login.store');
 Route::post('/distributor-logout', [DistributorLoginController::class, 'destroy'])->name('distributor_logout');
 
 // Rute Login khusus Supervisor Area (master_spvs)
 Route::get('/spv-login', [SpvLoginController::class, 'create'])->name('spv_login.create');
-Route::post('/spv-login', [SpvLoginController::class, 'store'])->name('spv_login.store');
+Route::post('/spv-login', [SpvLoginController::class, 'store'])->middleware('throttle:10,1')->name('spv_login.store');
 Route::post('/spv-logout', [SpvLoginController::class, 'destroy'])->name('spv_logout');
 
 // Rute Login & Logout khusus NOO+ Principal Portal
 Route::get('/principal-login', [EdpLoginController::class, 'create'])->name('edp_login.create');
-Route::post('/principal-login', [EdpLoginController::class, 'store'])->name('edp_login.store');
+Route::post('/principal-login', [EdpLoginController::class, 'store'])->middleware('throttle:10,1')->name('edp_login.store');
 Route::post('/principal-logout', [EdpLoginController::class, 'destroy'])->name('edp_logout');
+
 
 Route::get('/dashboard', function () {
     return redirect()->route('edp.dashboard');
@@ -194,6 +220,8 @@ Route::middleware('auth')->group(function () {
     $edpGroup->group(function () {
         // Home Dashboard
         Route::get('/dashboard', [EdpDashboardController::class, 'index'])->name('dashboard');
+        Route::match(['get', 'post'], '/dashboard/export-chart/{chartType}', [EdpDashboardController::class, 'exportChartExcel'])->name('dashboard.export_chart');
+        Route::match(['get', 'post'], '/dashboard/export-chart-pdf/{chartType}', [EdpDashboardController::class, 'exportChartPdf'])->name('dashboard.export_chart_pdf');
 
         // Monitoring Target RO vs Realisasi Approved Salesman
         Route::get('/monitoring-ro', [EdpDashboardController::class, 'monitoringRo'])->name('monitoring_ro');

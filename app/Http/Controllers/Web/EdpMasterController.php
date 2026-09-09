@@ -67,15 +67,28 @@ class EdpMasterController extends Controller
             ->whereNotNull('branch_id');
 
         $cleanRegionCode = preg_replace('/^ADMIN\./i', '', $regionCode ?? '');
+        $regionList = array_filter(array_map('trim', explode(',', $cleanRegionCode)));
 
-        if ($userRole === 'EDP_REGION' && !empty($regionCode)) {
-            $regionsQuery->where('region_code', $cleanRegionCode);
-            $entitiesQuery->where('region_code', $cleanRegionCode);
-            $branchesQuery->where('region_code', $cleanRegionCode);
-        } elseif ($userRole === 'ADMIN_PRINCIPAL' && !empty($regionCode)) {
-            $regionsQuery->where('region_code', 'LIKE', "{$cleanRegionCode}%");
-            $entitiesQuery->where('region_code', 'LIKE', "{$cleanRegionCode}%");
-            $branchesQuery->where('region_code', 'LIKE', "{$cleanRegionCode}%");
+        if ($userRole === 'EDP_REGION' && !empty($regionList)) {
+            $regionsQuery->whereIn('region_code', $regionList);
+            $entitiesQuery->whereIn('region_code', $regionList);
+            $branchesQuery->whereIn('region_code', $regionList);
+        } elseif ($userRole === 'ADMIN_PRINCIPAL' && !empty($regionList)) {
+            $regionsQuery->where(function ($q) use ($regionList) {
+                foreach ($regionList as $r) {
+                    $q->orWhere('region_code', 'LIKE', "{$r}%");
+                }
+            });
+            $entitiesQuery->where(function ($q) use ($regionList) {
+                foreach ($regionList as $r) {
+                    $q->orWhere('region_code', 'LIKE', "{$r}%");
+                }
+            });
+            $branchesQuery->where(function ($q) use ($regionList) {
+                foreach ($regionList as $r) {
+                    $q->orWhere('region_code', 'LIKE', "{$r}%");
+                }
+            });
         }
 
         if ($userRole === 'ADMIN_PRINCIPAL' && !empty($user->entity_code_principal)) {
@@ -138,6 +151,7 @@ class EdpMasterController extends Controller
             'branch_id' => 'required|string|unique:master_branches,branch_id',
             'branch_name' => 'required|string',
             'pin_branch' => 'required|string',
+            'is_active' => 'required|boolean',
         ]);
 
         $this->syncSequence('master_branches');
@@ -145,7 +159,10 @@ class EdpMasterController extends Controller
         DB::table('master_branches')->insert([
             'region_code' => strtoupper($request->region_code),
             'principal_name' => $request->principal_name,
+            'principal_code' => strtoupper($request->principal_code ?: ($request->entity_code_principal ?: 'A')),
             'entity_code_principal' => strtoupper($request->entity_code_principal),
+            'entity_name_principal' => $request->entity_name_principal,
+            'area_code' => strtoupper($request->region_code),
             'branch_id' => strtoupper($request->branch_id),
             'branch_name' => $request->branch_name,
             'pin_branch' => $request->pin_branch,
@@ -248,14 +265,27 @@ class EdpMasterController extends Controller
                 'master_branches.entity_code_principal'
             );
 
-        if ($user->role !== 'SUPERADMIN' && !empty($user->region_code)) {
-            $regPrefix = substr($user->region_code, 0, 6);
-            $query->where(function ($q) use ($user, $regPrefix) {
-                $q->where('master_branches.region_code', 'LIKE', "{$user->region_code}%")
-                  ->orWhere('master_salesmen.region_code', 'LIKE', "{$user->region_code}%")
-                  ->orWhere('master_branches.region_code', 'LIKE', "{$regPrefix}%")
-                  ->orWhere('master_salesmen.region_code', 'LIKE', "{$regPrefix}%");
-            });
+        $cleanRegionCode = preg_replace('/^ADMIN\./i', '', $user->region_code ?? '');
+        $regionList = array_filter(array_map('trim', explode(',', $cleanRegionCode)));
+
+        if (!empty($regionList)) {
+            if ($user->role === 'EDP_REGION') {
+                $query->where(function ($q) use ($regionList) {
+                    $q->whereIn('master_branches.region_code', $regionList)
+                      ->orWhereIn('master_salesmen.region_code', $regionList);
+                });
+            } elseif ($user->role === 'ADMIN_PRINCIPAL') {
+                $query->where(function ($q) use ($regionList) {
+                    foreach ($regionList as $r) {
+                        $q->orWhere('master_branches.region_code', 'LIKE', "{$r}%")
+                          ->orWhere('master_salesmen.region_code', 'LIKE', "{$r}%");
+                    }
+                });
+            }
+        }
+
+        if ($user->role === 'ADMIN_PRINCIPAL' && !empty($user->entity_code_principal)) {
+            $query->where('master_branches.entity_code_principal', 'LIKE', "{$user->entity_code_principal}%");
         }
 
         $salesmen = $query->orderBy('master_salesmen.salesman_code', 'asc')->get();
@@ -263,7 +293,7 @@ class EdpMasterController extends Controller
         return Inertia::render('Edp/Master/MasterSalesman', [
             'salesmen' => $salesmen,
             'canWrite' => $this->checkCanWrite(),
-            'filters' => $request->only(['search', 'region_code', 'branch_id']),
+            'filters' => $request->only(['search', 'region_code', 'entity', 'branch_id']),
             'filterOptions' => $this->getFilterOptions($user),
         ]);
     }
@@ -360,12 +390,23 @@ class EdpMasterController extends Controller
                 'master_branches.entity_code_principal'
             );
 
-        if ($user->role !== 'SUPERADMIN' && !empty($user->region_code)) {
-            $regPrefix = substr($user->region_code, 0, 6);
-            $query->where(function ($q) use ($user, $regPrefix) {
-                $q->where('master_branches.region_code', 'LIKE', "{$user->region_code}%")
-                  ->orWhere('master_branches.region_code', 'LIKE', "{$regPrefix}%");
-            });
+        $cleanRegionCode = preg_replace('/^ADMIN\./i', '', $user->region_code ?? '');
+        $regionList = array_filter(array_map('trim', explode(',', $cleanRegionCode)));
+
+        if (!empty($regionList)) {
+            if ($user->role === 'EDP_REGION') {
+                $query->whereIn('master_branches.region_code', $regionList);
+            } elseif ($user->role === 'ADMIN_PRINCIPAL') {
+                $query->where(function ($q) use ($regionList) {
+                    foreach ($regionList as $r) {
+                        $q->orWhere('master_branches.region_code', 'LIKE', "{$r}%");
+                    }
+                });
+            }
+        }
+
+        if ($user->role === 'ADMIN_PRINCIPAL' && !empty($user->entity_code_principal)) {
+            $query->where('master_branches.entity_code_principal', 'LIKE', "{$user->entity_code_principal}%");
         }
 
         $spvsRaw = $query->orderBy('master_spvs.salescode', 'asc')->get();

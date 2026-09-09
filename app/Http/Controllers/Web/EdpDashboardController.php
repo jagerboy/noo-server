@@ -11,11 +11,20 @@ use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Schema;
 use Illuminate\Database\Schema\Blueprint;
+use App\Services\ExcelExportService;
+use Symfony\Component\HttpFoundation\StreamedResponse;
 use Inertia\Inertia;
 use Inertia\Response;
 
 class EdpDashboardController extends Controller
 {
+    protected ExcelExportService $excelExportService;
+
+    public function __construct(ExcelExportService $excelExportService)
+    {
+        $this->excelExportService = $excelExportService;
+    }
+
     public function index(Request $request): Response
     {
         $user = Auth::user();
@@ -92,11 +101,6 @@ class EdpDashboardController extends Controller
             $query->whereMonth(DB::raw("COALESCE(submitted_at, created_at)"), (int)$globalMonth);
         }
 
-        $c1Year = $request->input('chart1_year', $globalYear);
-        $c2Year = $request->input('chart2_year', $globalYear);
-        $c3Year = $request->input('chart3_year', $globalYear);
-        $c4Year = $request->input('chart4_year', $globalYear);
-
         // 1. Single Aggregation Query for 9 Metric Cards (< 5ms)
         $m = (clone $query)->selectRaw("
             COUNT(*) as total_submitted_se,
@@ -122,12 +126,8 @@ class EdpDashboardController extends Controller
         $approvedPrincipal = (int)($m->approved_principal ?? 0);
         $rejectedPrincipal = (int)($m->rejected_principal ?? 0);
 
-        // Chart 1: Perbandingan Submit SE vs Rejected Principal vs Approved Principal (Dapat Filter Tahun Khusus)
-        $q1 = (clone $query);
-        if ($c1Year) {
-            $q1->whereYear(DB::raw("COALESCE(submitted_at, created_at)"), $c1Year);
-        }
-        $m1 = $q1->selectRaw("
+        // Chart 1: Perbandingan Submit SE vs Rejected Principal vs Approved Principal
+        $m1 = (clone $query)->selectRaw("
             COUNT(*) as total_submitted_se,
             COUNT(CASE WHEN status IN ('APPROVED_EDP', 'INJECTED', 'EDP_APPROVED') THEN 1 END) as approved_principal,
             COUNT(CASE WHEN status IN ('EDP_REJECTED', 'REJECTED_EDP') THEN 1 END) as rejected_principal
@@ -144,11 +144,7 @@ class EdpDashboardController extends Controller
         ];
 
         // 2. Direct SQL GroupBy for Chart 2: Top 10 Principal Area
-        $q2 = (clone $query);
-        if ($c2Year) {
-            $q2->whereYear(DB::raw("COALESCE(submitted_at, created_at)"), $c2Year);
-        }
-        $top10PrincipalAreas = $q2
+        $top10PrincipalAreas = (clone $query)
             ->selectRaw("
                 REGEXP_REPLACE(COALESCE(region_code, 'OTHER'), '[0-9]+$', '') as area_code,
                 COUNT(*) as total_submitted,
@@ -160,11 +156,7 @@ class EdpDashboardController extends Controller
             ->get();
 
         // 3. Direct SQL GroupBy for Chart 3: Sebaran Tipe Outlet
-        $q3 = (clone $query);
-        if ($c3Year) {
-            $q3->whereYear(DB::raw("COALESCE(submitted_at, created_at)"), $c3Year);
-        }
-        $outletTypeDistribution = $q3
+        $outletTypeDistribution = (clone $query)
             ->selectRaw("
                 COALESCE(type_outlet_desc, type_outlet_code, 'UNSPECIFIED') as outlet_type,
                 COUNT(*) as total,
@@ -176,11 +168,7 @@ class EdpDashboardController extends Controller
             ->get();
 
         // 4. Direct SQL GroupBy for Chart 4: Top 10 Cabang Submisi Terbanyak
-        $q4 = (clone $query);
-        if ($c4Year) {
-            $q4->whereYear(DB::raw("COALESCE(submitted_at, created_at)"), $c4Year);
-        }
-        $top10Branches = $q4
+        $top10Branches = (clone $query)
             ->selectRaw("
                 COALESCE(branch_name, branch_id, 'Cabang Unknown') as branch_name,
                 MAX(region_code) as region_code,
@@ -453,11 +441,8 @@ class EdpDashboardController extends Controller
                 'principal' => $request->input('principal', ''),
                 'branch_id' => $request->input('branch_id', ''),
                 'month' => $globalMonth ?? '',
+                'months' => $request->input('months', ''),
                 'year' => $globalYear ?? '',
-                'chart1_year' => $c1Year ?? '',
-                'chart2_year' => $c2Year ?? '',
-                'chart3_year' => $c3Year ?? '',
-                'chart4_year' => $c4Year ?? '',
             ],
             'filterOptions' => [
                 'regions' => $regions,
@@ -467,6 +452,235 @@ class EdpDashboardController extends Controller
             ],
             'userRole' => $userRole,
         ]);
+    }
+
+    /**
+     * Ekspor Laporan Grafik Dashboard Principal ke format Excel (.xlsx) dengan Judul Besar dan Detail Data.
+     */
+    public function exportChartExcel(Request $request, string $chartType): StreamedResponse
+    {
+        $data = $this->prepareChartExportData($request, $chartType);
+        $chartImage = $request->input('chart_image');
+        $binary = $this->excelExportService->generateDashboardChartExcel(
+            $data['chartType'],
+            $data['chartTitle'],
+            $data['filterInfo'],
+            $data['summaryRows'],
+            $data['details'],
+            $chartImage
+        );
+
+        $cleanTitle = preg_replace('/[^A-Za-z0-9_]/', '_', strtoupper($chartType));
+        $filename = "LAPORAN_GRAFIK_{$cleanTitle}_" . date('Ymd_His') . ".xlsx";
+
+        return response()->stream(function () use ($binary) {
+            echo $binary;
+        }, 200, [
+            'Content-Type' => 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+            'Content-Disposition' => "attachment; filename=\"{$filename}\"",
+            'Cache-Control' => 'max-age=0',
+        ]);
+    }
+
+    /**
+     * Tampilan Pratinjau Cetak / Ekspor PDF Resmi untuk Laporan Grafik Dashboard Principal (Fit to Width).
+     */
+    public function exportChartPdf(Request $request, string $chartType)
+    {
+        $data = $this->prepareChartExportData($request, $chartType);
+        $data['chart_image'] = $request->input('chart_image');
+        return view('edp.dashboard_chart_pdf', $data);
+    }
+
+    /**
+     * Helper untuk menyiapkan data filter, metrik ringkasan, dan tabel detail pengajuan NOO untuk ekspor.
+     */
+    private function prepareChartExportData(Request $request, string $chartType): array
+    {
+        $user = Auth::user();
+        $userRole = $user->role ?? 'EDP_REGION';
+        $userRegion = $user->region_code ?? null;
+        $userEntity = $user->entity_code_principal ?? null;
+
+        $cleanRegionCode = preg_replace('/^ADMIN\./i', '', $userRegion ?? '');
+        $regionList = array_filter(array_map('trim', explode(',', $cleanRegionCode)));
+
+        $query = DB::table('noo_submissions')
+            ->leftJoin('master_branches', 'noo_submissions.branch_id', '=', 'master_branches.branch_id');
+
+        if ($userRole !== 'SUPERADMIN' && !empty($regionList)) {
+            if ($userRole === 'EDP_REGION') {
+                $query->whereIn('noo_submissions.region_code', $regionList);
+            } elseif ($userRole === 'ADMIN_PRINCIPAL') {
+                $query->where(function ($q) use ($regionList) {
+                    foreach ($regionList as $r) {
+                        $q->orWhere('noo_submissions.region_code', 'LIKE', "{$r}%");
+                    }
+                });
+            }
+        }
+        if ($userRole === 'ADMIN_PRINCIPAL' && !empty($userEntity)) {
+            $query->where(function ($q) use ($userEntity) {
+                $q->where('noo_submissions.principal', 'ILIKE', "%{$userEntity}%")
+                  ->orWhere('noo_submissions.principal_code', $userEntity);
+            });
+        }
+
+        if ($request->filled('region_code')) {
+            $query->where('noo_submissions.region_code', $request->input('region_code'));
+        }
+        if ($request->filled('principal')) {
+            $p = $request->input('principal');
+            $matchingBranchIds = DB::table('master_branches')
+                ->where('entity_code_principal', $p)
+                ->orWhere('principal_code', $p)
+                ->pluck('branch_id')
+                ->filter()
+                ->toArray();
+
+            $query->where(function ($q) use ($p, $matchingBranchIds) {
+                $q->where('noo_submissions.principal', 'ILIKE', "%{$p}%")
+                  ->orWhere('noo_submissions.principal_code', $p);
+                if (!empty($matchingBranchIds)) {
+                    $q->orWhereIn('noo_submissions.branch_id', $matchingBranchIds);
+                }
+            });
+        }
+        if ($request->filled('branch_id')) {
+            $query->where('noo_submissions.branch_id', $request->input('branch_id'));
+        }
+        if ($request->filled('status')) {
+            $query->where('noo_submissions.status', $request->input('status'));
+        }
+
+        $globalYear = $request->input('year');
+        $globalMonth = $request->input('month');
+
+        if ($request->filled('year')) {
+            $query->whereYear(DB::raw("COALESCE(noo_submissions.submitted_at, noo_submissions.created_at)"), $globalYear);
+        }
+        if ($request->filled('months')) {
+            $rawMonths = explode(',', (string) $request->input('months'));
+            $monthsArray = array_values(array_filter(array_map('intval', $rawMonths)));
+            if (!empty($monthsArray)) {
+                $query->whereRaw("EXTRACT(MONTH FROM COALESCE(noo_submissions.submitted_at, noo_submissions.created_at)) IN (" . implode(',', $monthsArray) . ")");
+            }
+        } elseif ($request->filled('month')) {
+            $query->whereMonth(DB::raw("COALESCE(noo_submissions.submitted_at, noo_submissions.created_at)"), (int)$globalMonth);
+        }
+
+        $chartTitle = 'Laporan Pengajuan NOO';
+        $summaryRows = [];
+
+        if ($chartType === 'comparison') {
+            $chartTitle = 'Perbandingan Status Submisi NOO';
+            $m1 = (clone $query)->selectRaw("
+                COUNT(*) as total_submitted_se,
+                COUNT(CASE WHEN noo_submissions.status IN ('APPROVED_EDP', 'INJECTED', 'EDP_APPROVED') THEN 1 END) as approved_principal,
+                COUNT(CASE WHEN noo_submissions.status IN ('EDP_REJECTED', 'REJECTED_EDP') THEN 1 END) as rejected_principal,
+                COUNT(CASE WHEN noo_submissions.status NOT IN ('APPROVED_EDP', 'INJECTED', 'EDP_APPROVED', 'EDP_REJECTED', 'REJECTED_EDP') THEN 1 END) as pending_process
+            ")->first();
+
+            $tot = (int)($m1->total_submitted_se ?? 0);
+            $app = (int)($m1->approved_principal ?? 0);
+            $rej = (int)($m1->rejected_principal ?? 0);
+            $pen = (int)($m1->pending_process ?? 0);
+
+            $summaryRows = [
+                ['label' => 'Total NOO Disubmit SE', 'count' => $tot, 'percentage' => 100],
+                ['label' => 'Approved Principal (Final)', 'count' => $app, 'percentage' => $tot > 0 ? round(($app / $tot) * 100, 1) : 0],
+                ['label' => 'Rejected Principal', 'count' => $rej, 'percentage' => $tot > 0 ? round(($rej / $tot) * 100, 1) : 0],
+                ['label' => 'Sedang Dalam Proses Verifikasi', 'count' => $pen, 'percentage' => $tot > 0 ? round(($pen / $tot) * 100, 1) : 0],
+            ];
+        } elseif ($chartType === 'areas') {
+            $chartTitle = 'Analisis Submisi vs Approval per Region Area';
+            $areas = (clone $query)->selectRaw("
+                REGEXP_REPLACE(COALESCE(noo_submissions.region_code, 'OTHER'), '[0-9]+$', '') as area_code,
+                COUNT(*) as total_submitted,
+                COUNT(CASE WHEN noo_submissions.status IN ('APPROVED_EDP', 'INJECTED', 'EDP_APPROVED') THEN 1 END) as approved_principal
+            ")
+            ->groupBy(DB::raw("REGEXP_REPLACE(COALESCE(noo_submissions.region_code, 'OTHER'), '[0-9]+$', '')"))
+            ->orderByDesc('total_submitted')
+            ->limit(15)
+            ->get();
+
+            foreach ($areas as $a) {
+                $summaryRows[] = [
+                    'area_code' => $a->area_code,
+                    'total_submitted' => (int)$a->total_submitted,
+                    'approved_principal' => (int)$a->approved_principal,
+                ];
+            }
+        } elseif ($chartType === 'outlet_types') {
+            $chartTitle = 'Sebaran Submisi per Tipe Outlet / Channel';
+            $outlets = (clone $query)->selectRaw("
+                COALESCE(noo_submissions.type_outlet_desc, noo_submissions.type_outlet_code, 'UNSPECIFIED') as outlet_type,
+                COUNT(*) as total,
+                COUNT(CASE WHEN noo_submissions.status IN ('APPROVED_EDP', 'INJECTED', 'EDP_APPROVED') THEN 1 END) as approved
+            ")
+            ->groupBy(DB::raw("COALESCE(noo_submissions.type_outlet_desc, noo_submissions.type_outlet_code, 'UNSPECIFIED')"))
+            ->orderByDesc('total')
+            ->limit(15)
+            ->get();
+
+            foreach ($outlets as $o) {
+                $summaryRows[] = [
+                    'outlet_type' => $o->outlet_type,
+                    'total' => (int)$o->total,
+                    'approved' => (int)$o->approved,
+                ];
+            }
+        }
+
+        $details = (clone $query)->select([
+            'noo_submissions.region_code',
+            DB::raw("COALESCE(master_branches.entity_code_principal, noo_submissions.principal, '-') as entity_code"),
+            'noo_submissions.branch_id',
+            DB::raw("COALESCE(master_branches.branch_name, noo_submissions.branch_name, noo_submissions.branch_id) as branch_name"),
+            'noo_submissions.nama_noo',
+            'noo_submissions.salesman_code',
+            'noo_submissions.salesman_name',
+            DB::raw("COALESCE(noo_submissions.submitted_at, noo_submissions.created_at) as submitted_at"),
+            'noo_submissions.status',
+            DB::raw("COALESCE(noo_submissions.type_outlet_desc, noo_submissions.type_outlet_code, '-') as type_outlet"),
+        ])
+        ->orderByDesc(DB::raw("COALESCE(noo_submissions.submitted_at, noo_submissions.created_at)"))
+        ->limit(5000)
+        ->get()
+        ->map(fn($item) => (array)$item)
+        ->toArray();
+
+        $monthNames = [
+            1 => 'Januari', 2 => 'Februari', 3 => 'Maret', 4 => 'April',
+            5 => 'Mei', 6 => 'Juni', 7 => 'Juli', 8 => 'Agustus',
+            9 => 'September', 10 => 'Oktober', 11 => 'November', 12 => 'Desember'
+        ];
+        $monthLabel = 'Semua Bulan';
+        if ($request->filled('months')) {
+            $mList = array_map('intval', explode(',', (string)$request->input('months')));
+            $mNames = array_map(fn($m) => $monthNames[$m] ?? (string)$m, $mList);
+            $monthLabel = implode(', ', $mNames);
+        } elseif ($request->filled('month')) {
+            $m = (int)$request->input('month');
+            $monthLabel = $monthNames[$m] ?? (string)$m;
+        }
+
+        $filterInfo = [
+            'year' => $request->input('year') ?: 'Semua Tahun',
+            'months' => $monthLabel,
+            'region' => $request->input('region_code') ?: 'Semua Region',
+            'entity' => $request->input('principal') ?: 'Semua Entity',
+            'branch' => $request->input('branch_id') ?: 'Semua Cabang',
+            'printed_at' => date('d/m/Y H:i:s'),
+        ];
+
+        return [
+            'chartType' => $chartType,
+            'chartTitle' => $chartTitle,
+            'filterInfo' => $filterInfo,
+            'summaryRows' => $summaryRows,
+            'details' => $details,
+        ];
     }
 
     /**

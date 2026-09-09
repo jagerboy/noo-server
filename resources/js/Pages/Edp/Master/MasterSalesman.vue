@@ -1,7 +1,8 @@
 <script setup lang="js">
 /**
  * Halaman Master Salesman - Web Portal NOO+
- * Fitur: Instant Client-Side Filter Bertingkat (Region -> Branch -> Search) & Full CRUD.
+ * Fitur: Instant Client-Side Filter Bertingkat (Region -> Entity -> Branch -> Search) & Full CRUD.
+ * Berlaku untuk semua role (SUPERADMIN, ADMIN_PRINCIPAL, EDP_REGION).
  * Tanpa URL Domain Parameter Pollution.
  */
 import { ref, computed, watch } from 'vue';
@@ -19,6 +20,7 @@ const props = defineProps({
 
 const search = ref(props.filters?.search || '');
 const selectedRegion = ref(props.filters?.region_code || '');
+const selectedEntity = ref(props.filters?.entity || '');
 const selectedBranch = ref(props.filters?.branch_id || '');
 
 const isAddModalOpen = ref(false);
@@ -31,11 +33,35 @@ const regionOptions = computed(() => {
   }));
 });
 
-// 1. EXACT CASCADING FILTER: Branch hanya menampilkan branch yang ada di Region terpilih
+// Cascading Filter Entity: Menampilkan entity yang tersedia berdasarkan Region yang dipilih (jika ada)
+const entityOptions = computed(() => {
+  let list = props.filterOptions?.entities || [];
+  if (selectedRegion.value) {
+    list = list.filter((e) => e.region_code === selectedRegion.value);
+  }
+  const seen = new Set();
+  const res = [];
+  for (const e of list) {
+    const code = e.entity_code_principal || e;
+    if (code && !seen.has(code)) {
+      seen.add(code);
+      res.push({
+        value: code,
+        label: e.entity_name_principal ? `${code} - ${e.entity_name_principal}` : String(code),
+      });
+    }
+  }
+  return res;
+});
+
+// Cascading Filter Branch: Menampilkan cabang sesuai pilihan Region dan/atau Entity
 const branchOptions = computed(() => {
   let list = props.filterOptions?.branches || [];
   if (selectedRegion.value) {
     list = list.filter((b) => b.region_code === selectedRegion.value);
+  }
+  if (selectedEntity.value) {
+    list = list.filter((b) => b.entity_code_principal === selectedEntity.value);
   }
   return list.map((b) => ({
     value: b.branch_id,
@@ -43,10 +69,36 @@ const branchOptions = computed(() => {
   }));
 });
 
+// Daftar seluruh cabang untuk pilihan dropdown modal Tambah/Edit Salesman
+const allBranchOptions = computed(() => {
+  return (props.filterOptions?.branches || []).map((b) => ({
+    value: b.branch_id,
+    label: `${b.branch_id} - ${b.branch_name}`,
+  }));
+});
+
+// Watcher untuk mereset pilihan entity/branch jika tidak valid setelah region/entity berganti
 watch(selectedRegion, (newReg) => {
-  if (newReg && selectedBranch.value) {
-    const valid = branchOptions.value.some((b) => b.value === selectedBranch.value);
-    if (!valid) {
+  if (newReg) {
+    if (selectedEntity.value) {
+      const validEntity = entityOptions.value.some((e) => e.value === selectedEntity.value);
+      if (!validEntity) {
+        selectedEntity.value = '';
+      }
+    }
+    if (selectedBranch.value) {
+      const validBranch = branchOptions.value.some((b) => b.value === selectedBranch.value);
+      if (!validBranch) {
+        selectedBranch.value = '';
+      }
+    }
+  }
+});
+
+watch(selectedEntity, (newEnt) => {
+  if (newEnt && selectedBranch.value) {
+    const validBranch = branchOptions.value.some((b) => b.value === selectedBranch.value);
+    if (!validBranch) {
       selectedBranch.value = '';
     }
   }
@@ -65,6 +117,9 @@ const filteredSalesmen = computed(() => {
   if (selectedRegion.value) {
     list = list.filter((s) => s.region_code === selectedRegion.value);
   }
+  if (selectedEntity.value) {
+    list = list.filter((s) => s.entity_code_principal === selectedEntity.value);
+  }
   if (selectedBranch.value) {
     list = list.filter((s) => s.branch_id === selectedBranch.value);
   }
@@ -74,7 +129,8 @@ const filteredSalesmen = computed(() => {
       (s) =>
         (s.salesman_code && String(s.salesman_code).toLowerCase().includes(q)) ||
         (s.salesman_name && String(s.salesman_name).toLowerCase().includes(q)) ||
-        (s.branch_id && String(s.branch_id).toLowerCase().includes(q))
+        (s.branch_id && String(s.branch_id).toLowerCase().includes(q)) ||
+        (s.branch_name && String(s.branch_name).toLowerCase().includes(q))
     );
   }
 
@@ -98,6 +154,7 @@ const editForm = useForm({
 function resetFilters() {
   search.value = '';
   selectedRegion.value = '';
+  selectedEntity.value = '';
   selectedBranch.value = '';
 }
 
@@ -180,7 +237,7 @@ const isBulkModalOpen = ref(false);
           </button>
         </div>
 
-        <div class="grid grid-cols-1 sm:grid-cols-3 gap-3">
+        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
           <div>
             <label class="block text-xs font-semibold text-[#4B5563] mb-1">REGION</label>
             <SearchableSelect
@@ -188,6 +245,16 @@ const isBulkModalOpen = ref(false);
               :options="regionOptions"
               placeholder="-- Semua Region --"
               searchPlaceholder="Ketik Region Code / Nama..."
+            />
+          </div>
+
+          <div>
+            <label class="block text-xs font-semibold text-[#4B5563] mb-1">ENTITY</label>
+            <SearchableSelect
+              v-model="selectedEntity"
+              :options="entityOptions"
+              placeholder="-- Semua Entity --"
+              searchPlaceholder="Ketik Entity..."
             />
           </div>
 
@@ -222,6 +289,7 @@ const isBulkModalOpen = ref(false);
                 <th class="px-4 py-3">Kode Salesman</th>
                 <th class="px-4 py-3">Nama Salesman</th>
                 <th class="px-4 py-3">Cabang Distributor</th>
+                <th class="px-4 py-3">Entity</th>
                 <th class="px-4 py-3">Region</th>
                 <th class="px-4 py-3">Status</th>
                 <th v-if="canWrite" class="px-4 py-3 text-right">Aksi</th>
@@ -229,7 +297,7 @@ const isBulkModalOpen = ref(false);
             </thead>
             <tbody class="divide-y divide-[#E5E7EB]">
               <tr v-if="filteredSalesmen.length === 0">
-                <td colspan="6" class="px-4 py-8 text-center text-[#9CA3AF] italic">
+                <td colspan="7" class="px-4 py-8 text-center text-[#9CA3AF] italic">
                   Data Salesman tidak ditemukan untuk filter ini.
                 </td>
               </tr>
@@ -239,6 +307,15 @@ const isBulkModalOpen = ref(false);
                 <td class="px-4 py-3 font-semibold text-[#374151]">{{ s.salesman_name }}</td>
                 <td class="px-4 py-3 text-[#4B5563]">
                   <strong>{{ s.branch_id }}</strong> - {{ s.branch_name || 'Branch' }}
+                </td>
+                <td class="px-4 py-3">
+                  <span
+                    v-if="s.entity_code_principal"
+                    class="px-2 py-0.5 text-[10px] font-bold rounded bg-slate-100 text-slate-700 border border-slate-300"
+                  >
+                    {{ s.entity_code_principal }}
+                  </span>
+                  <span v-else class="text-slate-400">-</span>
                 </td>
                 <td class="px-4 py-3 text-[#059669] font-bold">{{ s.region_code || '-' }}</td>
                 <td class="px-4 py-3">
@@ -281,7 +358,7 @@ const isBulkModalOpen = ref(false);
             <label class="block font-semibold text-slate-700 mb-1">ID Cabang Distributor</label>
             <SearchableSelect
               v-model="addForm.branch_id"
-              :options="props.filterOptions?.branches || []"
+              :options="allBranchOptions"
               placeholder="Pilih Cabang"
             />
           </div>
@@ -306,7 +383,7 @@ const isBulkModalOpen = ref(false);
             <label class="block font-semibold text-slate-700 mb-1">ID Cabang Distributor</label>
             <SearchableSelect
               v-model="editForm.branch_id"
-              :options="props.filterOptions?.branches || []"
+              :options="allBranchOptions"
               placeholder="Pilih Cabang"
             />
           </div>

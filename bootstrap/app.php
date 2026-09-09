@@ -17,6 +17,12 @@ return Application::configure(basePath: dirname(__DIR__))
             \Illuminate\Http\Middleware\AddLinkHeadersForPreloadedAssets::class,
         ]);
 
+        $middleware->validateCsrfTokens(except: [
+            'principal/dashboard/export-chart*',
+            'edp/dashboard/export-chart*',
+            'dashboard/export-chart*',
+        ]);
+
         $middleware->alias([
             'distributor.auth' => \App\Http\Middleware\EnsureDistributorAuthenticated::class,
             'spv.auth' => \App\Http\Middleware\EnsureSpvAuthenticated::class,

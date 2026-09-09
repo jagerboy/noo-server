@@ -93,33 +93,48 @@
   --radius-lg: 10px;
 }
 
+/* Global Typography Scale & Hierarchy Enforcement (10 Medium Typography Rules) */
 body {
-  font-family: 'Inter', system-ui, -apple-system, sans-serif;
+  font-family: 'Inter', system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
   background-color: #F8FAFC;
-  color: #374151;
+  color: #334155; /* Slate-700 for optimal body reading contrast */
   font-size: 14px;
-  line-height: 1.5;
+  line-height: 1.55; /* Rule 04: 1.5 - 1.6x for effortless body reading */
   font-weight: 400;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
 }
 
-/* Global Typography Scale Enforcement */
+/* Rule 01 & 02 & 05: Display / H1 - Tight leading, Negative tracking */
 h1, .text-h1 {
+  font-family: 'Plus Jakarta Sans', 'Inter', system-ui, sans-serif;
   font-size: 20px;
-  font-weight: 600;
-  line-height: 1.4;
-  letter-spacing: -0.01em;
+  font-weight: 700;
+  line-height: 1.2; /* Rule 04: Tight leading for headings */
+  letter-spacing: -0.025em; /* Rule 05: Negative letter-spacing for large text */
+  color: #0F172A; /* Slate-900 Primary Text */
 }
 @media (min-width: 768px) {
   h1, .text-h1 {
     font-size: 24px;
+    line-height: 1.2;
+    letter-spacing: -0.025em;
+  }
+}
+@media (min-width: 1280px) {
+  h1, .text-h1 {
+    font-size: 26px;
   }
 }
 
+/* Rule 01 & 02 & 05: Section / H2 */
 h2, .text-h2 {
+  font-family: 'Plus Jakarta Sans', 'Inter', system-ui, sans-serif;
   font-size: 18px;
   font-weight: 600;
-  line-height: 1.4;
-  letter-spacing: -0.01em;
+  line-height: 1.3;
+  letter-spacing: -0.02em;
+  color: #1E293B; /* Slate-800 */
 }
 @media (min-width: 768px) {
   h2, .text-h2 {
@@ -127,20 +142,60 @@ h2, .text-h2 {
   }
 }
 
+/* Rule 01 & 02: Subsection / H3 / Card Titles */
 h3, .text-h3 {
-  font-size: 16px;
-  font-weight: 500;
+  font-family: 'Plus Jakarta Sans', 'Inter', system-ui, sans-serif;
+  font-size: 15px;
+  font-weight: 600;
+  line-height: 1.35;
+  letter-spacing: -0.01em;
+  color: #1E293B;
+}
+@media (min-width: 768px) {
+  h3, .text-h3 {
+    font-size: 16px;
+  }
+}
+
+/* Rule 01 & 07: Form Labels */
+label, .text-label {
+  font-size: 13px;
+  font-weight: 500; /* Rule 07: Medium 500 for UI labels */
   line-height: 1.4;
+  color: #475569; /* Slate-600 */
 }
 
-p, span, td, input, select, textarea, label, button, .text-body {
-  line-height: 1.5;
+/* Rule 01 & 04 & 07: Body Text & Paragraphs */
+p, .text-body {
+  font-size: 14px;
+  font-weight: 400;
+  line-height: 1.55;
+  color: #334155;
 }
 
-.text-caption {
+/* Rule 08: Ideal Line Length container helper */
+.prose-readable {
+  max-width: 65ch; /* 60 - 75 characters per line rule */
+}
+
+/* Rule 05 & 07: All-Caps Table Headers, Badges, Category Eyebrows */
+th, .text-eyebrow, .badge-label {
+  letter-spacing: 0.04em; /* Rule 05: Positive letter spacing for uppercase text */
+}
+
+/* Rule 01 & 04: Supporting text, Timestamps, Captions */
+.text-caption, .text-helper {
   font-size: 12px;
   font-weight: 400;
-  line-height: 1.5;
+  line-height: 1.45;
+  color: #64748B; /* Slate-500 Secondary */
+}
+
+/* Monospace identifier styling for Codes & Coordinates */
+.font-code {
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+  letter-spacing: -0.01em;
+  font-variant-numeric: tabular-nums;
 }
 
 /* High visibility top progress loading bar with ASWFOODS & INAFOODS brand colors */
@@ -167,3 +222,142 @@ input::-webkit-credentials-auto-fill-button {
   width: 0 !important;
   height: 0 !important;
 }
+
+/* ==========================================================================
+   ASWFOODS & INAFOODS CORPORATE DESIGN SYSTEM COMPONENTS & UTILITIES
+   ========================================================================== */
+
+/* 60-30-10 Elevated Container Surface */
+.card-surface {
+  background-color: #FFFFFF;
+  border: 1px solid #E2E8F0;
+  border-radius: 10px;
+  box-shadow: 0 1px 3px 0 rgba(15, 23, 42, 0.05), 0 1px 2px -1px rgba(15, 23, 42, 0.05);
+}
+
+/* Corporate Buttons - ASWFOODS (Navy & Red) */
+.btn-asw-navy {
+  background-color: #1E2B7B;
+  color: #FFFFFF;
+  font-weight: 600;
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+}
+.btn-asw-navy:hover {
+  background-color: #17215E;
+  box-shadow: 0 4px 12px rgba(30, 43, 123, 0.25);
+}
+
+.btn-asw-red {
+  background-color: #D9232A;
+  color: #FFFFFF;
+  font-weight: 600;
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+}
+.btn-asw-red:hover {
+  background-color: #B91C1C;
+  box-shadow: 0 4px 12px rgba(217, 35, 42, 0.3);
+}
+
+/* Corporate Buttons - INAFOODS (Royal Purple & Gold) */
+.btn-ina-purple {
+  background-color: #542B85;
+  color: #FFFFFF;
+  font-weight: 600;
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+}
+.btn-ina-purple:hover {
+  background-color: #3B0764;
+  box-shadow: 0 4px 12px rgba(84, 43, 133, 0.3);
+}
+
+.btn-ina-gold {
+  background-color: #F59E0B;
+  color: #FFFFFF;
+  font-weight: 600;
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+}
+.btn-ina-gold:hover {
+  background-color: #D97706;
+  box-shadow: 0 4px 12px rgba(245, 158, 11, 0.3);
+}
+
+/* Standard Action Feedback Buttons (Confirmation & Destructive) */
+.btn-action-approve {
+  background-color: #16A34A;
+  color: #FFFFFF;
+  font-weight: 600;
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+}
+.btn-action-approve:hover {
+  background-color: #15803D;
+  box-shadow: 0 4px 12px rgba(22, 163, 74, 0.25);
+}
+
+.btn-action-reject {
+  background-color: #DC2626;
+  color: #FFFFFF;
+  font-weight: 600;
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+}
+.btn-action-reject:hover {
+  background-color: #B91C1C;
+  box-shadow: 0 4px 12px rgba(220, 38, 38, 0.3);
+}
+
+/* High-Contrast WCAG Status Pill Badges */
+.badge-approved {
+  background-color: #DCFCE7;
+  color: #15803D;
+  border: 1px solid #86EFAC;
+  font-weight: 600;
+  font-size: 11px;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.badge-pending {
+  background-color: #FEF3C7;
+  color: #B45309;
+  border: 1px solid #FCD34D;
+  font-weight: 600;
+  font-size: 11px;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.badge-rejected {
+  background-color: #FEE2E2;
+  color: #B91C1C;
+  border: 1px solid #FCA5A5;
+  font-weight: 600;
+  font-size: 11px;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.badge-info {
+  background-color: #DBEAFE;
+  color: #1D4ED8;
+  border: 1px solid #93C5FD;
+  font-weight: 600;
+  font-size: 11px;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.badge-asw {
+  background-color: #FEE2E2;
+  color: #991B1B;
+  border: 1px solid #FECACA;
+  font-weight: 600;
+  font-size: 11px;
+}
+
+.badge-ina {
+  background-color: #F3E8FF;
+  color: #6B21A8;
+  border: 1px solid #E9D5FF;
+  font-weight: 600;
+  font-size: 11px;
+}
+

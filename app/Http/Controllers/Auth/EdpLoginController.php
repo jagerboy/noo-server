@@ -49,7 +49,7 @@ class EdpLoginController extends Controller
         // Cek kecocokan user dan password
         if (!$user) {
             return back()->withErrors([
-                'username' => 'USERNAME atau Password yang Anda masukkan salah.',
+                'username' => 'Username atau Password yang dimasukkan salah.',
             ]);
         }
 
@@ -67,7 +67,7 @@ class EdpLoginController extends Controller
 
         if (!$passwordValid) {
             return back()->withErrors([
-                'username' => 'USERNAME atau Password yang Anda masukkan salah.',
+                'username' => 'Username atau Password yang dimasukkan salah.',
             ]);
         }
 

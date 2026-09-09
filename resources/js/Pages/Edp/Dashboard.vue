@@ -68,11 +68,19 @@ const monthDropdownRef = ref(null);
 const selectedYear = ref(props.filters?.year || '');
 
 const isFiltering = ref(false);
+const activeExportDropdown = ref(null);
 
-const chart1Year = ref(props.filters?.chart1_year || props.filters?.year || '');
-const chart2Year = ref(props.filters?.chart2_year || props.filters?.year || '');
-const chart3Year = ref(props.filters?.chart3_year || props.filters?.year || '');
-const chart4Year = ref(props.filters?.chart4_year || props.filters?.year || '');
+function toggleExportDropdown(name) {
+  activeExportDropdown.value = activeExportDropdown.value === name ? null : name;
+}
+
+function handleClickOutsideExport(event) {
+  if (activeExportDropdown.value) {
+    if (!event.target.closest('.export-dropdown-container')) {
+      activeExportDropdown.value = null;
+    }
+  }
+}
 
 function handleClickOutsideMonth(event) {
   if (monthDropdownRef.value && !monthDropdownRef.value.contains(event.target)) {
@@ -160,6 +168,7 @@ function animateNumbers() {
 onMounted(() => {
   animateNumbers();
   document.addEventListener('click', handleClickOutsideMonth);
+  document.addEventListener('click', handleClickOutsideExport);
 
   // Scroll Observer for re-triggering animations whenever scrolled into/out of view
   if ('IntersectionObserver' in window && chartSectionRef.value) {
@@ -179,6 +188,7 @@ onMounted(() => {
 
 onUnmounted(() => {
   document.removeEventListener('click', handleClickOutsideMonth);
+  document.removeEventListener('click', handleClickOutsideExport);
 });
 
 watch(
@@ -320,10 +330,6 @@ function applyFilters() {
     params.months = selectedMonths.value.join(',');
   }
   if (selectedYear.value) params.year = selectedYear.value;
-  if (chart1Year.value) params.chart1_year = chart1Year.value;
-  if (chart2Year.value) params.chart2_year = chart2Year.value;
-  if (chart3Year.value) params.chart3_year = chart3Year.value;
-  if (chart4Year.value) params.chart4_year = chart4Year.value;
 
   router.get(
     route('edp.dashboard'),
@@ -346,11 +352,366 @@ function resetFilters() {
   selectedBranch.value = '';
   selectedMonths.value = [];
   selectedYear.value = '';
-  chart1Year.value = '';
-  chart2Year.value = '';
-  chart3Year.value = '';
-  chart4Year.value = '';
   applyFilters();
+}
+
+function getFilterQueryParams() {
+  const params = new URLSearchParams();
+  if (selectedRegion.value) params.append('region_code', selectedRegion.value);
+  if (selectedPrincipal.value) params.append('principal', selectedPrincipal.value);
+  if (selectedBranch.value) params.append('branch_id', selectedBranch.value);
+  if (selectedYear.value) params.append('year', selectedYear.value);
+  if (selectedMonths.value && selectedMonths.value.length > 0) {
+    params.append('months', selectedMonths.value.join(','));
+  }
+  return params.toString();
+}
+
+function drawMetricCard(ctx, x, y, w, h, bg, border, accent, title, value, subtitle, isCompact = false) {
+  ctx.fillStyle = bg;
+  ctx.strokeStyle = border;
+  ctx.lineWidth = 1;
+  ctx.beginPath();
+  if (ctx.roundRect) {
+    ctx.roundRect(x, y, w, h, 8);
+  } else {
+    ctx.rect(x, y, w, h);
+  }
+  ctx.fill();
+  ctx.stroke();
+
+  ctx.fillStyle = border;
+  ctx.font = isCompact ? 'bold 10px "Segoe UI", sans-serif' : 'bold 11px "Segoe UI", sans-serif';
+  ctx.fillText(title, x + 14, y + (isCompact ? 22 : 26));
+
+  ctx.fillStyle = '#0F172A';
+  ctx.font = isCompact ? 'bold 24px "Segoe UI", sans-serif' : 'bold 30px "Segoe UI", sans-serif';
+  ctx.fillText(value, x + 14, y + (isCompact ? 54 : 68));
+
+  ctx.fillStyle = '#64748B';
+  ctx.font = isCompact ? '10px "Segoe UI", sans-serif' : '11px "Segoe UI", sans-serif';
+  ctx.fillText(subtitle, x + 14, y + (isCompact ? 76 : 102));
+}
+
+function drawDonutSlice(ctx, cx, cy, r, innerR, startA, endA, color) {
+  if (endA <= startA) return;
+  ctx.fillStyle = color;
+  ctx.beginPath();
+  ctx.arc(cx, cy, r, startA, endA, false);
+  ctx.arc(cx, cy, innerR, endA, startA, true);
+  ctx.closePath();
+  ctx.fill();
+}
+
+function drawLegendItem(ctx, x, y, color, label, val) {
+  ctx.fillStyle = color;
+  ctx.beginPath();
+  ctx.arc(x + 8, y + 8, 6, 0, 2 * Math.PI);
+  ctx.fill();
+
+  ctx.fillStyle = '#334155';
+  ctx.font = 'bold 12px "Segoe UI", sans-serif';
+  ctx.fillText(label, x + 24, y + 12);
+
+  ctx.fillStyle = '#0F172A';
+  ctx.font = 'bold 13px "Segoe UI", sans-serif';
+  ctx.fillText(val, x + 24, y + 30);
+}
+
+function generateChartCanvas(chartKey, isStandalone = false) {
+  const canvas = document.createElement('canvas');
+  const ctx = canvas.getContext('2d');
+  const width = isStandalone ? 1200 : 960;
+  let height = isStandalone ? 750 : 360;
+
+  if (chartKey === 'areas') {
+    const areaCount = props.charts?.top_principal_areas?.length || 0;
+    height = isStandalone ? Math.max(750, 260 + areaCount * 52) : Math.max(220, 30 + areaCount * 44 + 20);
+  } else if (chartKey === 'outlet_types') {
+    const typeCount = props.charts?.outlet_types?.length || 0;
+    height = isStandalone ? Math.max(750, 260 + typeCount * 52) : Math.max(220, 30 + typeCount * 44 + 20);
+  }
+
+  canvas.width = width;
+  canvas.height = height;
+
+  // Background
+  ctx.fillStyle = '#FFFFFF';
+  ctx.fillRect(0, 0, width, height);
+
+  let startY = 20;
+
+  if (isStandalone) {
+    // Top header banner
+    ctx.fillStyle = '#0F766E';
+    ctx.fillRect(0, 0, width, 6);
+
+    // Header Brand & Title
+    ctx.fillStyle = '#0F172A';
+    ctx.font = 'bold 20px "Segoe UI", Roboto, sans-serif';
+    ctx.fillText('PORTAL PRINCIPAL NOO+ - LAPORAN GRAFIK EKSEKUTIF', 50, 46);
+
+    let title = 'Perbandingan Status Submisi NOO';
+    if (chartKey === 'areas') title = 'Analisis Submisi vs Approval per Region Area';
+    if (chartKey === 'outlet_types') title = 'Sebaran Submisi per Tipe Outlet / Channel';
+
+    ctx.fillStyle = '#0F766E';
+    ctx.font = 'bold 15px "Segoe UI", Roboto, sans-serif';
+    ctx.fillText(title.toUpperCase(), 50, 72);
+
+    // Filter Box
+    ctx.fillStyle = '#F8FAFC';
+    ctx.strokeStyle = '#E2E8F0';
+    ctx.lineWidth = 1;
+    ctx.beginPath();
+    if (ctx.roundRect) {
+      ctx.roundRect(50, 94, width - 100, 56, 6);
+    } else {
+      ctx.rect(50, 94, width - 100, 56);
+    }
+    ctx.fill();
+    ctx.stroke();
+
+    ctx.fillStyle = '#475569';
+    ctx.font = '12px "Segoe UI", Roboto, sans-serif';
+    const yr = selectedYear.value ? selectedYear.value : 'Semua Tahun';
+    const mo = selectedMonthsLabel.value || 'Semua Bulan';
+    const reg = selectedRegion.value || 'Semua Region';
+    const princ = selectedPrincipal.value || 'Semua Entity';
+    const br = selectedBranch.value || 'Semua Cabang';
+
+    ctx.fillText(`Tahun: ${yr}   |   Bulan: ${mo}   |   Region: ${reg}`, 68, 118);
+    ctx.fillText(`Entity: ${princ}   |   Cabang: ${br}   |   Waktu Ekspor: ${new Date().toLocaleString('id-ID')}`, 68, 138);
+
+    startY = 175;
+  }
+
+  // Draw chart content
+  if (chartKey === 'comparison') {
+    const comp = props.charts?.comparison || {};
+    const tot = comp.total_submitted_se || 0;
+    const app = comp.approved_principal || 0;
+    const rej = comp.rejected_principal || 0;
+    const pen = Math.max(0, tot - app - rej);
+    const appRate = tot > 0 ? Math.round((app / tot) * 100) : 0;
+    const rejRate = tot > 0 ? Math.round((rej / tot) * 100) : 0;
+
+    if (isStandalone) {
+      const cardY = startY;
+      const cardW = 340;
+      const cardH = 125;
+
+      drawMetricCard(ctx, 50, cardY, cardW, cardH, '#EFF6FF', '#2563EB', '#DBEAFE', 'TOTAL NOO DISUBMIT SE', String(tot), '100% Volume Pengajuan');
+      drawMetricCard(ctx, 430, cardY, cardW, cardH, '#ECFDF5', '#059669', '#A7F3D0', 'APPROVED PRINCIPAL (FINAL)', String(app), `${appRate}% Approval Rate`);
+      drawMetricCard(ctx, 810, cardY, cardW, cardH, '#FFF1F2', '#E11D48', '#FECDD3', 'REJECTED PRINCIPAL', String(rej), `${rejRate}% Rejection Rate`);
+
+      const centerX = 260;
+      const centerY = 470;
+      const radius = 110;
+      const innerRadius = 70;
+
+      let startAngle = -Math.PI / 2;
+      const appAngle = tot > 0 ? (app / tot) * 2 * Math.PI : 0;
+      const rejAngle = tot > 0 ? (rej / tot) * 2 * Math.PI : 0;
+      const penAngle = Math.max(0, 2 * Math.PI - appAngle - rejAngle);
+
+      drawDonutSlice(ctx, centerX, centerY, radius, innerRadius, startAngle, startAngle + appAngle, '#10B981');
+      startAngle += appAngle;
+      drawDonutSlice(ctx, centerX, centerY, radius, innerRadius, startAngle, startAngle + rejAngle, '#F43F5E');
+      startAngle += rejAngle;
+      if (penAngle > 0) {
+        drawDonutSlice(ctx, centerX, centerY, radius, innerRadius, startAngle, startAngle + penAngle, '#94A3B8');
+      }
+
+      ctx.fillStyle = '#0F172A';
+      ctx.font = 'bold 32px "Segoe UI", Roboto, sans-serif';
+      ctx.textAlign = 'center';
+      ctx.fillText(String(tot), centerX, centerY + 6);
+      ctx.fillStyle = '#64748B';
+      ctx.font = 'bold 11px "Segoe UI", Roboto, sans-serif';
+      ctx.fillText('TOTAL NOO', centerX, centerY + 26);
+      ctx.textAlign = 'left';
+
+      const legX = 460;
+      let legY = 390;
+      drawLegendItem(ctx, legX, legY, '#10B981', 'Approved Principal', `${app} Toko (${appRate}%)`);
+      legY += 56;
+      drawLegendItem(ctx, legX, legY, '#F43F5E', 'Rejected Principal', `${rej} Toko (${rejRate}%)`);
+      legY += 56;
+      drawLegendItem(ctx, legX, legY, '#94A3B8', 'Sedang Dalam Proses', `${pen} Toko`);
+    } else {
+      // Embedded for Excel and PDF
+      const cardY = 15;
+      const cardW = 285;
+      const cardH = 92;
+
+      drawMetricCard(ctx, 25, cardY, cardW, cardH, '#EFF6FF', '#2563EB', '#DBEAFE', 'TOTAL SUBMIT SE', String(tot), '100% Volume Pengajuan', true);
+      drawMetricCard(ctx, 335, cardY, cardW, cardH, '#ECFDF5', '#059669', '#A7F3D0', 'APPROVED PRINCIPAL', String(app), `${appRate}% Approval Rate`, true);
+      drawMetricCard(ctx, 645, cardY, cardW, cardH, '#FFF1F2', '#E11D48', '#FECDD3', 'REJECTED PRINCIPAL', String(rej), `${rejRate}% Rejection Rate`, true);
+
+      const centerX = 210;
+      const centerY = 235;
+      const radius = 90;
+      const innerRadius = 55;
+
+      let startAngle = -Math.PI / 2;
+      const appAngle = tot > 0 ? (app / tot) * 2 * Math.PI : 0;
+      const rejAngle = tot > 0 ? (rej / tot) * 2 * Math.PI : 0;
+      const penAngle = Math.max(0, 2 * Math.PI - appAngle - rejAngle);
+
+      drawDonutSlice(ctx, centerX, centerY, radius, innerRadius, startAngle, startAngle + appAngle, '#10B981');
+      startAngle += appAngle;
+      drawDonutSlice(ctx, centerX, centerY, radius, innerRadius, startAngle, startAngle + rejAngle, '#F43F5E');
+      startAngle += rejAngle;
+      if (penAngle > 0) {
+        drawDonutSlice(ctx, centerX, centerY, radius, innerRadius, startAngle, startAngle + penAngle, '#94A3B8');
+      }
+
+      ctx.fillStyle = '#0F172A';
+      ctx.font = 'bold 26px "Segoe UI", Roboto, sans-serif';
+      ctx.textAlign = 'center';
+      ctx.fillText(String(tot), centerX, centerY + 6);
+      ctx.fillStyle = '#64748B';
+      ctx.font = 'bold 10px "Segoe UI", Roboto, sans-serif';
+      ctx.fillText('TOTAL NOO', centerX, centerY + 24);
+      ctx.textAlign = 'left';
+
+      const legX = 420;
+      let legY = 150;
+      drawLegendItem(ctx, legX, legY, '#10B981', 'Approved Principal (Final)', `${app} Toko (${appRate}%)`);
+      legY += 60;
+      drawLegendItem(ctx, legX, legY, '#F43F5E', 'Rejected Principal', `${rej} Toko (${rejRate}%)`);
+      legY += 60;
+      drawLegendItem(ctx, legX, legY, '#94A3B8', 'Sedang Dalam Proses', `${pen} Toko`);
+    }
+  } else if (chartKey === 'areas') {
+    const areas = props.charts?.top_principal_areas || [];
+    let y = isStandalone ? startY : 25;
+    const maxSub = areas.length > 0 ? Math.max(...areas.map(a => a.total_submitted), 1) : 1;
+
+    for (const a of areas) {
+      ctx.fillStyle = '#1E293B';
+      ctx.font = isStandalone ? 'bold 14px monospace' : 'bold 13px monospace';
+      ctx.fillText(`Area ${a.area_code}`, isStandalone ? 50 : 30, y + 16);
+
+      ctx.fillStyle = '#2563EB';
+      ctx.font = 'bold 11px "Segoe UI", sans-serif';
+      ctx.fillText(`Submisi: ${a.total_submitted}`, isStandalone ? 190 : 160, y + 16);
+
+      ctx.fillStyle = '#059669';
+      ctx.fillText(`Approved: ${a.approved_principal}`, isStandalone ? 310 : 270, y + 16);
+
+      const barX = isStandalone ? 440 : 390;
+      const barW = isStandalone ? 640 : 530;
+      const subW = Math.min(barW, Math.max(4, (a.total_submitted / maxSub) * barW));
+      ctx.fillStyle = '#DBEAFE';
+      ctx.fillRect(barX, y + 2, barW, 8);
+      ctx.fillStyle = '#2563EB';
+      ctx.fillRect(barX, y + 2, subW, 8);
+
+      const appW = Math.min(barW, Math.max(4, (a.approved_principal / maxSub) * barW));
+      ctx.fillStyle = '#D1FAE5';
+      ctx.fillRect(barX, y + 13, barW, 8);
+      ctx.fillStyle = '#059669';
+      ctx.fillRect(barX, y + 13, appW, 8);
+
+      y += isStandalone ? 44 : 40;
+    }
+  } else if (chartKey === 'outlet_types') {
+    const types = props.charts?.outlet_types || [];
+    let y = isStandalone ? startY : 25;
+    const maxTotal = types.length > 0 ? Math.max(...types.map(t => t.total), 1) : 1;
+
+    for (const t of types) {
+      ctx.fillStyle = '#1E293B';
+      ctx.font = isStandalone ? 'bold 13px "Segoe UI", sans-serif' : 'bold 12px "Segoe UI", sans-serif';
+      ctx.fillText(t.outlet_type || 'Unspecified', isStandalone ? 50 : 30, y + 16);
+
+      ctx.fillStyle = '#4F46E5';
+      ctx.font = 'bold 11px "Segoe UI", sans-serif';
+      ctx.fillText(`${t.total} Submisi`, isStandalone ? 270 : 230, y + 16);
+
+      ctx.fillStyle = '#059669';
+      ctx.fillText(`${t.approved} Approved`, isStandalone ? 380 : 330, y + 16);
+
+      const barX = isStandalone ? 490 : 450;
+      const barW = isStandalone ? 590 : 470;
+      const curW = Math.min(barW, Math.max(4, (t.total / maxTotal) * barW));
+      ctx.fillStyle = '#E0E7FF';
+      ctx.fillRect(barX, y + 4, barW, 12);
+      ctx.fillStyle = '#6366F1';
+      ctx.fillRect(barX, y + 4, curW, 12);
+
+      y += isStandalone ? 44 : 40;
+    }
+  }
+
+  if (isStandalone) {
+    ctx.fillStyle = '#94A3B8';
+    ctx.font = '10px "Segoe UI", sans-serif';
+    ctx.fillText('Generated automatically by Portal Principal NOO+ System', 50, height - 16);
+  }
+
+  return canvas;
+}
+
+function submitExportForm(chartKey, actionUrl, target) {
+  activeExportDropdown.value = null;
+  const canvas = generateChartCanvas(chartKey, false);
+  const chartImage = canvas ? canvas.toDataURL('image/png') : '';
+
+  const form = document.createElement('form');
+  form.method = 'POST';
+  form.action = actionUrl;
+  form.target = target;
+
+  const csrfMeta = document.querySelector('meta[name="csrf-token"]');
+  const token = csrfMeta ? csrfMeta.getAttribute('content') : '';
+
+  const fields = {
+    _token: token,
+    region_code: selectedRegion.value || '',
+    principal: selectedPrincipal.value || '',
+    branch_id: selectedBranch.value || '',
+    year: selectedYear.value || '',
+    months: (selectedMonths.value && selectedMonths.value.length > 0) ? selectedMonths.value.join(',') : '',
+    chart_image: chartImage,
+  };
+
+  for (const [key, val] of Object.entries(fields)) {
+    if (val !== '' && val !== null && val !== undefined) {
+      const input = document.createElement('input');
+      input.type = 'hidden';
+      input.name = key;
+      input.value = val;
+      form.appendChild(input);
+    }
+  }
+
+  document.body.appendChild(form);
+  form.submit();
+  setTimeout(() => {
+    if (document.body.contains(form)) {
+      document.body.removeChild(form);
+    }
+  }, 1000);
+}
+
+function exportToExcel(chartKey) {
+  submitExportForm(chartKey, route('edp.dashboard.export_chart', chartKey), '_self');
+}
+
+function exportToPdf(chartKey) {
+  submitExportForm(chartKey, route('edp.dashboard.export_chart_pdf', chartKey), '_blank');
+}
+
+function exportToJpg(chartKey) {
+  activeExportDropdown.value = null;
+  const canvas = generateChartCanvas(chartKey, true);
+  const link = document.createElement('a');
+  link.download = `GRAFIK_${chartKey.toUpperCase()}_${new Date().toISOString().slice(0, 10)}.jpg`;
+  link.href = canvas.toDataURL('image/jpeg', 0.95);
+  link.click();
 }
 
 function formatDate(dateStr) {
@@ -679,24 +1040,34 @@ function formatActionLabel(action) {
       <!-- GRAFIK VISUALISASI CHART (FILTER TAHUN DI MASING-MASING CHART) -->
       <div ref="chartSectionRef" class="grid grid-cols-1 lg:grid-cols-2 gap-6">
         
-        <!-- CHART 1: 🍩 SVG DONUT CHART DENGAN FILTER TAHUN MANDIRI -->
+        <!-- CHART 1: 🍩 SVG DONUT CHART -->
         <div class="bg-white p-5 rounded-xl border border-[#E5E7EB] shadow-xs space-y-4 hover:shadow-md transition">
           <div class="flex items-center justify-between border-b border-slate-100 pb-3 flex-wrap gap-2">
             <div>
               <h3 class="text-sm font-bold text-[#111827]">Perbandingan Status Submisi NOO</h3>
               <p class="text-[11px] text-slate-500">Distribusi Total Submit SE vs Approved vs Rejected Principal</p>
             </div>
-            <!-- FILTER TAHUN CHART 1 -->
-            <div class="flex items-center gap-1.5 shrink-0">
-              <label class="text-[10.5px] font-bold text-slate-500 uppercase">Tahun:</label>
-              <select
-                v-model="chart1Year"
-                @change="applyFilters"
-                class="pl-2.5 pr-8 py-1 text-xs border border-slate-200 rounded-lg bg-slate-50 font-bold text-slate-700 hover:bg-white transition cursor-pointer min-w-[125px]"
+            <!-- MINIMALIST EXPORT DROPDOWN CHART 1 -->
+            <div class="relative export-dropdown-container">
+              <button
+                type="button"
+                @click="toggleExportDropdown('chart1')"
+                class="px-2.5 py-1 text-xs font-medium text-slate-600 bg-slate-50 hover:bg-slate-100 hover:text-slate-900 border border-slate-200 rounded-lg transition flex items-center gap-1.5 cursor-pointer"
               >
-                <option value="">Semua Tahun</option>
-                <option v-for="y in yearOptions" :key="y.value" :value="y.value">{{ y.label }}</option>
-              </select>
+                <span>Export</span>
+                <svg class="w-3 h-3 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/></svg>
+              </button>
+              <div v-if="activeExportDropdown === 'chart1'" class="absolute right-0 top-full mt-1 w-36 bg-white rounded-lg border border-slate-200 shadow-lg z-50 py-1 text-xs divide-y divide-slate-100">
+                <button @click="exportToExcel('comparison')" class="w-full text-left px-3 py-1.5 text-slate-700 hover:bg-slate-50 font-medium transition cursor-pointer">
+                  Excel (.xlsx)
+                </button>
+                <button @click="exportToPdf('comparison')" class="w-full text-left px-3 py-1.5 text-slate-700 hover:bg-slate-50 font-medium transition cursor-pointer">
+                  PDF Document
+                </button>
+                <button @click="exportToJpg('comparison')" class="w-full text-left px-3 py-1.5 text-slate-700 hover:bg-slate-50 font-medium transition cursor-pointer">
+                  Gambar JPG (.jpg)
+                </button>
+              </div>
             </div>
           </div>
 
@@ -783,24 +1154,34 @@ function formatActionLabel(action) {
           </div>
         </div>
 
-        <!-- CHART 2: DUAL-COLUMN GROUPED BAR CHART DENGAN FILTER TAHUN MANDIRI -->
+        <!-- CHART 2: DUAL-COLUMN GROUPED BAR CHART -->
         <div class="bg-white p-5 rounded-xl border border-[#E5E7EB] shadow-xs space-y-4 hover:shadow-md transition">
           <div class="flex items-center justify-between border-b border-slate-100 pb-3 flex-wrap gap-2">
             <div>
               <h3 class="text-sm font-bold text-[#111827]">Analisis Submisi vs Approval per Region Area</h3>
               <p class="text-[11px] text-slate-500">Perbandingan Jumlah Submitted SE (Biru) & Approved Principal (Hijau)</p>
             </div>
-            <!-- FILTER TAHUN CHART 2 -->
-            <div class="flex items-center gap-1.5 shrink-0">
-              <label class="text-[10.5px] font-bold text-slate-500 uppercase">Tahun:</label>
-              <select
-                v-model="chart2Year"
-                @change="applyFilters"
-                class="pl-2.5 pr-8 py-1 text-xs border border-slate-200 rounded-lg bg-slate-50 font-bold text-slate-700 hover:bg-white transition cursor-pointer min-w-[125px]"
+            <!-- MINIMALIST EXPORT DROPDOWN CHART 2 -->
+            <div class="relative export-dropdown-container">
+              <button
+                type="button"
+                @click="toggleExportDropdown('chart2')"
+                class="px-2.5 py-1 text-xs font-medium text-slate-600 bg-slate-50 hover:bg-slate-100 hover:text-slate-900 border border-slate-200 rounded-lg transition flex items-center gap-1.5 cursor-pointer"
               >
-                <option value="">Semua Tahun</option>
-                <option v-for="y in yearOptions" :key="y.value" :value="y.value">{{ y.label }}</option>
-              </select>
+                <span>Export</span>
+                <svg class="w-3 h-3 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/></svg>
+              </button>
+              <div v-if="activeExportDropdown === 'chart2'" class="absolute right-0 top-full mt-1 w-36 bg-white rounded-lg border border-slate-200 shadow-lg z-50 py-1 text-xs divide-y divide-slate-100">
+                <button @click="exportToExcel('areas')" class="w-full text-left px-3 py-1.5 text-slate-700 hover:bg-slate-50 font-medium transition cursor-pointer">
+                  Excel (.xlsx)
+                </button>
+                <button @click="exportToPdf('areas')" class="w-full text-left px-3 py-1.5 text-slate-700 hover:bg-slate-50 font-medium transition cursor-pointer">
+                  PDF Document
+                </button>
+                <button @click="exportToJpg('areas')" class="w-full text-left px-3 py-1.5 text-slate-700 hover:bg-slate-50 font-medium transition cursor-pointer">
+                  Gambar JPG (.jpg)
+                </button>
+              </div>
             </div>
           </div>
 
@@ -841,24 +1222,34 @@ function formatActionLabel(action) {
           </div>
         </div>
 
-        <!-- CHART 3: 🏪 SEBARAN SUBMISI PER TIPE OUTLET DENGAN FILTER TAHUN MANDIRI -->
+        <!-- CHART 3: 🏪 SEBARAN SUBMISI PER TIPE OUTLET -->
         <div class="bg-white p-5 rounded-xl border border-[#E5E7EB] shadow-xs space-y-4 hover:shadow-md transition">
           <div class="flex items-center justify-between border-b border-slate-100 pb-3 flex-wrap gap-2">
             <div>
               <h3 class="text-sm font-bold text-[#111827]">Sebaran Submisi per Tipe Outlet / Channel</h3>
               <p class="text-[11px] text-slate-500">Distribusi pengajuan berdasarkan jenis outlet toko</p>
             </div>
-            <!-- FILTER TAHUN CHART 3 -->
-            <div class="flex items-center gap-1.5 shrink-0">
-              <label class="text-[10.5px] font-bold text-slate-500 uppercase">Tahun:</label>
-              <select
-                v-model="chart3Year"
-                @change="applyFilters"
-                class="pl-2.5 pr-8 py-1 text-xs border border-slate-200 rounded-lg bg-slate-50 font-bold text-slate-700 hover:bg-white transition cursor-pointer min-w-[125px]"
+            <!-- MINIMALIST EXPORT DROPDOWN CHART 3 -->
+            <div class="relative export-dropdown-container">
+              <button
+                type="button"
+                @click="toggleExportDropdown('chart3')"
+                class="px-2.5 py-1 text-xs font-medium text-slate-600 bg-slate-50 hover:bg-slate-100 hover:text-slate-900 border border-slate-200 rounded-lg transition flex items-center gap-1.5 cursor-pointer"
               >
-                <option value="">Semua Tahun</option>
-                <option v-for="y in yearOptions" :key="y.value" :value="y.value">{{ y.label }}</option>
-              </select>
+                <span>Export</span>
+                <svg class="w-3 h-3 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/></svg>
+              </button>
+              <div v-if="activeExportDropdown === 'chart3'" class="absolute right-0 top-full mt-1 w-36 bg-white rounded-lg border border-slate-200 shadow-lg z-50 py-1 text-xs divide-y divide-slate-100">
+                <button @click="exportToExcel('outlet_types')" class="w-full text-left px-3 py-1.5 text-slate-700 hover:bg-slate-50 font-medium transition cursor-pointer">
+                  Excel (.xlsx)
+                </button>
+                <button @click="exportToPdf('outlet_types')" class="w-full text-left px-3 py-1.5 text-slate-700 hover:bg-slate-50 font-medium transition cursor-pointer">
+                  PDF Document
+                </button>
+                <button @click="exportToJpg('outlet_types')" class="w-full text-left px-3 py-1.5 text-slate-700 hover:bg-slate-50 font-medium transition cursor-pointer">
+                  Gambar JPG (.jpg)
+                </button>
+              </div>
             </div>
           </div>
 
@@ -893,24 +1284,12 @@ function formatActionLabel(action) {
           </div>
         </div>
 
-        <!-- CHART 4: 🏬 TOP CABANG SUBMISI DENGAN FILTER TAHUN MANDIRI -->
+        <!-- CHART 4: 🏬 TOP CABANG SUBMISI -->
         <div class="bg-white p-5 rounded-xl border border-[#E5E7EB] shadow-xs space-y-4 hover:shadow-md transition">
           <div class="flex items-center justify-between border-b border-slate-100 pb-3 flex-wrap gap-2">
             <div>
               <h3 class="text-sm font-bold text-[#111827]">Top Cabang Submisi NOO Terbanyak</h3>
               <p class="text-[11px] text-slate-500">Peringkat cabang dengan volume pengajuan toko baru tertinggi</p>
-            </div>
-            <!-- FILTER TAHUN CHART 4 -->
-            <div class="flex items-center gap-1.5 shrink-0">
-              <label class="text-[10.5px] font-bold text-slate-500 uppercase">Tahun:</label>
-              <select
-                v-model="chart4Year"
-                @change="applyFilters"
-                class="pl-2.5 pr-8 py-1 text-xs border border-slate-200 rounded-lg bg-slate-50 font-bold text-slate-700 hover:bg-white transition cursor-pointer min-w-[125px]"
-              >
-                <option value="">Semua Tahun</option>
-                <option v-for="y in yearOptions" :key="y.value" :value="y.value">{{ y.label }}</option>
-              </select>
             </div>
           </div>
 

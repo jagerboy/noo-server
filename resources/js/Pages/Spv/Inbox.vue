@@ -621,75 +621,75 @@ function getRowStyle(item) {
   <Head title="Portal SPV Area - Inbox NOO+" />
 
   <SpvLayout>
-    <div class="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 space-y-6">
+    <div class="mx-auto max-w-7xl px-3 sm:px-4 md:px-6 lg:px-8 space-y-4 md:space-y-6">
 
-      <!-- Header & Stats Counter Cards -->
-      <div class="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-6">
+      <!-- Header & Stats Counter Cards: Responsif Desktop & Tablet -->
+      <div class="flex flex-col md:flex-row md:items-center md:justify-between gap-4 md:gap-6">
         <div>
-          <div class="flex items-center space-x-3">
-            <h1 class="text-xl md:text-[24px] font-semibold text-[#111827] tracking-tight leading-[1.4]">Inbox Submisi SPV Area</h1>
-            <span class="px-3 py-1 rounded-lg text-xs font-semibold bg-[#F3E8FF] text-[#7E22CE] border border-[#C084FC]">
+          <div class="flex items-center space-x-2.5 sm:space-x-3">
+            <h1 class="text-lg sm:text-xl md:text-[24px] font-semibold text-[#111827] tracking-tight leading-[1.4]">Inbox Submisi SPV Area</h1>
+            <span class="px-2.5 py-0.5 md:px-3 md:py-1 rounded-lg text-[11px] md:text-xs font-semibold bg-[#F3E8FF] text-[#7E22CE] border border-[#C084FC]">
               Supervisor Area
             </span>
           </div>
-          <p class="text-[14px] leading-[1.5] font-normal text-[#6B7280] mt-1">
+          <p class="text-[12.5px] md:text-[14px] leading-[1.5] font-normal text-[#6B7280] mt-0.5 md:mt-1">
             Verifikasi data pendaftaran toko, pengisian rute kunjungan H1-H7 & M1-M4, dan persetujuan ke EDP Principal.
           </p>
         </div>
 
-        <!-- Metric Stat Badges -->
-        <div class="grid grid-cols-2 sm:grid-cols-4 gap-3">
-          <div class="bg-white p-3.5 rounded-xl border border-[#E5E7EB] shadow-[0_1px_3px_rgba(0,0,0,0.08)] text-center flex flex-col justify-between h-full">
-            <div class="min-h-[32px] flex items-center justify-center">
-              <span class="text-[11px] font-semibold uppercase tracking-wider text-[#1D4ED8]">Pending Review</span>
+        <!-- Metric Stat Badges (Grid 2 kolom di HP, 4 kolom di Tablet & Desktop) -->
+        <div class="grid grid-cols-2 sm:grid-cols-4 gap-2 md:gap-3 w-full md:w-auto shrink-0">
+          <div class="bg-white p-2.5 sm:p-3 md:p-3.5 rounded-xl border border-[#E5E7EB] shadow-[0_1px_3px_rgba(0,0,0,0.08)] text-center flex flex-col justify-between h-full min-w-[110px] md:min-w-[125px]">
+            <div class="min-h-[26px] md:min-h-[32px] flex items-center justify-center">
+              <span class="text-[10px] md:text-[11px] font-semibold uppercase tracking-wider text-[#1D4ED8]">Pending Review</span>
             </div>
-            <div class="text-2xl font-bold text-[#2563EB] mt-1">{{ stats.pendingSpv }}</div>
+            <div class="text-xl md:text-2xl font-bold text-[#2563EB] mt-0.5 md:mt-1">{{ stats.pendingSpv }}</div>
           </div>
-          <div class="bg-white p-3.5 rounded-xl border border-[#E5E7EB] shadow-[0_1px_3px_rgba(0,0,0,0.08)] text-center flex flex-col justify-between h-full">
-            <div class="min-h-[32px] flex items-center justify-center">
-              <span class="text-[11px] font-semibold uppercase tracking-wider text-[#7E22CE]">Disetujui SPV</span>
+          <div class="bg-white p-2.5 sm:p-3 md:p-3.5 rounded-xl border border-[#E5E7EB] shadow-[0_1px_3px_rgba(0,0,0,0.08)] text-center flex flex-col justify-between h-full min-w-[110px] md:min-w-[125px]">
+            <div class="min-h-[26px] md:min-h-[32px] flex items-center justify-center">
+              <span class="text-[10px] md:text-[11px] font-semibold uppercase tracking-wider text-[#7E22CE]">Disetujui SPV</span>
             </div>
-            <div class="text-2xl font-bold text-[#9333EA] mt-1">{{ stats.approvedSpv }}</div>
+            <div class="text-xl md:text-2xl font-bold text-[#9333EA] mt-0.5 md:mt-1">{{ stats.approvedSpv }}</div>
           </div>
-          <div class="bg-white p-3.5 rounded-xl border border-[#E5E7EB] shadow-[0_1px_3px_rgba(0,0,0,0.08)] text-center flex flex-col justify-between h-full">
-            <div class="min-h-[32px] flex items-center justify-center">
-              <span class="text-[11px] font-semibold uppercase tracking-wider text-[#15803D]">EDP Approved</span>
+          <div class="bg-white p-2.5 sm:p-3 md:p-3.5 rounded-xl border border-[#E5E7EB] shadow-[0_1px_3px_rgba(0,0,0,0.08)] text-center flex flex-col justify-between h-full min-w-[110px] md:min-w-[125px]">
+            <div class="min-h-[26px] md:min-h-[32px] flex items-center justify-center">
+              <span class="text-[10px] md:text-[11px] font-semibold uppercase tracking-wider text-[#15803D]">EDP Approved</span>
             </div>
-            <div class="text-2xl font-bold text-[#16A34A] mt-1">{{ stats.approvedEdp }}</div>
+            <div class="text-xl md:text-2xl font-bold text-[#16A34A] mt-0.5 md:mt-1">{{ stats.approvedEdp }}</div>
           </div>
-          <div class="bg-white p-3.5 rounded-xl border border-[#E5E7EB] shadow-[0_1px_3px_rgba(0,0,0,0.08)] text-center flex flex-col justify-between h-full">
-            <div class="min-h-[32px] flex items-center justify-center">
-              <span class="text-[11px] font-semibold uppercase tracking-wider text-[#B91C1C]">Ditolak</span>
+          <div class="bg-white p-2.5 sm:p-3 md:p-3.5 rounded-xl border border-[#E5E7EB] shadow-[0_1px_3px_rgba(0,0,0,0.08)] text-center flex flex-col justify-between h-full min-w-[110px] md:min-w-[125px]">
+            <div class="min-h-[26px] md:min-h-[32px] flex items-center justify-center">
+              <span class="text-[10px] md:text-[11px] font-semibold uppercase tracking-wider text-[#B91C1C]">Ditolak</span>
             </div>
-            <div class="text-2xl font-bold text-[#DC2626] mt-1">{{ stats.rejected }}</div>
+            <div class="text-xl md:text-2xl font-bold text-[#DC2626] mt-0.5 md:mt-1">{{ stats.rejected }}</div>
           </div>
         </div>
       </div>
 
-      <!-- Filter Bar SPV Area (Hijau Emerald Accent) -->
-      <div class="bg-white p-4 rounded-xl border border-[#E5E7EB] shadow-[0_1px_3px_rgba(0,0,0,0.08)] flex flex-col lg:flex-row items-center justify-between gap-4">
+      <!-- Filter Bar SPV Area: Rapi di Tablet (md:flex-row) & Desktop -->
+      <div class="bg-white p-3 md:p-4 rounded-xl border border-[#E5E7EB] shadow-[0_1px_3px_rgba(0,0,0,0.08)] flex flex-col md:flex-row md:items-center md:justify-between gap-3 md:gap-4">
         
-        <!-- Search Input (Form Input 16px / 400) -->
-        <div class="relative w-full lg:w-80">
-          <svg class="w-4 h-4 absolute left-3.5 top-3.5 text-[#9CA3AF]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <!-- Search Input -->
+        <div class="relative w-full md:w-56 lg:w-80 shrink-0">
+          <svg class="w-4 h-4 absolute left-3.5 top-3 text-[#9CA3AF]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/>
           </svg>
           <input
             v-model="searchQuery"
             type="text"
-            placeholder="Cari toko, pemilik, salesman, sub-grup..."
-            class="w-full pl-10 pr-4 py-2 text-[15px] font-normal rounded-lg bg-white border border-[#D1D5DB] text-[#374151] placeholder-[#9CA3AF] focus:ring-2 focus:ring-[#059669] focus:border-[#047857] transition"
+            placeholder="Cari toko, pemilik, salesman..."
+            class="w-full pl-9 md:pl-10 pr-4 py-2 text-[13.5px] md:text-[14px] font-normal rounded-lg bg-white border border-[#D1D5DB] text-[#374151] placeholder-[#9CA3AF] focus:ring-2 focus:ring-[#059669] focus:border-[#047857] transition"
           />
         </div>
 
         <!-- Filter Status & Sort Dropdowns Side-by-Side -->
-        <div class="flex flex-col sm:flex-row items-center gap-3 w-full lg:w-auto">
+        <div class="flex flex-col sm:flex-row items-center gap-2.5 md:gap-3 w-full md:w-auto">
           <!-- Filter Status Dropdown -->
           <div class="flex items-center space-x-2 w-full sm:w-auto">
-            <label class="text-[14px] font-medium text-[#4B5563] whitespace-nowrap">Filter Status:</label>
+            <label class="text-[13px] md:text-[14px] font-medium text-[#4B5563] whitespace-nowrap">Status:</label>
             <select
               v-model="statusFilter"
-              class="w-full sm:w-60 text-[14px] font-medium rounded-lg bg-white border border-[#D1D5DB] text-[#1F2937] py-2 px-3 focus:ring-2 focus:ring-[#059669] focus:border-[#047857] shadow-xs cursor-pointer"
+              class="w-full sm:w-52 md:w-56 lg:w-60 text-[13px] md:text-[14px] font-medium rounded-lg bg-white border border-[#D1D5DB] text-[#1F2937] py-1.5 md:py-2 px-2.5 md:px-3 focus:ring-2 focus:ring-[#059669] focus:border-[#047857] shadow-xs cursor-pointer"
             >
               <option value="ALL">Semua Submisi SPV</option>
               <option value="PUSHED_TO_SPV">1. Pending Review SPV</option>
@@ -700,12 +700,12 @@ function getRowStyle(item) {
             </select>
           </div>
 
-          <!-- Sort Dropdown (Memindahkan Sort dari Header Tabel) -->
+          <!-- Sort Dropdown -->
           <div class="flex items-center space-x-2 w-full sm:w-auto">
-            <label class="text-[14px] font-medium text-[#4B5563] whitespace-nowrap">Urutkan:</label>
+            <label class="text-[13px] md:text-[14px] font-medium text-[#4B5563] whitespace-nowrap">Urutkan:</label>
             <select
               v-model="sortSelect"
-              class="w-full sm:w-52 text-[14px] font-medium rounded-lg bg-white border border-[#D1D5DB] text-[#1F2937] py-2 px-3 focus:ring-2 focus:ring-[#059669] focus:border-[#047857] shadow-xs cursor-pointer"
+              class="w-full sm:w-44 md:w-48 lg:w-52 text-[13px] md:text-[14px] font-medium rounded-lg bg-white border border-[#D1D5DB] text-[#1F2937] py-1.5 md:py-2 px-2.5 md:px-3 focus:ring-2 focus:ring-[#059669] focus:border-[#047857] shadow-xs cursor-pointer"
             >
               <option value="submitted_at_desc">Terbaru (Submisi)</option>
               <option value="submitted_at_asc">Terlama (Submisi)</option>
@@ -719,18 +719,18 @@ function getRowStyle(item) {
         </div>
       </div>
 
-      <!-- TABEL SUBMISI SPV PRESISI -->
+      <!-- TABEL SUBMISI SPV PRESISI: RAMAH TABLET & DESKTOP -->
       <div class="bg-white rounded-xl border border-[#E5E7EB] shadow-[0_1px_3px_rgba(0,0,0,0.08)] overflow-hidden">
         <div class="w-full overflow-x-auto">
-          <table class="w-full text-left text-[14px] leading-[20px] text-[#374151] table-fixed min-w-[960px]">
-            <thead class="bg-[#F3F4F6] text-[14px] font-semibold text-[#1F2937] border-b border-[#E5E7EB] select-none">
+          <table class="w-full text-left text-[13px] md:text-[14px] leading-[18px] md:leading-[20px] text-[#374151] table-fixed min-w-[860px] md:min-w-[920px] lg:min-w-[960px]">
+            <thead class="bg-[#F3F4F6] text-[13px] md:text-[14px] font-semibold text-[#1F2937] border-b border-[#E5E7EB] select-none">
               <tr>
-                <th class="w-[22%] px-4 py-3.5">Toko & Sub-Grup</th>
-                <th class="w-[18%] px-4 py-3.5">Pemilik & No. HP</th>
-                <th class="w-[18%] px-4 py-3.5">Salesman & Cabang</th>
-                <th class="w-[15%] px-4 py-3.5">Status & Cust Dist.</th>
-                <th class="w-[15%] px-4 py-3.5">Rute Kunjungan</th>
-                <th class="w-[12%] px-4 py-3.5 text-center">Aksi</th>
+                <th class="w-[23%] md:w-[22%] px-3 md:px-4 py-3 md:py-3.5">Toko & Sub-Grup</th>
+                <th class="w-[18%] md:w-[18%] px-3 md:px-4 py-3 md:py-3.5">Pemilik & No. HP</th>
+                <th class="w-[18%] md:w-[18%] px-3 md:px-4 py-3 md:py-3.5">Salesman & Cabang</th>
+                <th class="w-[15%] md:w-[15%] px-3 md:px-4 py-3 md:py-3.5">Status & Cust Dist.</th>
+                <th class="w-[14%] md:w-[15%] px-3 md:px-4 py-3 md:py-3.5">Rute Kunjungan</th>
+                <th class="w-[12%] md:w-[12%] px-2.5 md:px-4 py-3 md:py-3.5 text-center">Aksi</th>
               </tr>
             </thead>
             <tbody class="divide-y divide-[#E5E7EB]">
@@ -747,19 +747,19 @@ function getRowStyle(item) {
                 :class="getRowStyle(item)"
               >
                 <!-- Toko & Sub-Grup -->
-                <td class="px-4 py-3.5">
-                  <div class="font-semibold text-[#111827] text-[15px] truncate" :title="item.nama_noo">
+                <td class="px-3 md:px-4 py-2.5 md:py-3.5">
+                  <div class="font-semibold text-[#111827] text-[13.5px] md:text-[15px] truncate" :title="item.nama_noo">
                     {{ item.nama_noo }}
                   </div>
                   <div class="flex items-center space-x-1 mt-1 flex-wrap gap-1">
-                    <span v-if="item.sub_group_region || item.principal" class="px-2 py-0.5 text-[10px] font-bold rounded bg-purple-100 text-purple-800 border border-purple-300">
+                    <span v-if="item.sub_group_region || item.principal" class="px-1.5 md:px-2 py-0.5 text-[9.5px] md:text-[10px] font-bold rounded bg-purple-100 text-purple-800 border border-purple-300">
                       {{ item.sub_group_region || item.principal }}
                     </span>
-                    <span class="px-2 py-0.5 text-[11px] font-semibold rounded bg-[#DBEAFE] text-[#1D4ED8] border border-[#93C5FD]">
+                    <span class="px-1.5 md:px-2 py-0.5 text-[10px] md:text-[11px] font-semibold rounded bg-[#DBEAFE] text-[#1D4ED8] border border-[#93C5FD]">
                       {{ item.type_outlet_code }}
                     </span>
                     <span v-if="item.is_exif_valid !== null || item.exif_depan_distance_m !== null"
-                          class="px-1.5 py-0.5 text-[10px] font-bold rounded"
+                          class="px-1.5 py-0.5 text-[9.5px] md:text-[10px] font-bold rounded"
                           :class="item.is_exif_valid !== false && (item.exif_depan_distance_m === null || item.exif_depan_distance_m <= 15) ? 'bg-emerald-100 text-emerald-800 border border-emerald-300' : 'bg-amber-100 text-amber-800 border border-amber-300'">
                       {{ item.is_exif_valid !== false && (item.exif_depan_distance_m === null || item.exif_depan_distance_m <= 15) ? '✓ EXIF <15m' : '⚠️ EXIF >15m' }}
                     </span>
@@ -767,51 +767,51 @@ function getRowStyle(item) {
                 </td>
 
                 <!-- Pemilik & No HP -->
-                <td class="px-4 py-3.5">
-                  <div class="font-medium text-[#1F2937] text-[14px] truncate">
+                <td class="px-3 md:px-4 py-2.5 md:py-3.5">
+                  <div class="font-medium text-[#1F2937] text-[13px] md:text-[14px] truncate">
                     {{ item.nama_pemilik_outlet || '-' }}
                   </div>
-                  <div class="text-[12px] text-[#6B7280] mt-0.5 font-mono">
+                  <div class="text-[11.5px] md:text-[12px] text-[#6B7280] mt-0.5 font-mono">
                     📞 {{ item.no_hp_noo || item.no_hp || '-' }}
                   </div>
                 </td>
 
                 <!-- Salesman & Cabang -->
-                <td class="px-4 py-3.5 truncate">
-                  <div class="font-medium text-[#1F2937] text-[14px] truncate">{{ item.salesman_name }}</div>
-                  <div class="text-[12px] text-[#6B7280] mt-0.5 truncate">
+                <td class="px-3 md:px-4 py-2.5 md:py-3.5 truncate">
+                  <div class="font-medium text-[#1F2937] text-[13px] md:text-[14px] truncate">{{ item.salesman_name }}</div>
+                  <div class="text-[11.5px] md:text-[12px] text-[#6B7280] mt-0.5 truncate">
                     {{ item.branch_name }}
                   </div>
                 </td>
 
                 <!-- Status & Cust Dist -->
-                <td class="px-4 py-3.5">
+                <td class="px-3 md:px-4 py-2.5 md:py-3.5">
                   <div class="flex flex-col space-y-1 items-start">
-                    <span class="px-2.5 py-0.5 rounded-full text-[12px] font-semibold border" :class="getStatusBadgeStyle(item.status)">
+                    <span class="px-2 md:px-2.5 py-0.5 rounded-full text-[11px] md:text-[12px] font-semibold border" :class="getStatusBadgeStyle(item.status)">
                       {{ formatStatusLabel(item.status) }}
                     </span>
-                    <span v-if="item.custcode_distributor" class="font-mono text-[11px] font-semibold text-[#1D4ED8] bg-[#DBEAFE] px-2 py-0.5 rounded border border-[#93C5FD]">
+                    <span v-if="item.custcode_distributor" class="font-mono text-[10.5px] md:text-[11px] font-semibold text-[#1D4ED8] bg-[#DBEAFE] px-1.5 md:px-2 py-0.5 rounded border border-[#93C5FD]">
                       {{ item.custcode_distributor }}
                     </span>
                   </div>
                 </td>
 
                 <!-- Rute Kunjungan Summary -->
-                <td class="px-4 py-3.5">
-                  <div class="text-[12px] text-[#374151]">
+                <td class="px-3 md:px-4 py-2.5 md:py-3.5">
+                  <div class="text-[11.5px] md:text-[12px] text-[#374151]">
                     <span class="font-semibold text-[#1F2937]">Hari:</span> {{ getRouteDaysSummary(item) }}
                   </div>
-                  <div class="text-[12px] text-[#6B7280] mt-0.5">
+                  <div class="text-[11.5px] md:text-[12px] text-[#6B7280] mt-0.5">
                     <span class="font-semibold text-[#1F2937]">Minggu:</span> {{ getRouteWeeksSummary(item) }}
                   </div>
                 </td>
 
                 <!-- Action Button -->
-                <td class="px-4 py-3.5 text-center">
+                <td class="px-2.5 md:px-4 py-2.5 md:py-3.5 text-center">
                   <BaseButton
                     variant="primary"
                     size="sm"
-                    class="w-full font-sans"
+                    class="w-full font-sans text-xs md:text-sm py-1.5 md:py-2"
                     @click="openDetailModal(item)"
                   >
                     Kelola & Rute
@@ -838,18 +838,18 @@ function getRowStyle(item) {
     <!-- MODAL SLIDE-OVER PREVIEW DETAIL & PENGATURAN RUTE SPV (LEVEL 1 Z-INDEX 99990) -->
     <Teleport to="body">
       <div v-if="showDetailModal && selectedSubmission" class="fixed inset-0 min-h-screen min-w-full w-full h-full z-[99990] overflow-y-auto bg-black/60 backdrop-blur-xs flex items-center justify-center p-2 sm:p-4 md:p-6" @click.self="closeDetailModal">
-      <div class="bg-white rounded-xl max-w-4xl w-full max-h-[92vh] sm:max-h-[85vh] flex flex-col shadow-[0_15px_40px_rgba(0,0,0,0.18)] border border-[#E5E7EB] overflow-hidden text-[#374151]">
+      <div class="bg-white rounded-xl md:rounded-2xl max-w-4xl w-full max-h-[92vh] sm:max-h-[88vh] md:max-h-[85vh] flex flex-col shadow-[0_15px_40px_rgba(0,0,0,0.18)] border border-[#E5E7EB] overflow-hidden text-[#374151]">
         
-        <!-- Header Modal -->
-        <div class="px-6 py-4 bg-[#1E3A8A] text-white flex items-center justify-between shrink-0">
+        <!-- Header Modal: Responsif Tablet & Desktop -->
+        <div class="px-4 sm:px-6 py-3.5 sm:py-4 bg-[#1E3A8A] text-white flex items-center justify-between shrink-0">
           <div>
-            <div class="flex items-center space-x-3">
-              <h3 class="text-[22px] font-semibold leading-[28px] text-white">{{ selectedSubmission.nama_noo }}</h3>
-              <span class="px-2.5 py-0.5 rounded text-xs font-semibold bg-white/20 text-white border border-white/30">
+            <div class="flex items-center space-x-2 sm:space-x-3 flex-wrap gap-1">
+              <h3 class="text-base sm:text-lg md:text-[22px] font-semibold leading-snug text-white">{{ selectedSubmission.nama_noo }}</h3>
+              <span class="px-2 py-0.5 rounded text-[10.5px] sm:text-xs font-semibold bg-white/20 text-white border border-white/30">
                 {{ selectedSubmission.type_outlet_code }} - {{ selectedSubmission.type_outlet_desc }}
               </span>
             </div>
-            <p class="text-xs text-blue-200 mt-0.5">Request ID: {{ selectedSubmission.request_id }} | Branch: {{ selectedSubmission.branch_name }}</p>
+            <p class="text-[11px] sm:text-xs text-blue-200 mt-0.5">Request ID: {{ selectedSubmission.request_id }} | Branch: {{ selectedSubmission.branch_name }}</p>
           </div>
           <button @click="showDetailModal = false" class="text-blue-200 hover:text-white text-xl font-bold p-1 hover:bg-blue-800 rounded-lg">
             ✕
@@ -857,7 +857,7 @@ function getRowStyle(item) {
         </div>
 
         <!-- Body Modal Detail -->
-        <div class="p-6 space-y-6 overflow-y-auto flex-1 bg-[#F8FAFC]">
+        <div class="p-4 sm:p-6 space-y-4 sm:space-y-6 overflow-y-auto flex-1 bg-[#F8FAFC]">
 
           <!-- Info Grid Lapang Komprehensif -->
           <div class="grid grid-cols-1 md:grid-cols-2 gap-4 bg-white p-4 rounded-xl border border-[#E5E7EB] shadow-sm">

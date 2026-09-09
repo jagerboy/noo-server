@@ -593,4 +593,264 @@ class ExcelExportService
         $writer->save('php://output');
         return ob_get_clean();
     }
+
+    /**
+     * Membuat file Excel (.xlsx) untuk laporan grafik Dashboard Principal beserta tabel detail.
+     *
+     * @param string $chartType 'comparison' | 'areas' | 'outlet_types'
+     * @param string $chartTitle Judul besar grafik
+     * @param array $filterInfo Informasi filter aktif (tahun, bulan, region, entity, cabang, printed_at)
+     * @param array $summaryRows Data baris ringkasan metrik grafik
+     * @param array $details Data baris detail pengajuan toko NOO
+     * @param string|null $chartImageBase64 Base64 image chart untuk disematkan di Excel
+     */
+    public function generateDashboardChartExcel(
+        string $chartType,
+        string $chartTitle,
+        array $filterInfo,
+        array $summaryRows,
+        array $details,
+        ?string $chartImageBase64 = null
+    ): string {
+        $spreadsheet = new Spreadsheet();
+        $sheet = $spreadsheet->getActiveSheet();
+        $sheet->setTitle(substr($chartTitle, 0, 30));
+
+        $spreadsheet->getDefaultStyle()->getFont()->setName('Calibri')->setSize(10);
+
+        // 1. Judul Besar Laporan Eksekutif
+        $sheet->setCellValue('A2', 'PORTAL PRINCIPAL NOO+ - LAPORAN GRAFIK EKSEKUTIF');
+        $sheet->getStyle('A2')->getFont()->setBold(true)->setSize(16)->getColor()->setRGB('0F172A');
+
+        $sheet->setCellValue('A3', strtoupper($chartTitle));
+        $sheet->getStyle('A3')->getFont()->setBold(true)->setSize(12)->getColor()->setRGB('0F766E');
+
+        // 2. Metadata Filter Box
+        $sheet->setCellValue('A5', 'Periode Tahun:');
+        $sheet->setCellValue('B5', (string)($filterInfo['year'] ?? 'Semua Tahun'));
+        $sheet->setCellValue('C5', 'Bulan:');
+        $sheet->setCellValue('D5', (string)($filterInfo['months'] ?? 'Semua Bulan'));
+        $sheet->setCellValue('E5', 'Region:');
+        $sheet->setCellValue('F5', (string)($filterInfo['region'] ?? 'Semua Region'));
+
+        $sheet->setCellValue('A6', 'Entity / Principal:');
+        $sheet->setCellValue('B6', (string)($filterInfo['entity'] ?? 'Semua Entity'));
+        $sheet->setCellValue('C6', 'Cabang:');
+        $sheet->setCellValue('D6', (string)($filterInfo['branch'] ?? 'Semua Cabang'));
+        $sheet->setCellValue('E6', 'Tanggal Ekspor:');
+        $sheet->setCellValue('F6', (string)($filterInfo['printed_at'] ?? date('d/m/Y H:i:s')));
+
+        $sheet->getStyle('A5:A6')->getFont()->setBold(true)->getColor()->setRGB('475569');
+        $sheet->getStyle('C5:C6')->getFont()->setBold(true)->getColor()->setRGB('475569');
+        $sheet->getStyle('E5:E6')->getFont()->setBold(true)->getColor()->setRGB('475569');
+
+        $sheet->getStyle('A5:H6')->getFill()->setFillType(Fill::FILL_SOLID)->getStartColor()->setRGB('F8FAFC');
+        $sheet->getStyle('A5:H6')->getBorders()->getAllBorders()->setBorderStyle(Border::BORDER_THIN)->getColor()->setRGB('E2E8F0');
+
+        $currentRow = 8;
+        $tempFiles = [];
+
+        // 2b. Sematkan Visual Grafik (Drawing) jika ada
+        if (!empty($chartImageBase64) && str_contains($chartImageBase64, 'base64,')) {
+            try {
+                $rawBase64 = explode('base64,', $chartImageBase64)[1] ?? '';
+                $binaryImage = base64_decode($rawBase64);
+                if ($binaryImage !== false) {
+                    $tmpFile = tempnam(sys_get_temp_dir(), 'chart_') . '.png';
+                    file_put_contents($tmpFile, $binaryImage);
+                    $tempFiles[] = $tmpFile;
+
+                    $sheet->setCellValue("A{$currentRow}", 'VISUALISASI GRAFIK DASHBOARD');
+                    $sheet->getStyle("A{$currentRow}")->getFont()->setBold(true)->setSize(11)->getColor()->setRGB('0F172A');
+                    $currentRow++;
+
+                    $drawing = new \PhpOffice\PhpSpreadsheet\Worksheet\Drawing();
+                    $drawing->setName($chartTitle);
+                    $drawing->setDescription('Grafik Dashboard');
+                    $drawing->setPath($tmpFile);
+                    $drawing->setCoordinates("A{$currentRow}");
+                    $drawing->setHeight(240);
+                    $drawing->setWorksheet($sheet);
+
+                    $currentRow += 13;
+                }
+            } catch (\Throwable $e) {
+                // Lewati jika terjadi error gambar
+            }
+        }
+
+        // 3. Tabel Ringkasan Grafik
+        $sheet->setCellValue("A{$currentRow}", 'RINGKASAN STATISTIK GRAFIK');
+        $sheet->getStyle("A{$currentRow}")->getFont()->setBold(true)->setSize(11)->getColor()->setRGB('0F172A');
+        $currentRow++;
+
+        if ($chartType === 'comparison') {
+            $sumHeaders = ['Metrik Ringkasan', 'Jumlah Toko (NOO)', 'Persentase'];
+            $sheet->fromArray($sumHeaders, null, "A{$currentRow}");
+            $sheet->getStyle("A{$currentRow}:C{$currentRow}")->getFont()->setBold(true)->getColor()->setRGB('FFFFFF');
+            $sheet->getStyle("A{$currentRow}:C{$currentRow}")->getFill()->setFillType(Fill::FILL_SOLID)->getStartColor()->setRGB('1E3A8A');
+            $sheet->getStyle("A{$currentRow}:C{$currentRow}")->getAlignment()->setHorizontal(Alignment::HORIZONTAL_CENTER);
+            $sheet->getRowDimension($currentRow)->setRowHeight(22);
+            $currentRow++;
+
+            foreach ($summaryRows as $sr) {
+                $sheet->fromArray([$sr['label'] ?? '-', $sr['count'] ?? 0, ($sr['percentage'] ?? 0) . '%'], null, "A{$currentRow}");
+                $sheet->getStyle("B{$currentRow}")->getAlignment()->setHorizontal(Alignment::HORIZONTAL_RIGHT);
+                $sheet->getStyle("C{$currentRow}")->getAlignment()->setHorizontal(Alignment::HORIZONTAL_RIGHT);
+                $sheet->getStyle("A{$currentRow}:C{$currentRow}")->getBorders()->getAllBorders()->setBorderStyle(Border::BORDER_THIN)->getColor()->setRGB('CBD5E1');
+                $currentRow++;
+            }
+        } elseif ($chartType === 'areas') {
+            $sumHeaders = ['No', 'Kode Area', 'Total Submisi SE', 'Approved Principal', 'Approval Rate'];
+            $sheet->fromArray($sumHeaders, null, "A{$currentRow}");
+            $sheet->getStyle("A{$currentRow}:E{$currentRow}")->getFont()->setBold(true)->getColor()->setRGB('FFFFFF');
+            $sheet->getStyle("A{$currentRow}:E{$currentRow}")->getFill()->setFillType(Fill::FILL_SOLID)->getStartColor()->setRGB('1E3A8A');
+            $sheet->getStyle("A{$currentRow}:E{$currentRow}")->getAlignment()->setHorizontal(Alignment::HORIZONTAL_CENTER);
+            $sheet->getRowDimension($currentRow)->setRowHeight(22);
+            $currentRow++;
+
+            foreach ($summaryRows as $idx => $sr) {
+                $rate = ($sr['total_submitted'] > 0) ? round(($sr['approved_principal'] / $sr['total_submitted']) * 100, 1) : 0;
+                $sheet->fromArray([$idx + 1, $sr['area_code'] ?? '-', $sr['total_submitted'] ?? 0, $sr['approved_principal'] ?? 0, "{$rate}%"], null, "A{$currentRow}");
+                $sheet->getStyle("A{$currentRow}:B{$currentRow}")->getAlignment()->setHorizontal(Alignment::HORIZONTAL_CENTER);
+                $sheet->getStyle("C{$currentRow}:E{$currentRow}")->getAlignment()->setHorizontal(Alignment::HORIZONTAL_RIGHT);
+                $sheet->getStyle("A{$currentRow}:E{$currentRow}")->getBorders()->getAllBorders()->setBorderStyle(Border::BORDER_THIN)->getColor()->setRGB('CBD5E1');
+                $currentRow++;
+            }
+        } elseif ($chartType === 'outlet_types') {
+            $sumHeaders = ['No', 'Tipe Outlet / Channel', 'Total Submisi SE', 'Approved Principal', 'Approval Rate'];
+            $sheet->fromArray($sumHeaders, null, "A{$currentRow}");
+            $sheet->getStyle("A{$currentRow}:E{$currentRow}")->getFont()->setBold(true)->getColor()->setRGB('FFFFFF');
+            $sheet->getStyle("A{$currentRow}:E{$currentRow}")->getFill()->setFillType(Fill::FILL_SOLID)->getStartColor()->setRGB('1E3A8A');
+            $sheet->getStyle("A{$currentRow}:E{$currentRow}")->getAlignment()->setHorizontal(Alignment::HORIZONTAL_CENTER);
+            $sheet->getRowDimension($currentRow)->setRowHeight(22);
+            $currentRow++;
+
+            foreach ($summaryRows as $idx => $sr) {
+                $rate = ($sr['total'] > 0) ? round(($sr['approved'] / $sr['total']) * 100, 1) : 0;
+                $sheet->fromArray([$idx + 1, $sr['outlet_type'] ?? '-', $sr['total'] ?? 0, $sr['approved'] ?? 0, "{$rate}%"], null, "A{$currentRow}");
+                $sheet->getStyle("A{$currentRow}")->getAlignment()->setHorizontal(Alignment::HORIZONTAL_CENTER);
+                $sheet->getStyle("B{$currentRow}")->getAlignment()->setHorizontal(Alignment::HORIZONTAL_LEFT);
+                $sheet->getStyle("C{$currentRow}:E{$currentRow}")->getAlignment()->setHorizontal(Alignment::HORIZONTAL_RIGHT);
+                $sheet->getStyle("A{$currentRow}:E{$currentRow}")->getBorders()->getAllBorders()->setBorderStyle(Border::BORDER_THIN)->getColor()->setRGB('CBD5E1');
+                $currentRow++;
+            }
+        }
+
+        $currentRow += 2;
+
+        // 4. Tabel Detail Data Pengajuan NOO Sesuai Filter
+        $sheet->setCellValue("A{$currentRow}", 'TABEL DETAIL DATA PENGAJUAN NOO');
+        $sheet->getStyle("A{$currentRow}")->getFont()->setBold(true)->setSize(11)->getColor()->setRGB('0F172A');
+        $currentRow++;
+
+        $detailHeaders = [
+            'No',
+            'Region',
+            'Entity',
+            'Cabang Distributor',
+            'Nama Toko (NOO)',
+            'Salesman',
+            'Tanggal Submisi',
+            'Status',
+        ];
+        if ($chartType === 'outlet_types') {
+            $detailHeaders[] = 'Tipe Outlet';
+        }
+
+        $lastColLetter = ($chartType === 'outlet_types') ? 'I' : 'H';
+
+        $sheet->fromArray($detailHeaders, null, "A{$currentRow}");
+        $sheet->getStyle("A{$currentRow}:{$lastColLetter}{$currentRow}")->getFont()->setBold(true)->getColor()->setRGB('FFFFFF');
+        $sheet->getStyle("A{$currentRow}:{$lastColLetter}{$currentRow}")->getFill()->setFillType(Fill::FILL_SOLID)->getStartColor()->setRGB('0F766E');
+        $sheet->getStyle("A{$currentRow}:{$lastColLetter}{$currentRow}")->getAlignment()->setHorizontal(Alignment::HORIZONTAL_CENTER)->setVertical(Alignment::VERTICAL_CENTER);
+        $sheet->getRowDimension($currentRow)->setRowHeight(24);
+        $currentRow++;
+
+        if (empty($details)) {
+            $sheet->setCellValue("A{$currentRow}", 'Tidak ada data pengajuan NOO yang cocok dengan filter yang dipilih.');
+            $sheet->mergeCells("A{$currentRow}:{$lastColLetter}{$currentRow}");
+            $sheet->getStyle("A{$currentRow}")->getFont()->setItalic(true)->getColor()->setRGB('94A3B8');
+            $sheet->getStyle("A{$currentRow}")->getAlignment()->setHorizontal(Alignment::HORIZONTAL_CENTER);
+            $sheet->getRowDimension($currentRow)->setRowHeight(22);
+            $currentRow++;
+        } else {
+            foreach ($details as $idx => $row) {
+                $subDate = !empty($row['submitted_at']) ? date('d/m/Y H:i', strtotime((string)$row['submitted_at'])) : '-';
+                $salesmanDisplay = trim(($row['salesman_name'] ?? '') . ' (' . ($row['salesman_code'] ?? '-') . ')');
+                if ($salesmanDisplay === '(-)') $salesmanDisplay = '-';
+                $branchDisplay = trim(($row['branch_id'] ?? '') . ' - ' . ($row['branch_name'] ?? ''));
+
+                $rowData = [
+                    $idx + 1,
+                    $row['region_code'] ?? '-',
+                    $row['entity_code'] ?? ($row['principal'] ?? '-'),
+                    $branchDisplay,
+                    $row['nama_noo'] ?? '-',
+                    $salesmanDisplay,
+                    $subDate,
+                    $row['status'] ?? '-',
+                ];
+
+                if ($chartType === 'outlet_types') {
+                    $rowData[] = $row['type_outlet'] ?? '-';
+                }
+
+                $sheet->fromArray($rowData, null, "A{$currentRow}");
+
+                // Zebra striping
+                if ($idx % 2 === 1) {
+                    $sheet->getStyle("A{$currentRow}:{$lastColLetter}{$currentRow}")->getFill()
+                        ->setFillType(Fill::FILL_SOLID)->getStartColor()->setRGB('F8FAFC');
+                }
+
+                $sheet->getRowDimension($currentRow)->setRowHeight(20);
+
+                // Alignments
+                $sheet->getStyle("A{$currentRow}")->getAlignment()->setHorizontal(Alignment::HORIZONTAL_CENTER)->setVertical(Alignment::VERTICAL_CENTER);
+                $sheet->getStyle("B{$currentRow}")->getAlignment()->setHorizontal(Alignment::HORIZONTAL_CENTER)->setVertical(Alignment::VERTICAL_CENTER);
+                $sheet->getStyle("C{$currentRow}")->getAlignment()->setHorizontal(Alignment::HORIZONTAL_CENTER)->setVertical(Alignment::VERTICAL_CENTER);
+                $sheet->getStyle("D{$currentRow}")->getAlignment()->setHorizontal(Alignment::HORIZONTAL_LEFT)->setVertical(Alignment::VERTICAL_CENTER);
+                $sheet->getStyle("E{$currentRow}")->getAlignment()->setHorizontal(Alignment::HORIZONTAL_LEFT)->setVertical(Alignment::VERTICAL_CENTER);
+                $sheet->getStyle("F{$currentRow}")->getAlignment()->setHorizontal(Alignment::HORIZONTAL_LEFT)->setVertical(Alignment::VERTICAL_CENTER);
+                $sheet->getStyle("G{$currentRow}")->getAlignment()->setHorizontal(Alignment::HORIZONTAL_CENTER)->setVertical(Alignment::VERTICAL_CENTER);
+                $sheet->getStyle("H{$currentRow}")->getAlignment()->setHorizontal(Alignment::HORIZONTAL_CENTER)->setVertical(Alignment::VERTICAL_CENTER);
+
+                if ($chartType === 'outlet_types') {
+                    $sheet->getStyle("I{$currentRow}")->getAlignment()->setHorizontal(Alignment::HORIZONTAL_LEFT)->setVertical(Alignment::VERTICAL_CENTER);
+                }
+
+                $sheet->getStyle("A{$currentRow}:{$lastColLetter}{$currentRow}")->getBorders()->getAllBorders()
+                    ->setBorderStyle(Border::BORDER_THIN)->getColor()->setRGB('E2E8F0');
+
+                $currentRow++;
+            }
+        }
+
+        // Set tailored column widths
+        $sheet->getColumnDimension('A')->setWidth(6);
+        $sheet->getColumnDimension('B')->setWidth(14);
+        $sheet->getColumnDimension('C')->setWidth(14);
+        $sheet->getColumnDimension('D')->setWidth(26);
+        $sheet->getColumnDimension('E')->setWidth(32);
+        $sheet->getColumnDimension('F')->setWidth(24);
+        $sheet->getColumnDimension('G')->setWidth(18);
+        $sheet->getColumnDimension('H')->setWidth(18);
+        if ($chartType === 'outlet_types') {
+            $sheet->getColumnDimension('I')->setWidth(24);
+        }
+
+        $writer = new Xlsx($spreadsheet);
+        ob_start();
+        $writer->save('php://output');
+        $output = ob_get_clean();
+
+        foreach ($tempFiles as $tf) {
+            if (file_exists($tf)) {
+                @unlink($tf);
+            }
+        }
+
+        return $output;
+    }
 }
