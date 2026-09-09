@@ -11,6 +11,7 @@ import SpvLayout from '@/Layouts/SpvLayout.vue';
 import Pagination from '@/Components/Pagination.vue';
 import BaseButton from '@/Components/BaseButton.vue';
 import BaseCard from '@/Components/BaseCard.vue';
+import ProgressTrackingModal from './Components/ProgressTrackingModal.vue';
 
 const props = defineProps({
   submissions: {
@@ -39,6 +40,7 @@ const branchFilter = ref('ALL');
 // State Modal Detail & Action
 const showDetailModal = ref(false);
 const showRejectModal = ref(false);
+const showProgressModal = ref(false);
 const selectedSubmission = ref(null);
 const activePhotoZoom = ref(null);
 
@@ -63,33 +65,26 @@ const rawSubmissions = computed(() => {
   return [];
 });
 
-// Filter Submisi Data Toko
+// Filter Submisi Data Toko (Filter Status dihilangkan, pencarian komprehensif)
 const filteredSubmissions = computed(() => {
+  if (!searchQuery.value) return rawSubmissions.value;
+  const q = searchQuery.value.toLowerCase().trim();
+
   return rawSubmissions.value.filter((item) => {
-    const matchesSearch =
-      (item.nama_noo || '').toLowerCase().includes(searchQuery.value.toLowerCase()) ||
-      (item.salesman_name || '').toLowerCase().includes(searchQuery.value.toLowerCase()) ||
-      (item.salesman_code || '').toLowerCase().includes(searchQuery.value.toLowerCase()) ||
-      (item.branch_name || '').toLowerCase().includes(searchQuery.value.toLowerCase()) ||
-      (item.alamat_noo || '').toLowerCase().includes(searchQuery.value.toLowerCase()) ||
-      (item.custcode_distributor || '').toLowerCase().includes(searchQuery.value.toLowerCase()) ||
-      (item.code_noo_principal || '').toLowerCase().includes(searchQuery.value.toLowerCase());
-
-    const matchesStatus =
-      statusFilter.value === 'ALL'
-        ? true
-        : statusFilter.value === 'PUSHED_TO_SPV'
-        ? ['PUSHED_TO_SPV', 'ADMIN_APPROVED'].includes(item.status)
-        : statusFilter.value === 'REJECTED'
-        ? ['REJECTED_SPV', 'SPV_REJECTED', 'REJECTED_EDP', 'EDP_REJECTED', 'ADMIN_REJECTED', 'REJECTED_ADMIN'].includes(item.status)
-        : item.status === statusFilter.value;
-
-    const matchesBranch =
-      branchFilter.value === 'ALL'
-        ? true
-        : item.branch_id === branchFilter.value;
-
-    return matchesSearch && matchesStatus && matchesBranch;
+    return (
+      (item.nama_noo || '').toLowerCase().includes(q) ||
+      (item.nama_pemilik_outlet || '').toLowerCase().includes(q) ||
+      (item.no_hp_noo || '').toLowerCase().includes(q) ||
+      (item.no_hp || '').toLowerCase().includes(q) ||
+      (item.salesman_name || '').toLowerCase().includes(q) ||
+      (item.salesman_code || '').toLowerCase().includes(q) ||
+      (item.branch_name || '').toLowerCase().includes(q) ||
+      (item.alamat_noo || '').toLowerCase().includes(q) ||
+      (item.kec_noo || '').toLowerCase().includes(q) ||
+      (item.kab_kota_noo || '').toLowerCase().includes(q) ||
+      (item.custcode_distributor || '').toLowerCase().includes(q) ||
+      (item.code_noo_principal || '').toLowerCase().includes(q)
+    );
   });
 });
 
@@ -337,6 +332,12 @@ function openRejectModal(item) {
   rejectForm.request_id = item.request_id;
   rejectForm.reject_reason = '';
   showRejectModal.value = true;
+}
+
+// Buka Pengisian Rute dari Modal Progress Tracking
+function handleSelectFromTracking(item) {
+  showProgressModal.value = false;
+  openDetailModal(item);
 }
 
 // Submit Approve SPV & Dorong ke EDP Principal
@@ -605,15 +606,27 @@ function getLineStyle(stepBefore, item) {
 }
 
 function getRowStyle(item) {
-  const st = item.status;
+  const st = item?.status || '';
   if (['APPROVED_SPV', 'APPROVED_BY_SPV', 'APPROVED_EDP', 'EDP_APPROVED', 'INJECTED'].includes(st)) {
-    return 'bg-emerald-50/50 hover:bg-emerald-100/60 text-slate-900';
+    return 'bg-emerald-50/40 hover:bg-emerald-100/50 text-slate-900';
   }
   if (['SPV_REJECTED', 'REJECTED_SPV', 'EDP_REJECTED', 'REJECTED_EDP', 'ADMIN_REJECTED', 'REJECTED_ADMIN'].includes(st)) {
-    return 'bg-rose-50/50 hover:bg-rose-100/60 text-slate-900';
+    return 'bg-rose-50/40 hover:bg-rose-100/50 text-slate-900';
   }
-  // Pending
+  if (st === 'PUSHED_TO_SPV') {
+    return 'bg-amber-50/30 hover:bg-amber-100/40 text-slate-900';
+  }
+  // Pending lainnya
   return 'bg-white hover:bg-slate-50 text-slate-900';
+}
+
+function getCardAccentClass(item) {
+  const st = item?.status || '';
+  if (st === 'PUSHED_TO_SPV') return 'border-l-4 border-l-amber-500 bg-amber-50/15';
+  if (['APPROVED_SPV', 'APPROVED_BY_SPV', 'PUSHED_TO_EDP'].includes(st)) return 'border-l-4 border-l-purple-500';
+  if (['APPROVED_EDP', 'EDP_APPROVED', 'INJECTED'].includes(st)) return 'border-l-4 border-l-emerald-500';
+  if (['SPV_REJECTED', 'REJECTED_SPV', 'EDP_REJECTED', 'REJECTED_EDP', 'ADMIN_REJECTED', 'REJECTED_ADMIN'].includes(st)) return 'border-l-4 border-l-rose-500';
+  return 'border-l-4 border-l-slate-300';
 }
 </script>
 
@@ -626,11 +639,23 @@ function getRowStyle(item) {
       <!-- Header & Stats Counter Cards: Responsif Desktop & Tablet -->
       <div class="flex flex-col md:flex-row md:items-center md:justify-between gap-4 md:gap-6">
         <div>
-          <div class="flex items-center space-x-2.5 sm:space-x-3">
+          <div class="flex items-center space-x-2.5 sm:space-x-3 flex-wrap gap-y-2">
             <h1 class="text-lg sm:text-xl md:text-[24px] font-semibold text-[#111827] tracking-tight leading-[1.4]">Inbox Submisi SPV Area</h1>
             <span class="px-2.5 py-0.5 md:px-3 md:py-1 rounded-lg text-[11px] md:text-xs font-semibold bg-[#F3E8FF] text-[#7E22CE] border border-[#C084FC]">
               Supervisor Area
             </span>
+            <!-- Tombol Modal Progress Tracking NOO -->
+            <button
+              type="button"
+              @click="showProgressModal = true"
+              class="inline-flex items-center gap-1.5 px-3 py-1 md:py-1.5 text-xs md:text-[13px] font-semibold rounded-lg text-indigo-700 bg-indigo-50 hover:bg-indigo-100 active:bg-indigo-200 border border-indigo-200 transition cursor-pointer shadow-2xs"
+              title="Buka Pelacakan Progres NOO Cabang Binaan"
+            >
+              <svg class="w-3.5 h-3.5 text-indigo-600 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
+              </svg>
+              <span>Progress Tracking NOO</span>
+            </button>
           </div>
           <p class="text-[12.5px] md:text-[14px] leading-[1.5] font-normal text-[#6B7280] mt-0.5 md:mt-1">
             Verifikasi data pendaftaran toko, pengisian rute kunjungan H1-H7 & M1-M4, dan persetujuan ke EDP Principal.
@@ -666,161 +691,187 @@ function getRowStyle(item) {
         </div>
       </div>
 
-      <!-- Filter Bar SPV Area: Rapi di Tablet (md:flex-row) & Desktop -->
-      <div class="bg-white p-3 md:p-4 rounded-xl border border-[#E5E7EB] shadow-[0_1px_3px_rgba(0,0,0,0.08)] flex flex-col md:flex-row md:items-center md:justify-between gap-3 md:gap-4">
+      <!-- Toolbar Pencarian & Urutan (Filter Status telah dihilangkan sesuai instruksi) -->
+      <div class="bg-white p-3 md:p-4 rounded-xl border border-[#E5E7EB] shadow-[0_1px_3px_rgba(0,0,0,0.08)] flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 md:gap-4">
         
-        <!-- Search Input -->
-        <div class="relative w-full md:w-56 lg:w-80 shrink-0">
+        <!-- Search Input (Lebih Luas & Nyaman) -->
+        <div class="relative w-full sm:w-80 md:w-96">
           <svg class="w-4 h-4 absolute left-3.5 top-3 text-[#9CA3AF]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/>
           </svg>
           <input
             v-model="searchQuery"
             type="text"
-            placeholder="Cari toko, pemilik, salesman..."
+            placeholder="Cari toko, pemilik, No. HP, salesman, alamat..."
             class="w-full pl-9 md:pl-10 pr-4 py-2 text-[13.5px] md:text-[14px] font-normal rounded-lg bg-white border border-[#D1D5DB] text-[#374151] placeholder-[#9CA3AF] focus:ring-2 focus:ring-[#059669] focus:border-[#047857] transition"
           />
         </div>
 
-        <!-- Filter Status & Sort Dropdowns Side-by-Side -->
-        <div class="flex flex-col sm:flex-row items-center gap-2.5 md:gap-3 w-full md:w-auto">
-          <!-- Filter Status Dropdown -->
-          <div class="flex items-center space-x-2 w-full sm:w-auto">
-            <label class="text-[13px] md:text-[14px] font-medium text-[#4B5563] whitespace-nowrap">Status:</label>
-            <select
-              v-model="statusFilter"
-              class="w-full sm:w-52 md:w-56 lg:w-60 text-[13px] md:text-[14px] font-medium rounded-lg bg-white border border-[#D1D5DB] text-[#1F2937] py-1.5 md:py-2 px-2.5 md:px-3 focus:ring-2 focus:ring-[#059669] focus:border-[#047857] shadow-xs cursor-pointer"
-            >
-              <option value="ALL">Semua Submisi SPV</option>
-              <option value="PUSHED_TO_SPV">1. Pending Review SPV</option>
-              <option value="APPROVED_BY_SPV">2. Approved SPV (Pending EDP)</option>
-              <option value="SPV_REJECTED">3. Ditolak SPV Area</option>
-              <option value="EDP_APPROVED">4. Approved EDP Principal</option>
-              <option value="EDP_REJECTED">5. Ditolak EDP Principal</option>
-            </select>
-          </div>
-
-          <!-- Sort Dropdown -->
-          <div class="flex items-center space-x-2 w-full sm:w-auto">
-            <label class="text-[13px] md:text-[14px] font-medium text-[#4B5563] whitespace-nowrap">Urutkan:</label>
-            <select
-              v-model="sortSelect"
-              class="w-full sm:w-44 md:w-48 lg:w-52 text-[13px] md:text-[14px] font-medium rounded-lg bg-white border border-[#D1D5DB] text-[#1F2937] py-1.5 md:py-2 px-2.5 md:px-3 focus:ring-2 focus:ring-[#059669] focus:border-[#047857] shadow-xs cursor-pointer"
-            >
-              <option value="submitted_at_desc">Terbaru (Submisi)</option>
-              <option value="submitted_at_asc">Terlama (Submisi)</option>
-              <option value="nama_noo_asc">Nama Toko (A - Z)</option>
-              <option value="nama_noo_desc">Nama Toko (Z - A)</option>
-              <option value="nama_pemilik_outlet_asc">Pemilik (A - Z)</option>
-              <option value="salesman_name_asc">Salesman (A - Z)</option>
-              <option value="status_asc">Status Approval (Asc)</option>
-            </select>
-          </div>
+        <!-- Sort Dropdown -->
+        <div class="flex items-center space-x-2 w-full sm:w-auto shrink-0">
+          <label class="text-[13px] md:text-[14px] font-medium text-[#4B5563] whitespace-nowrap">Urutkan:</label>
+          <select
+            v-model="sortSelect"
+            class="w-full sm:w-52 md:w-56 text-[13px] md:text-[14px] font-medium rounded-lg bg-white border border-[#D1D5DB] text-[#1F2937] py-1.5 md:py-2 px-2.5 md:px-3 focus:ring-2 focus:ring-[#059669] focus:border-[#047857] shadow-xs cursor-pointer"
+          >
+            <option value="submitted_at_desc">Terbaru (Submisi)</option>
+            <option value="submitted_at_asc">Terlama (Submisi)</option>
+            <option value="nama_noo_asc">Nama Toko (A - Z)</option>
+            <option value="nama_noo_desc">Nama Toko (Z - A)</option>
+            <option value="nama_pemilik_outlet_asc">Pemilik (A - Z)</option>
+            <option value="salesman_name_asc">Salesman (A - Z)</option>
+            <option value="status_asc">Status Approval (Asc)</option>
+          </select>
         </div>
       </div>
 
-      <!-- TABEL SUBMISI SPV PRESISI: RAMAH TABLET & DESKTOP -->
+      <!-- TABEL SUBMISI SPV AREA: ENTERPRISE COLUMN LAYOUT (OPSI A) -->
       <div class="bg-white rounded-xl border border-[#E5E7EB] shadow-[0_1px_3px_rgba(0,0,0,0.08)] overflow-hidden">
         <div class="w-full overflow-x-auto">
-          <table class="w-full text-left text-[13px] md:text-[14px] leading-[18px] md:leading-[20px] text-[#374151] table-fixed min-w-[860px] md:min-w-[920px] lg:min-w-[960px]">
-            <thead class="bg-[#F3F4F6] text-[13px] md:text-[14px] font-semibold text-[#1F2937] border-b border-[#E5E7EB] select-none">
+          <table class="w-full text-left text-[14px] leading-[20px] text-[#374151] table-fixed min-w-[960px]">
+            <thead class="bg-[#F3F4F6] text-[13px] sm:text-[14px] font-semibold text-[#1F2937] border-b border-[#E5E7EB] select-none">
               <tr>
-                <th class="w-[23%] md:w-[22%] px-3 md:px-4 py-3 md:py-3.5">Toko & Sub-Grup</th>
-                <th class="w-[18%] md:w-[18%] px-3 md:px-4 py-3 md:py-3.5">Pemilik & No. HP</th>
-                <th class="w-[18%] md:w-[18%] px-3 md:px-4 py-3 md:py-3.5">Salesman & Cabang</th>
-                <th class="w-[15%] md:w-[15%] px-3 md:px-4 py-3 md:py-3.5">Status & Cust Dist.</th>
-                <th class="w-[14%] md:w-[15%] px-3 md:px-4 py-3 md:py-3.5">Rute Kunjungan</th>
-                <th class="w-[12%] md:w-[12%] px-2.5 md:px-4 py-3 md:py-3.5 text-center">Aksi</th>
+                <th class="w-[18%] px-4 py-3.5">Toko & Tipe Outlet</th>
+                <th class="w-[15%] px-4 py-3.5">Pemilik & Kontak</th>
+                <th class="w-[20%] px-4 py-3.5">Alamat & Wilayah</th>
+                <th class="w-[15%] px-4 py-3.5">Salesman & Tanggal</th>
+                <th class="w-[14%] px-4 py-3.5">Jadwal Rute</th>
+                <th class="w-[18%] px-4 py-3.5">Status & Kode Toko</th>
               </tr>
             </thead>
             <tbody class="divide-y divide-[#E5E7EB]">
+              <!-- Empty State -->
               <tr v-if="sortedSubmissions.length === 0">
-                <td colspan="6" class="text-center py-12 text-[#9CA3AF]">
-                  Tidak ada data submisi toko yang sesuai dengan kriteria filter.
+                <td colspan="6" class="px-6 py-12 text-center text-[#6B7280] font-normal">
+                  <div class="text-3xl mb-2">📋</div>
+                  <div class="text-[14px] font-medium text-[#1F2937]">Tidak Ada Data Submisi</div>
+                  <p class="text-[12.5px] text-[#6B7280] mt-1">Tidak ada data submisi toko yang sesuai dengan kata kunci pencarian Anda.</p>
                 </td>
               </tr>
 
+              <!-- Row Item -->
               <tr
                 v-for="item in sortedSubmissions"
-                :key="item.request_id || item.id"
-                class="transition border-b"
+                :key="item.id || item.request_id"
+                @click="openDetailModal(item)"
+                class="transition border-b cursor-pointer group hover:bg-indigo-50/40 select-none"
                 :class="getRowStyle(item)"
+                title="Klik untuk membuka detail submisi & kelola rute toko"
               >
-                <!-- Toko & Sub-Grup -->
-                <td class="px-3 md:px-4 py-2.5 md:py-3.5">
-                  <div class="font-semibold text-[#111827] text-[13.5px] md:text-[15px] truncate" :title="item.nama_noo">
+                <!-- 1. Toko & Tipe Outlet -->
+                <td class="px-4 py-3.5 align-top">
+                  <div class="font-bold text-[14px] text-[#111827] group-hover:text-[#1D4ED8] transition truncate" :title="item.nama_noo">
                     {{ item.nama_noo }}
                   </div>
-                  <div class="flex items-center space-x-1 mt-1 flex-wrap gap-1">
-                    <span v-if="item.sub_group_region || item.principal" class="px-1.5 md:px-2 py-0.5 text-[9.5px] md:text-[10px] font-bold rounded bg-purple-100 text-purple-800 border border-purple-300">
-                      {{ item.sub_group_region || item.principal }}
-                    </span>
-                    <span class="px-1.5 md:px-2 py-0.5 text-[10px] md:text-[11px] font-semibold rounded bg-[#DBEAFE] text-[#1D4ED8] border border-[#93C5FD]">
+                  <div class="flex items-center gap-1.5 mt-1 truncate">
+                    <span
+                      v-if="item.type_outlet_code"
+                      class="px-1.5 py-0.2 rounded text-[10px] font-semibold bg-[#DBEAFE] text-[#1D4ED8] border border-[#93C5FD] shrink-0"
+                    >
                       {{ item.type_outlet_code }}
                     </span>
-                    <span v-if="item.is_exif_valid !== null || item.exif_depan_distance_m !== null"
-                          class="px-1.5 py-0.5 text-[9.5px] md:text-[10px] font-bold rounded"
-                          :class="item.is_exif_valid !== false && (item.exif_depan_distance_m === null || item.exif_depan_distance_m <= 15) ? 'bg-emerald-100 text-emerald-800 border border-emerald-300' : 'bg-amber-100 text-amber-800 border border-amber-300'">
-                      {{ item.is_exif_valid !== false && (item.exif_depan_distance_m === null || item.exif_depan_distance_m <= 15) ? '✓ EXIF <15m' : '⚠️ EXIF >15m' }}
-                    </span>
+                    <span class="text-[12px] text-[#6B7280] truncate">{{ item.type_outlet_desc || 'Outlet' }}</span>
                   </div>
                 </td>
 
-                <!-- Pemilik & No HP -->
-                <td class="px-3 md:px-4 py-2.5 md:py-3.5">
-                  <div class="font-medium text-[#1F2937] text-[13px] md:text-[14px] truncate">
-                    {{ item.nama_pemilik_outlet || '-' }}
+                <!-- 2. Pemilik & Kontak (Kolom Mandiri) -->
+                <td class="px-4 py-3.5 align-top">
+                  <div class="font-semibold text-[13px] text-[#1F2937] truncate" :title="item.nama_pemilik_outlet">
+                    👤 {{ item.nama_pemilik_outlet || '-' }}
                   </div>
-                  <div class="text-[11.5px] md:text-[12px] text-[#6B7280] mt-0.5 font-mono">
+                  <div class="text-[12px] font-medium text-[#2563EB] mt-0.5 truncate" :title="item.no_hp_noo || item.no_hp">
                     📞 {{ item.no_hp_noo || item.no_hp || '-' }}
                   </div>
                 </td>
 
-                <!-- Salesman & Cabang -->
-                <td class="px-3 md:px-4 py-2.5 md:py-3.5 truncate">
-                  <div class="font-medium text-[#1F2937] text-[13px] md:text-[14px] truncate">{{ item.salesman_name }}</div>
-                  <div class="text-[11.5px] md:text-[12px] text-[#6B7280] mt-0.5 truncate">
-                    {{ item.branch_name }}
+                <!-- 3. Alamat & Wilayah -->
+                <td class="px-4 py-3.5 align-top">
+                  <div class="text-[13px] text-[#374151] line-clamp-1 group-hover:line-clamp-none transition-all" :title="item.alamat_noo">
+                    {{ item.alamat_noo || '-' }}
+                  </div>
+                  <div class="text-[11.5px] text-[#6B7280] mt-0.5 truncate flex items-center gap-1 font-medium" :title="[item.kec_noo, item.kab_kota_noo].filter(Boolean).join(', ')">
+                    <span class="text-slate-400 shrink-0">📍</span>
+                    <span class="truncate">{{ [item.kec_noo, item.kab_kota_noo].filter(Boolean).join(', ') || '-' }}</span>
                   </div>
                 </td>
 
-                <!-- Status & Cust Dist -->
-                <td class="px-3 md:px-4 py-2.5 md:py-3.5">
-                  <div class="flex flex-col space-y-1 items-start">
-                    <span class="px-2 md:px-2.5 py-0.5 rounded-full text-[11px] md:text-[12px] font-semibold border" :class="getStatusBadgeStyle(item.status)">
-                      {{ formatStatusLabel(item.status) }}
+                <!-- 4. Salesman & Tanggal Submisi -->
+                <td class="px-4 py-3.5 align-top">
+                  <div class="font-medium text-[13px] text-[#1F2937] truncate" :title="item.salesman_name">
+                    {{ item.salesman_name || '-' }}
+                    <span v-if="item.salesman_code" class="text-[11px] text-[#6B7280]">({{ item.salesman_code }})</span>
+                  </div>
+                  <div class="text-[11.5px] text-[#6B7280] mt-0.5 truncate">
+                    🏢 {{ item.branch_name || item.branch_id || '-' }}
+                  </div>
+                  <div class="text-[11px] text-[#9CA3AF] mt-0.5">
+                    🕒 {{ formatDate(item.pushed_to_spv_at || item.submitted_at || item.created_at) }}
+                  </div>
+                </td>
+
+                <!-- 5. Jadwal Rute Toko -->
+                <td class="px-4 py-3.5 align-top">
+                  <div v-if="item.h1 === 'Y' || item.h2 === 'Y' || item.h3 === 'Y' || item.h4 === 'Y' || item.h5 === 'Y' || item.h6 === 'Y' || item.h7 === 'Y'" class="space-y-0.5">
+                    <div class="text-[12px] font-semibold text-[#15803D] flex items-center gap-1">
+                      <span>📅</span>
+                      <span>{{ getRouteDaysSummary(item) }}</span>
+                    </div>
+                    <div class="text-[11px] text-[#4B5563]">
+                      Pola: <span class="font-medium text-[#1F2937]">{{ getRouteWeeksSummary(item) }}</span>
+                    </div>
+                  </div>
+                  <div v-else class="space-y-0.5">
+                    <span class="inline-flex items-center gap-1 text-[11px] font-bold px-2 py-0.5 bg-amber-100 text-amber-800 border border-amber-200 rounded-md">
+                      <span>⚠️</span>
+                      <span>Belum Diatur</span>
                     </span>
-                    <span v-if="item.custcode_distributor" class="font-mono text-[10.5px] md:text-[11px] font-semibold text-[#1D4ED8] bg-[#DBEAFE] px-1.5 md:px-2 py-0.5 rounded border border-[#93C5FD]">
-                      {{ item.custcode_distributor }}
-                    </span>
+                    <div class="text-[10.5px] text-[#B45309] font-medium">Perlu set rute</div>
                   </div>
                 </td>
 
-                <!-- Rute Kunjungan Summary -->
-                <td class="px-3 md:px-4 py-2.5 md:py-3.5">
-                  <div class="text-[11.5px] md:text-[12px] text-[#374151]">
-                    <span class="font-semibold text-[#1F2937]">Hari:</span> {{ getRouteDaysSummary(item) }}
-                  </div>
-                  <div class="text-[11.5px] md:text-[12px] text-[#6B7280] mt-0.5">
-                    <span class="font-semibold text-[#1F2937]">Minggu:</span> {{ getRouteWeeksSummary(item) }}
-                  </div>
-                </td>
+                <!-- 6. Status & Kode Toko (Sejajar Proporsional Rata Kiri) -->
+                <td class="px-4 py-3.5 align-top">
+                  <div class="space-y-1.5">
+                    <!-- Status Badge -->
+                    <div class="flex items-center justify-between gap-1 flex-wrap">
+                      <span class="inline-block px-2.5 py-0.5 rounded-full text-[11.5px] font-semibold border shadow-2xs" :class="getStatusBadgeStyle(item.status)">
+                        {{ formatStatusLabel(item.status) }}
+                      </span>
+                      <span
+                        v-if="item.status === 'PUSHED_TO_SPV'"
+                        class="text-[10.5px] font-bold text-indigo-700 bg-indigo-50 border border-indigo-200 px-1.5 py-0.5 rounded shadow-2xs shrink-0"
+                      >
+                        ⚡ Atur Rute
+                      </span>
+                    </div>
 
-                <!-- Action Button -->
-                <td class="px-2.5 md:px-4 py-2.5 md:py-3.5 text-center">
-                  <BaseButton
-                    variant="primary"
-                    size="sm"
-                    class="w-full font-sans text-xs md:text-sm py-1.5 md:py-2"
-                    @click="openDetailModal(item)"
-                  >
-                    Kelola & Rute
-                  </BaseButton>
+                    <!-- Kode Distributor & Principal Berdampingan Proporsional -->
+                    <div class="flex items-center gap-1 flex-wrap">
+                      <span
+                        class="text-[11px] font-mono px-1.5 py-0.5 rounded border shadow-2xs inline-flex items-center gap-0.5"
+                        :class="item.custcode_distributor ? 'bg-[#DBEAFE] text-[#1D4ED8] border-[#93C5FD] font-semibold' : 'bg-slate-50 text-slate-400 border-slate-200'"
+                        :title="'Custcode Distributor: ' + (item.custcode_distributor || '-')"
+                      >
+                        <span class="text-[9.5px] font-sans font-bold text-slate-400">Dist:</span>
+                        <span class="truncate max-w-[80px]">{{ item.custcode_distributor || '-' }}</span>
+                      </span>
+
+                      <span
+                        class="text-[11px] font-mono px-1.5 py-0.5 rounded border shadow-2xs inline-flex items-center gap-0.5"
+                        :class="item.code_noo_principal ? 'bg-[#DCFCE7] text-[#15803D] border-[#86EFAC] font-semibold' : 'bg-slate-50 text-slate-400 border-slate-200'"
+                        :title="'Custcode Principal: ' + (item.code_noo_principal || '-')"
+                      >
+                        <span class="text-[9.5px] font-sans font-bold text-slate-400">Princ:</span>
+                        <span class="truncate max-w-[80px]">{{ item.code_noo_principal || '-' }}</span>
+                      </span>
+                    </div>
+                  </div>
                 </td>
               </tr>
             </tbody>
           </table>
         </div>
+      </div>
 
         <!-- Pagination Links -->
         <Pagination
@@ -831,9 +882,8 @@ function getRowStyle(item) {
           :total="submissions.total"
           :current-per-page="submissions.per_page"
         />
-      </div>
 
-    </div>
+      </div>
 
     <!-- MODAL SLIDE-OVER PREVIEW DETAIL & PENGATURAN RUTE SPV (LEVEL 1 Z-INDEX 99990) -->
     <Teleport to="body">
@@ -1619,5 +1669,13 @@ function getRowStyle(item) {
         </div>
       </div>
     </Teleport>
+
+    <!-- MODAL PROGRESS TRACKING NOO CABANG BINAAN SPV -->
+    <ProgressTrackingModal
+      :show="showProgressModal"
+      :my-branches="myBranches"
+      @close="showProgressModal = false"
+      @select-submission="handleSelectFromTracking"
+    />
   </SpvLayout>
 </template>

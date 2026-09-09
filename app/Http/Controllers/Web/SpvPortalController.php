@@ -6,6 +6,7 @@ namespace App\Http\Controllers\Web;
 
 use App\Http\Controllers\Controller;
 use App\Enums\NooStatusEnum;
+use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -21,19 +22,13 @@ use Throwable;
 class SpvPortalController extends Controller
 {
     /**
-     * Menampilkan daftar inbox toko untuk SPV Area.
+     * Mengambil daftar seluruh cabang binaan SPV Area.
      *
-     * @param Request $request Request browser
-     * @return Response Halaman Inertia Vue Inbox SPV
+     * @param object $user User SPV aktif
+     * @return array Daftar branch_id binaan SPV
      */
-    public function index(Request $request): Response|RedirectResponse
+    private function getMyBranches(object $user): array
     {
-        $user = session('spv_user') ?? $request->user();
-        if (!$user) {
-            return redirect()->route('spv_login.create');
-        }
-
-        // Live Query: Cari seluruh cabang yang dinaungi SPV ini secara real-time dari master_spvs
         $salescode = trim((string)($user->salesman_code ?? $user->salescode ?? $user->username ?? ''));
         $spvName = trim((string)($user->name ?? $user->nama ?? ''));
         $myBranches = [];
@@ -60,6 +55,25 @@ class SpvPortalController extends Controller
         if (empty($myBranches) && !empty($user->branch_id)) {
             $myBranches = [$user->branch_id];
         }
+
+        return $myBranches;
+    }
+
+    /**
+     * Menampilkan daftar inbox toko untuk SPV Area.
+     *
+     * @param Request $request Request browser
+     * @return Response Halaman Inertia Vue Inbox SPV
+     */
+    public function index(Request $request): Response|RedirectResponse
+    {
+        $user = session('spv_user') ?? $request->user();
+        if (!$user) {
+            return redirect()->route('spv_login.create');
+        }
+
+        // Live Query: Cari seluruh cabang yang dinaungi SPV ini secara real-time dari master_spvs
+        $myBranches = $this->getMyBranches($user);
 
         $query = DB::table('noo_submissions')
             ->whereIn('status', [
@@ -287,5 +301,138 @@ class SpvPortalController extends Controller
         } catch (Throwable $e) {
             return back()->with('error', "Gagal menolak toko: {$e->getMessage()}");
         }
+    }
+
+    /**
+     * Mengambil data pelacakan progres NOO untuk cabang-cabang binaan SPV Area.
+     *
+     * @param Request $request Request filter (branch_id, month, year, status, search, per_page, page)
+     * @return JsonResponse Data submissions berpaginasi, metrics ringkasan, dan daftar tahun
+     */
+    public function progressTrackingData(Request $request): JsonResponse
+    {
+        $user = session('spv_user') ?? $request->user();
+        if (!$user) {
+            return response()->json(['error' => 'Sesi SPV telah berakhir.'], 401);
+        }
+
+        $myBranches = $this->getMyBranches($user);
+
+        $baseQuery = DB::table('noo_submissions');
+        if (!empty($myBranches)) {
+            $baseQuery->whereIn('branch_id', $myBranches);
+        } else {
+            $baseQuery->whereRaw('1 = 0');
+        }
+
+        // Scope query untuk metrik statistik (menyesuaikan filter cabang, bulan, dan tahun)
+        $scopeQuery = clone $baseQuery;
+
+        if ($request->filled('branch_id') && $request->input('branch_id') !== 'ALL') {
+            $scopeQuery->where('branch_id', $request->input('branch_id'));
+        }
+
+        if ($request->filled('month') && $request->input('month') !== 'ALL') {
+            $scopeQuery->whereRaw('EXTRACT(MONTH FROM COALESCE(submitted_at, created_at)) = ?', [(int) $request->input('month')]);
+        }
+
+        if ($request->filled('year') && $request->input('year') !== 'ALL') {
+            $scopeQuery->whereRaw('EXTRACT(YEAR FROM COALESCE(submitted_at, created_at)) = ?', [(int) $request->input('year')]);
+        }
+
+        $allForMetrics = (clone $scopeQuery)->get();
+        $metrics = [
+            'total' => $allForMetrics->count(),
+            'pendingAdmin' => $allForMetrics->filter(fn($i) => in_array($i->status, ['SE_SUBMITTED', 'SUBMITTED']))->count(),
+            'pendingSpv' => $allForMetrics->filter(fn($i) => in_array($i->status, ['PUSHED_TO_SPV', 'ADMIN_APPROVED']))->count(),
+            'pendingEdp' => $allForMetrics->filter(fn($i) => in_array($i->status, ['APPROVED_SPV', 'APPROVED_BY_SPV', 'PUSHED_TO_EDP']))->count(),
+            'completed' => $allForMetrics->filter(fn($i) => in_array($i->status, ['APPROVED_EDP', 'EDP_APPROVED']))->count(),
+            'rejected' => $allForMetrics->filter(fn($i) => in_array($i->status, [
+                'ADMIN_REJECTED', 'REJECTED_ADMIN',
+                'SPV_REJECTED', 'REJECTED_SPV',
+                'EDP_REJECTED', 'REJECTED_EDP',
+            ]))->count(),
+        ];
+
+        // Query data tabel dengan filter status dan pencarian
+        $query = clone $scopeQuery;
+
+        if ($request->filled('status') && $request->input('status') !== 'ALL') {
+            $st = $request->input('status');
+            if ($st === 'PENDING_ADMIN') {
+                $query->whereIn('status', ['SE_SUBMITTED', 'SUBMITTED']);
+            } elseif ($st === 'PENDING_SPV') {
+                $query->whereIn('status', ['PUSHED_TO_SPV', 'ADMIN_APPROVED']);
+            } elseif ($st === 'PENDING_EDP') {
+                $query->whereIn('status', ['APPROVED_SPV', 'APPROVED_BY_SPV', 'PUSHED_TO_EDP']);
+            } elseif ($st === 'COMPLETED') {
+                $query->whereIn('status', ['APPROVED_EDP', 'EDP_APPROVED']);
+            } elseif ($st === 'REJECTED') {
+                $query->whereIn('status', [
+                    'ADMIN_REJECTED', 'REJECTED_ADMIN',
+                    'SPV_REJECTED', 'REJECTED_SPV',
+                    'EDP_REJECTED', 'REJECTED_EDP',
+                ]);
+            } else {
+                $query->where('status', $st);
+            }
+        }
+
+        if ($request->filled('search')) {
+            $s = trim((string) $request->input('search'));
+            $query->where(function ($q) use ($s) {
+                $q->where('nama_noo', 'ILIKE', "%{$s}%")
+                  ->orWhere('salesman_name', 'ILIKE', "%{$s}%")
+                  ->orWhere('salesman_code', 'ILIKE', "%{$s}%")
+                  ->orWhere('branch_name', 'ILIKE', "%{$s}%")
+                  ->orWhere('alamat_noo', 'ILIKE', "%{$s}%")
+                  ->orWhere('custcode_distributor', 'ILIKE', "%{$s}%")
+                  ->orWhere('code_noo_principal', 'ILIKE', "%{$s}%");
+            });
+        }
+
+        $query->orderByRaw("COALESCE(submitted_at, created_at) DESC");
+
+        $perPage = (int) $request->input('per_page', 10);
+        if ($perPage <= 0 || $perPage > 100) {
+            $perPage = 10;
+        }
+
+        $formatPhoto = function ($path) {
+            if (empty($path)) return null;
+            $cleanPath = ltrim(str_replace('storage/', '', $path), '/');
+            return url('/media-photo/' . $cleanPath);
+        };
+
+        $submissions = $query->paginate($perPage)->through(function ($item) use ($formatPhoto) {
+            $item->photo_depan_url = $formatPhoto($item->photo_depan_path ?? null);
+            $item->photo_dalam_url = $formatPhoto($item->photo_dalam_path ?? null);
+            $item->photo_ktp_url = $formatPhoto($item->photo_ktp_path ?? null);
+            return $item;
+        });
+
+        $availableYears = [];
+        if (!empty($myBranches)) {
+            $availableYears = DB::table('noo_submissions')
+                ->whereIn('branch_id', $myBranches)
+                ->selectRaw('DISTINCT EXTRACT(YEAR FROM COALESCE(submitted_at, created_at)) as yr')
+                ->whereNotNull('submitted_at')
+                ->orderBy('yr', 'desc')
+                ->pluck('yr')
+                ->map(fn($y) => (int) $y)
+                ->filter()
+                ->values()
+                ->toArray();
+        }
+
+        if (empty($availableYears)) {
+            $availableYears = [(int) date('Y')];
+        }
+
+        return response()->json([
+            'submissions' => $submissions,
+            'metrics' => $metrics,
+            'availableYears' => $availableYears,
+        ]);
     }
 }

@@ -200,6 +200,7 @@ if (!empty($spvDomain)) {
 }
 $spvGroup->group(function () {
     Route::get('/inbox', [SpvPortalController::class, 'index'])->name('inbox');
+    Route::get('/progress-tracking-data', [SpvPortalController::class, 'progressTrackingData'])->name('progress_tracking_data');
     Route::post('/approve', [SpvPortalController::class, 'approve'])->name('approve');
     Route::post('/reject', [SpvPortalController::class, 'reject'])->name('reject');
 });
