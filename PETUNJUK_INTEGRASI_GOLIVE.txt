@@ -1,0 +1,115 @@
+================================================================================
+          PANDUAN LENGKAP INTEGRASI & GO-LIVE NOO+ V2.0 (UNTUK TIM IT / PAK EDDY)
+================================================================================
+
+Target Server : 172.22.1.232 (Ubuntu 24.04 LTS - ASWFOODS Production)
+Dokumen ini disusun untuk Tim Infrastruktur IT (Pak Eddy) sebagai acuan teknis
+membuka akses server internal agar dapat diakses oleh Salesman di luar kantor,
+Admin Distributor, dan SPV Area secara aman, stabil, dan siap Go-Live.
+
+--------------------------------------------------------------------------------
+1. PILIHAN ARSITEKTUR AKSES INTERNET (PILIH SALAH SATU)
+--------------------------------------------------------------------------------
+
+A. PILIHAN 1: MENGGUNAKAN CLOUDFLARE TUNNEL (SANGAT DIREKOMENDASIKAN)
+   Keunggulan:
+   - TIDAK PERLU IP Publik Statis.
+   - TIDAK PERLU membuka port / NAT di Router Mikrotik/Firewall kantor.
+   - Otomatis terpasang sertifikat SSL (HTTPS) resmi.
+   - Terlindungi dari serangan DDoS dan scanning port hacker.
+
+   Langkah Pemasangan di Server 172.22.1.232:
+   1. Install cloudflared di Ubuntu:
+      curl -L --output cloudflared.deb https://github.com/cloudflare/cloudflared/releases/latest/download/cloudflared-linux-amd64.deb
+      sudo dpkg -i cloudflared.deb
+   2. Login dan hubungkan ke domain perusahaan (misal: noo.aswfoods.com):
+      cloudflared tunnel login
+      cloudflared tunnel create noo-tunnel
+   3. Arahkan rute domain ke port web lokal:
+      cloudflared tunnel route dns noo-tunnel noo.aswfoods.com
+   4. Konfigurasi ingress ke http://localhost:80 lalu jalankan sebagai systemd service:
+      sudo cloudflared service install
+
+B. PILIHAN 2: MENGGUNAKAN PORT FORWARDING (NAT ROUTER KANTOR)
+   Jika kantor memiliki IP Publik Statis dari ISP (contoh: 103.xxx.xxx.xxx):
+   1. Buat Dst-NAT Rule di Router (Mikrotik/Fortinet):
+      - Protocol: TCP
+      - Dst-Port: 80 dan 443
+      - Action: dst-nat
+      - To Addresses: 172.22.1.232
+      - To Ports: 80 (HTTP) dan 443 (HTTPS)
+   2. Arahkan A-Record DNS Domain (noo.aswfoods.com -> IP Publik Kantor).
+   3. PERINGATAN KEAMANAN:
+      - JANGAN PERNAH mem-forward port database PostgreSQL (5433 / 5432) ke internet publik!
+      - JANGAN mem-forward port SSH (22) ke publik tanpa pembatasan IP whitelist.
+
+--------------------------------------------------------------------------------
+2. PENYESUAIAN KONFIGURASI SERVER SEBELUM GO-LIVE
+--------------------------------------------------------------------------------
+
+1. Update File .env di Server (/var/www/noo-server/.env):
+   Ubah APP_ENV dan APP_URL sesuai domain/IP publik baru:
+   --------------------------------------------------
+   APP_NAME="NOO+ ASWFOODS"
+   APP_ENV=production
+   APP_DEBUG=false
+   APP_URL=https://noo.aswfoods.com
+   --------------------------------------------------
+
+2. Terapkan Cache Produksi Laravel:
+   Jalankan di terminal server:
+   docker compose exec app php artisan config:cache
+   docker compose exec app php artisan route:cache
+   docker compose exec app php artisan view:cache
+   docker compose exec app php artisan optimize
+
+3. Jalankan Migrasi Index Performa:
+   docker compose exec app php artisan migrate --force
+
+--------------------------------------------------------------------------------
+3. CHECKLIST INTEGRASI APLIKASI ANDROID (SALESMAN)
+--------------------------------------------------------------------------------
+Sebelum aplikasi mobile NOO+ dibagikan ke seluruh salesman:
+1. Ubah Base URL API di source code Android (Retrofit / Ktor):
+   - Dari : http://172.22.1.232/api/v1/
+   - Menjadi: https://noo.aswfoods.com/api/v1/
+2. Lakukan Ping Test dari HP Android salesman (menggunakan paket data seluler):
+   Buka browser HP: https://noo.aswfoods.com/api/v1/echo
+   Respon yang benar:
+   {"ok":true,"route":"echo","version":"2.0-Laravel","time_wib":"..."}
+3. Uji Submit Toko Percobaan & Upload 3 Foto (Depan, Dalam, KTP).
+   Pastikan status foto berubah menjadi "READY" di web portal.
+
+--------------------------------------------------------------------------------
+4. STRATEGI AUTOMATION BACKUP DATABASE HARIAN (CRON JOB)
+--------------------------------------------------------------------------------
+Data submisi toko dan foto outlet sangat berharga. Pasang auto-backup harian:
+
+1. Buat folder backup di server:
+   sudo mkdir -p /var/backups/noo-db
+   sudo chmod 700 /var/backups/noo-db
+
+2. Buat script backup (/usr/local/bin/backup-noo.sh):
+   --------------------------------------------------
+   #!/bin/bash
+   DATE=$(date +%Y%m%d_%H%M%S)
+   BACKUP_DIR="/var/backups/noo-db"
+   cd /var/www/noo-server
+   docker compose exec -T db pg_dump -U postgres noo_v2_db | gzip > "$BACKUP_DIR/noo_v2_db_$DATE.sql.gz"
+   # Hapus backup yang lebih lama dari 14 hari
+   find "$BACKUP_DIR" -type f -name "*.sql.gz" -mtime +14 -delete
+   --------------------------------------------------
+   sudo chmod +x /usr/local/bin/backup-noo.sh
+
+3. Daftarkan di crontab root (eksekusi setiap jam 02.00 malam):
+   sudo crontab -e
+   0 2 * * * /usr/local/bin/backup-noo.sh > /dev/null 2>&1
+
+--------------------------------------------------------------------------------
+5. MONITORING & CONTACT PERSON
+--------------------------------------------------------------------------------
+Jika terjadi kendala saat go-live:
+1. Cek log error Laravel : docker compose exec app tail -n 50 storage/logs/laravel.log
+2. Cek status container  : docker compose ps
+3. Cek log webserver     : docker compose logs -n 50 webserver
+================================================================================
