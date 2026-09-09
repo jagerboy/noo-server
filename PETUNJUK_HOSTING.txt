@@ -1,0 +1,157 @@
+================================================================================
+          PANDUAN LENGKAP DEPLOYMENT & HOSTING NOO+ V2.0 (NOO-SERVER)
+================================================================================
+
+Aplikasi NOO+ v2.0 adalah sistem monolith berbasis:
+- Backend  : Laravel 12 (PHP 8.2 / 8.3)
+- Frontend : Vue 3 (Inertia.js) + Tailwind CSS + Vite
+- Database : PostgreSQL 15 / 16 (Database name: noo_v2_db)
+- Webserver: Nginx + PHP-FPM
+
+Dokumen ini berisi panduan teknis langkah demi langkah untuk deployment & hosting
+di server Ubuntu (ASWFOODS Production Server), baik untuk setup awal maupun
+prosedur update rutin harian.
+
+--------------------------------------------------------------------------------
+1. SPESIFIKASI SERVER & INFORMASI LINGKUNGAN
+--------------------------------------------------------------------------------
+- IP Server Target   : 172.22.1.232 (Ubuntu 24.04 LTS)
+- Akun SSH / User    : adminit
+- Direktori Project  : /var/www/noo-server
+- Repository GitHub  : https://github.com/jagerboy/noo-server.git (Branch: main)
+- Port Web Portal    : 80 (HTTP default)
+- Port PostgreSQL DB : 5433 (Host eksternal) -> 5432 (Internal Docker)
+
+--------------------------------------------------------------------------------
+2. KONFIGURASI NGINX & PHP (PENTING UNTUK UPLOAD FOTO TOKO)
+--------------------------------------------------------------------------------
+Aplikasi mobile mengirim foto toko fisik (depan, dalam, KTP) via Base64/Multipart.
+Konfigurasi berikut sudah terpasang di docker/nginx/default.conf:
+- client_max_body_size 64M;
+- fastcgi_read_timeout 300s;
+- fastcgi_connect_timeout 300s;
+- fastcgi_send_timeout 300s;
+
+Jika menjalankan NATIVE (Non-Docker), sesuaikan php.ini (/etc/php/8.3/fpm/php.ini):
+- upload_max_filesize = 64M
+- post_max_size = 64M
+- max_execution_time = 300
+- memory_limit = 512M
+
+--------------------------------------------------------------------------------
+3. PROSEDUR SETUP AWAL (INITIAL SETUP MENGGUNAKAN DOCKER)
+--------------------------------------------------------------------------------
+Langkah berikut dilakukan sekali saja saat setup server baru:
+
+1. Clone Repository ke Direktori Web:
+   cd /var/www
+   git clone https://github.com/jagerboy/noo-server.git
+   cd /var/www/noo-server
+
+2. Siapkan File Konfigurasi Environment (.env):
+   cp .env.example .env
+   nano .env
+   Pastikan parameter database di .env:
+   DB_CONNECTION=pgsql
+   DB_HOST=db
+   DB_PORT=5432
+   DB_DATABASE=noo_v2_db
+   DB_USERNAME=postgres
+   DB_PASSWORD=rootpassword
+
+3. Build dan Jalankan Docker Container:
+   docker compose up -d --build
+   (Membuat container: noo_app, noo_webserver, dan noo_db)
+
+4. Atur Permission Direktori Storage & Cache (WAJIB):
+   docker compose exec -u root app chmod -R 775 storage bootstrap/cache
+   docker compose exec -u root app chown -R www-data:www-data storage bootstrap/cache
+
+5. Pasang Symlink Storage Publik (WAJIB untuk Foto Toko):
+   docker compose exec app php artisan storage:link
+
+6. Inisialisasi App Key, Migrasi Database, dan Optimasi Cache:
+   docker compose exec app php artisan key:generate
+   docker compose exec app php artisan migrate --force
+   docker compose exec app php artisan optimize:clear
+
+7. Import Data Master Awal (Restore Database dari noo_v2.sql jika ada):
+   cat noo_v2.sql | docker compose exec -T db psql -U postgres -d noo_v2_db
+
+--------------------------------------------------------------------------------
+4. PROSEDUR UPDATE RUTIN (UPDATE HARIAN / CICD MANUAL)
+--------------------------------------------------------------------------------
+Gunakan prosedur ini setiap kali ada perubahan fitur baru dari GitHub:
+
+LANGKAH 1: Di Laptop Pengembang (Lokal Windows)
+1. Lakukan kompilasi aset frontend terlebih dahulu:
+   npm run build
+2. Commit dan push ke GitHub:
+   git add .
+   git commit -m "feat: deskripsi perubahan"
+   git push origin main
+
+LANGKAH 2: Di Server Melalui Terminal SSH (Termius / PuTTY)
+1. Masuk ke direktori project:
+   cd /var/www/noo-server
+
+2. Tarik update terbaru secara bersih (Hindari konflik build asset):
+   git fetch origin main
+   git reset --hard origin/main
+
+3. Bersihkan Cache Laravel & Optimasi:
+   docker compose exec app php artisan optimize:clear
+
+4. Jika ada file migrasi database baru:
+   docker compose exec app php artisan migrate --force
+
+--------------------------------------------------------------------------------
+5. INFORMASI ENTRYPOINTS & PORTAL URL
+--------------------------------------------------------------------------------
+Aplikasi telah dilengkapi Smart Redirection URL:
+- Portal Admin Distributor : http://172.22.1.232/admin-distributor
+                             (Direct URL: http://172.22.1.232/distributor-login)
+- Portal Supervisor (SPV)  : http://172.22.1.232/spv
+                             (Direct URL: http://172.22.1.232/spv-login)
+- Portal Principal / EDP   : http://172.22.1.232/principal
+                             (Direct URL: http://172.22.1.232/login)
+- Dashboard Principal      : http://172.22.1.232/principal/dashboard
+
+- Endpoint REST API Mobile : http://172.22.1.232/api/v1/
+  - POST /api/v1/noo/submit-meta  (Simpan data form toko NOO)
+  - POST /api/v1/noo/upload-photo (Upload foto depan, dalam, KTP)
+  - GET  /api/v1/master/branches  (Master cabang & validasi PIN)
+  - GET  /api/v1/master/outlet-types (Master tipe toko)
+  - HEAD /api/v1/echo             (Ping check status koneksi)
+
+--------------------------------------------------------------------------------
+6. TROUBLESHOOTING UMUM & SOLUSI
+--------------------------------------------------------------------------------
+1. Konflik saat Git Pull ("Your local changes to the following files would be overwritten..."):
+   -> Penyebab: File manifest.json atau build aset di server tertimpa.
+   -> Solusi:
+      git fetch origin main
+      git reset --hard origin/main
+
+2. Perubahan Tampilan UI/UX Tidak Muncul di Browser Klien:
+   -> Penyebab: Browser menyimpan cache file Javascript/CSS lama.
+   -> Solusi:
+      - Di server jalankan: docker compose exec app php artisan optimize:clear
+      - Di browser tekan Hard Refresh: Ctrl + Shift + R (Windows) atau Cmd + Shift + R (Mac).
+
+3. Error "Unable to create directory at /var/www/storage/app/public/...":
+   -> Penyebab: Hak akses folder storage belum diberikan ke www-data.
+   -> Solusi:
+      docker compose exec -u root app chown -R www-data:www-data storage bootstrap/cache
+      docker compose exec -u root app chmod -R 775 storage bootstrap/cache
+
+4. Foto Toko 404 (Tidak Muncul):
+   -> Pastikan symlink public/storage aktif:
+      docker compose exec app php artisan storage:link
+
+5. Mengecek Log Error Aplikasi Secara Realtime:
+   -> Jalankan:
+      docker compose logs -f app
+      atau
+      docker compose exec app tail -f storage/logs/laravel.log
+================================================================================
