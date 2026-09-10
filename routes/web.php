@@ -76,6 +76,22 @@ Route::get('/init-db-columns', function () {
 })->middleware('auth');
 
 
+Route::get('/debug-photos', function () {
+    $dir = storage_path('app/public/noo_photos/DAPLG002/2026-03-06');
+    if (!is_dir($dir)) {
+        $parent = storage_path('app/public/noo_photos/DAPLG002');
+        $subdirs = is_dir($parent) ? array_values(array_diff(scandir($parent), ['.', '..'])) : [];
+        return response()->json([
+            'error' => "Directory not found: $dir",
+            'available_dates' => $subdirs
+        ]);
+    }
+    return response()->json([
+        'dir' => $dir,
+        'files' => array_values(array_diff(scandir($dir), ['.', '..']))
+    ]);
+});
+
 Route::get('/', function () {
     return redirect('/principal');
 });
