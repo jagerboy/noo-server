@@ -3,8 +3,8 @@
  * Halaman Inbox Portal Web Admin Distributor (NOO+ v2.0).
  * Vue 3 Composition API + Light Mode Theme Design System Specification.
  */
-import { ref, computed, onMounted, onUnmounted } from 'vue';
-import { useForm } from '@inertiajs/vue3';
+import { ref, computed, watch, onMounted, onUnmounted } from 'vue';
+import { useForm, router } from '@inertiajs/vue3';
 import AdminLayout from '@/Layouts/AdminLayout.vue';
 import Pagination from '@/Components/Pagination.vue';
 import BaseButton from '@/Components/BaseButton.vue';
@@ -30,8 +30,35 @@ const props = defineProps({
 });
 
 // State Filter & Search
-const searchQuery = ref('');
-const statusFilter = ref('ALL');
+const searchQuery = ref(props.filters?.search || '');
+const statusFilter = ref(props.filters?.status || 'ALL');
+
+let filterDebounceTimer = null;
+function triggerBackendFilter() {
+  router.get(
+    route('admin.inbox'),
+    {
+      search: searchQuery.value,
+      status: statusFilter.value,
+    },
+    {
+      preserveState: true,
+      preserveScroll: true,
+      replace: true,
+    }
+  );
+}
+
+watch(searchQuery, () => {
+  clearTimeout(filterDebounceTimer);
+  filterDebounceTimer = setTimeout(() => {
+    triggerBackendFilter();
+  }, 300);
+});
+
+watch(statusFilter, () => {
+  triggerBackendFilter();
+});
 
 // State Modal Detail & Reject
 const selectedSubmission = ref(null);
@@ -113,14 +140,20 @@ const rawSubmissions = computed(() => {
 
 // Filter Submisi Data Toko
 const filteredSubmissions = computed(() => {
+  if (props.filters?.search || (props.filters?.status && props.filters.status !== 'ALL')) {
+    return rawSubmissions.value;
+  }
+
   return rawSubmissions.value.filter((item) => {
+    const s = searchQuery.value.trim().toLowerCase();
     const matchesSearch =
-      (item.nama_noo || '').toLowerCase().includes(searchQuery.value.toLowerCase()) ||
-      (item.salesman_name || '').toLowerCase().includes(searchQuery.value.toLowerCase()) ||
-      (item.salesman_code || '').toLowerCase().includes(searchQuery.value.toLowerCase()) ||
-      (item.alamat_noo || '').toLowerCase().includes(searchQuery.value.toLowerCase()) ||
-      (item.custcode_distributor || '').toLowerCase().includes(searchQuery.value.toLowerCase()) ||
-      (item.code_noo_principal || '').toLowerCase().includes(searchQuery.value.toLowerCase());
+      !s ||
+      (item.nama_noo || '').toLowerCase().includes(s) ||
+      (item.salesman_name || '').toLowerCase().includes(s) ||
+      (item.salesman_code || '').toLowerCase().includes(s) ||
+      (item.alamat_noo || '').toLowerCase().includes(s) ||
+      (item.custcode_distributor || '').toLowerCase().includes(s) ||
+      (item.code_noo_principal || '').toLowerCase().includes(s);
 
     const matchesStatus =
       statusFilter.value === 'ALL'
