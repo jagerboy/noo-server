@@ -249,12 +249,15 @@ const isRouteValid = computed(() => {
   return hasDay && hasWeek && selectedVisitPattern.value !== '';
 });
 
-// Helper Resolusi URL Foto (/media-photo/ Streaming Route)
+// Helper Resolusi URL Foto (/storage/ Direct Route)
 function getPhotoUrl(pathOrUrl) {
   if (!pathOrUrl) return null;
-  if (pathOrUrl.includes('/media-photo/')) return pathOrUrl;
-  const cleanPath = pathOrUrl.replace(/^https?:\/\/[^\/]+\/storage\//, '').replace(/^\/?storage\//, '');
-  return `/media-photo/${cleanPath}`;
+  if (pathOrUrl.startsWith('http://') || pathOrUrl.startsWith('https://') || pathOrUrl.startsWith('blob:') || pathOrUrl.startsWith('data:')) return pathOrUrl;
+  let cleanPath = pathOrUrl.replace(/^\/+/, '');
+  if (cleanPath.startsWith('public/')) cleanPath = cleanPath.substring(7);
+  if (cleanPath.startsWith('storage/')) cleanPath = cleanPath.substring(8);
+  if (cleanPath.startsWith('media-photo/')) cleanPath = cleanPath.substring(12);
+  return `/storage/${cleanPath}`;
 }
 
 function handleEscKeydown(e) {

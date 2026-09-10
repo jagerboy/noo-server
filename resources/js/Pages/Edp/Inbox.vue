@@ -263,7 +263,7 @@ function getPhotoUrl(urlOrPath) {
   if (clean.startsWith('public/')) clean = clean.substring(7);
   if (clean.startsWith('storage/')) clean = clean.substring(8);
   if (clean.startsWith('media-photo/')) clean = clean.substring(12);
-  return `/media-photo/${clean}`;
+  return `/storage/${clean}`;
 }
 
 function selectQuarter(q) {

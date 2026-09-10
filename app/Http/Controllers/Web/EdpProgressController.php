@@ -220,8 +220,8 @@ class EdpProgressController extends Controller
 
         $formatPhoto = function ($path) {
             if (empty($path)) return null;
-            $cleanPath = ltrim(str_replace('storage/', '', $path), '/');
-            return url('/media-photo/' . $cleanPath);
+            $cleanPath = ltrim(str_replace(['storage/', 'media-photo/'], '', $path), '/');
+            return url('/storage/' . $cleanPath);
         };
 
         $submissions->getCollection()->transform(function ($item) use ($formatPhoto) {

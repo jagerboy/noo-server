@@ -172,7 +172,7 @@ class EdpPortalController extends Controller
                 if (str_starts_with($clean, 'public/')) $clean = substr($clean, 7);
                 if (str_starts_with($clean, 'storage/')) $clean = substr($clean, 8);
                 if (str_starts_with($clean, 'media-photo/')) $clean = substr($clean, 12);
-                return asset('media-photo/' . $clean);
+                return asset('storage/' . $clean);
             };
 
             $item->photo_depan_url = $formatPhoto($item->photo_depan_path ?? null);
