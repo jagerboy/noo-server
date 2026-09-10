@@ -14,7 +14,7 @@ use Throwable;
 
 /**
  * Perintah Artisan untuk mengimpor foto NOO+ versi lama (Google Backup / Maret 2026 dst)
- * dengan pencocokan presisi (Kode Principal / Tanggal Submisi + Cabang).
+ * dengan prioritas utama Kode Principal (CustCode) untuk memperbaiki ketidakcocokan UUID lama.
  */
 class ImportLegacyPhotosCommand extends Command
 {
@@ -76,30 +76,11 @@ class ImportLegacyPhotosCommand extends Command
             return Command::SUCCESS;
         }
 
-        // Diagnostic table
-        $this->newLine();
-        $this->info("📋 Diagnostik Data Submisi di Database (10 Data Pertama):");
-        $dbDiagTable = [];
-        foreach ($rawSubmissions->take(10) as $sub) {
-            $dbDiagTable[] = [
-                'ID: ' . $sub->id,
-                'Code: ' . ($sub->code_noo_principal ?? 'NULL'),
-                'Branch: ' . ($sub->branch_id ?? '-'),
-                'Date: ' . (!empty($sub->submitted_at) ? date('Y-m-d', strtotime((string)$sub->submitted_at)) : '-'),
-                'Nama Toko: ' . mb_strimwidth((string)$sub->nama_noo, 0, 25, '...'),
-                'Salesman: ' . ($sub->salesman_name ?? '-'),
-            ];
-        }
-        $this->table(['ID DB', 'Kode Principal', 'Cabang', 'Tanggal', 'Nama Toko', 'Salesman'], $dbDiagTable);
-
         // Preload Lookup Table
         $submissionByCode = [];
         $submissionByBranchDate = [];
 
         foreach ($rawSubmissions as $sub) {
-            if (!empty($sub->request_id)) {
-                $submissionByCode[strtolower(trim((string)$sub->request_id))] = $sub;
-            }
             if (!empty($sub->code_noo_principal)) {
                 $submissionByCode[strtoupper(trim((string)$sub->code_noo_principal))] = $sub;
             }
@@ -154,15 +135,14 @@ class ImportLegacyPhotosCommand extends Command
                 $dateFromFolder = $mDate[1];
             }
 
-            if (preg_match('/([0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12})/i', $filename, $mCode)) {
-                $codeCandidate = strtolower($mCode[1]);
-            } elseif (preg_match('/^([A-Z0-9]{3,25})/i', $filename, $mCode) && !in_array(strtoupper($mCode[1]), ['DEPAN', 'DALAM', 'KTP', 'PHOTO', 'FOTO'])) {
+            // PRIORITAS 1: Ambil CustCode dari Nama Folder Induk (misal CAPLB01788 atau CAPLB01818)
+            $parentFolder = basename(dirname($realPath));
+            if (preg_match('/^([A-Z0-9]{3,25})$/i', $parentFolder) && !in_array(strtoupper($parentFolder), ['DEPAN', 'DALAM', 'KTP', 'PHOTOS', 'FOTO', '05_PHOTOS'])) {
+                $codeCandidate = strtoupper($parentFolder);
+            }
+            // PRIORITAS 2: Ambil CustCode dari Prefix Nama File (contoh CAPLB01788_DEPAN.jpg)
+            elseif (preg_match('/^([A-Z0-9]{3,25})/i', $filename, $mCode) && !in_array(strtoupper($mCode[1]), ['DEPAN', 'DALAM', 'KTP', 'PHOTO', 'FOTO'])) {
                 $codeCandidate = strtoupper($mCode[1]);
-            } else {
-                $parentFolder = basename(dirname($realPath));
-                if (!in_array(strtoupper($parentFolder), ['DEPAN', 'DALAM', 'KTP', 'PHOTOS', 'FOTO', '05_PHOTOS'])) {
-                    $codeCandidate = strtoupper($parentFolder);
-                }
             }
 
             if (!$codeCandidate || !$typeCandidate) {
@@ -183,7 +163,7 @@ class ImportLegacyPhotosCommand extends Command
         $photosByRequestId = [];
         $claimedSubmissionIds = [];
 
-        // PASSE 1: Direct Code Match (Match by request_id, code_noo_principal, previous_code_noo_principal, custcode_distributor)
+        // PASSE 1: Direct CustCode Match (Pencocokan Presisi via Kode Principal CAPLBxxxx)
         foreach ($scannedPhotos as $key => $data) {
             $code = $data['code'];
             $sub = $submissionByCode[$code] ?? null;
@@ -205,14 +185,14 @@ class ImportLegacyPhotosCommand extends Command
                     'sub' => $sub,
                     'code' => $code,
                     'photos' => $data['photos'],
-                    'method' => 'Direct Code Match'
+                    'method' => 'CustCode Principal Match'
                 ];
                 $matchedFiles += count($data['photos']);
                 unset($scannedPhotos[$key]);
             }
         }
 
-        // PASSE 2: Exact Match by Branch + Date
+        // PASSE 2: Exact Match by Branch + Date (Untuk data DB yang code_noo_principal-nya masih NULL)
         foreach ($scannedPhotos as $key => $data) {
             $code = $data['code'];
             $branch = $data['branch'];
@@ -250,9 +230,6 @@ class ImportLegacyPhotosCommand extends Command
 
         $this->newLine();
         $this->info("✅ Berhasil memetakan: <info>{$matchedFiles}</info> file foto untuk <info>{$totalOutlets}</info> toko.");
-        if ($unmatchedCount > 0) {
-            $this->warn("⚠️ Ada {$unmatchedCount} grup foto yang belum cocok (karena data submisi di DB lokal belum lengkap).");
-        }
 
         if ($isDryRun) {
             $this->newLine();
@@ -263,20 +240,21 @@ class ImportLegacyPhotosCommand extends Command
 
             if (!empty($photosByRequestId)) {
                 $this->newLine();
-                $this->info("📋 Daftar Toko Yang Presisi Terhubung:");
+                $this->info("📋 Contoh Toko Yang Presisi Terhubung:");
                 $sampleTable = [];
+                $count = 0;
                 foreach ($photosByRequestId as $reqId => $item) {
                     $s = $item['sub'];
                     $sampleTable[] = [
                         $item['code'],
                         $s->nama_noo,
+                        $s->request_id,
                         $s->branch_id,
-                        date('Y-m-d', strtotime((string)$s->submitted_at)),
-                        $item['method'],
                         implode(', ', array_keys($item['photos']))
                     ];
+                    if (++$count >= 10) break;
                 }
-                $this->table(['Kode Folder', 'Nama Toko (DB)', 'Cabang DB', 'Tgl Submisi', 'Metode Match', 'Foto'], $sampleTable);
+                $this->table(['Kode Folder', 'Nama Toko (DB)', 'Request ID (DB)', 'Cabang DB', 'Foto'], $sampleTable);
             }
             return Command::SUCCESS;
         }
@@ -307,6 +285,7 @@ class ImportLegacyPhotosCommand extends Command
             }
 
             foreach ($photos as $type => $sourcePath) {
+                // Tentukan target file persis sesuai request_id toko di DB
                 $relativeTarget = "noo_photos/{$branchId}/{$dateFolder}/{$requestId}_{$type}.jpg";
                 $absoluteTarget = storage_path("app/public/{$relativeTarget}");
 
@@ -315,9 +294,8 @@ class ImportLegacyPhotosCommand extends Command
                     File::makeDirectory($destDir, 0775, true, true);
                 }
 
-                if ($isForce || !file_exists($absoluteTarget)) {
-                    @copy($sourcePath, $absoluteTarget);
-                }
+                // Selalu salin & timpa agar foto yang sebelumnya tertukar/salah ter-replace dengan foto yang benar
+                @copy($sourcePath, $absoluteTarget);
 
                 if ($type === 'DEPAN') $updateData['photo_depan_path'] = $relativeTarget;
                 if ($type === 'DALAM') $updateData['photo_dalam_path'] = $relativeTarget;
@@ -333,7 +311,7 @@ class ImportLegacyPhotosCommand extends Command
         $bar->finish();
         $this->newLine(2);
 
-        $this->info("🎉 MIGRASI FOTO LAMA SUKSES!");
+        $this->info("🎉 MIGRASI FOTO LAMA SUKSES & PRESISI!");
         $this->table(
             ['Metrik', 'Jumlah'],
             [
