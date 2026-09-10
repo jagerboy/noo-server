@@ -2,6 +2,7 @@
 
 namespace App\Providers;
 
+use Illuminate\Support\Facades\URL;
 use Illuminate\Support\Facades\Vite;
 use Illuminate\Support\ServiceProvider;
 
@@ -20,6 +21,13 @@ class AppServiceProvider extends ServiceProvider
      */
     public function boot(): void
     {
+        if (request()->getHost() !== 'localhost' && request()->getHost() !== '127.0.0.1') {
+            URL::forceScheme('https');
+            URL::forceRootUrl('https://' . request()->getHost());
+            config(['app.url' => 'https://' . request()->getHost()]);
+            config(['app.asset_url' => 'https://' . request()->getHost()]);
+        }
+
         Vite::prefetch(concurrency: 3);
 
         try {

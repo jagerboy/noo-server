@@ -17,6 +17,10 @@ const cleanUrlAddressBar = () => {
 
 cleanUrlAddressBar();
 
+if (typeof window !== 'undefined' && window.Ziggy) {
+    window.Ziggy.url = window.location.origin;
+}
+
 router.on('finish', () => {
     cleanUrlAddressBar();
 });
