@@ -736,25 +736,25 @@ function getCardAccentClass(item) {
           <table class="w-full text-left text-[14px] leading-[20px] text-[#374151] table-fixed min-w-[960px]">
             <thead class="bg-[#F3F4F6] text-[13px] sm:text-[14px] font-semibold text-[#1F2937] border-b border-[#E5E7EB] select-none">
               <tr>
-                <th class="w-[20%] p-3 text-xs font-semibold text-slate-700 uppercase tracking-wider">Nama Outlet & Pemilik</th>
-                <th class="w-[15%] p-3 text-xs font-semibold text-slate-700 uppercase tracking-wider">Salesman & Cabang</th>
-                <th class="w-[20%] p-3 text-xs font-semibold text-slate-700 uppercase tracking-wider">Alamat</th>
-                <th class="w-[12%] p-3 text-xs font-semibold text-slate-700 uppercase tracking-wider">CustCode Dist</th>
-                <th class="w-[12%] p-3 text-xs font-semibold text-slate-700 uppercase tracking-wider">CustCode Principal</th>
-                <th class="w-[12%] p-3 text-xs font-semibold text-slate-700 uppercase tracking-wider">Jadwal Rute</th>
-                <th class="w-[9%] p-3 text-xs font-semibold text-slate-700 uppercase tracking-wider text-center">Aksi</th>
+                <th class="w-[22%] px-4 py-3 text-[11px] font-bold text-slate-600 uppercase tracking-wider">Nama Outlet & Pemilik</th>
+                <th class="w-[15%] px-4 py-3 text-[11px] font-bold text-slate-600 uppercase tracking-wider">Salesman & Cabang</th>
+                <th class="w-[20%] px-4 py-3 text-[11px] font-bold text-slate-600 uppercase tracking-wider">Alamat</th>
+                <th class="w-[11%] px-3.5 py-3 text-[11px] font-bold text-slate-600 uppercase tracking-wider">CustCode Dist</th>
+                <th class="w-[11%] px-3.5 py-3 text-[11px] font-bold text-slate-600 uppercase tracking-wider">CustCode Princ</th>
+                <th class="w-[12%] px-3.5 py-3 text-[11px] font-bold text-slate-600 uppercase tracking-wider">Jadwal Rute</th>
+                <th class="w-[9%] px-3 py-3 text-[11px] font-bold text-slate-600 uppercase tracking-wider text-center">Aksi</th>
               </tr>
             </thead>
-            <tbody class="divide-y divide-slate-200/80">
+            <tbody class="divide-y divide-slate-200/70">
               <!-- Empty State -->
               <tr v-if="sortedSubmissions.length === 0">
                 <td colspan="7" class="px-6 py-12 text-center text-slate-500 font-normal">
-                  <div class="text-sm font-medium text-slate-800">Tidak Ada Data Submisi</div>
+                  <div class="text-sm font-semibold text-slate-800">Tidak Ada Data Submisi</div>
                   <p class="text-[12px] text-slate-500 mt-0.5">Tidak ada data submisi toko yang sesuai dengan kata kunci pencarian Anda.</p>
                 </td>
               </tr>
 
-              <!-- Row Item (No Row Click, Strictly Button Detail Only) -->
+              <!-- Row Item (Strictly 7 Columns, No Row Click, No Emoji) -->
               <tr
                 v-for="item in sortedSubmissions"
                 :key="item.id || item.request_id"
@@ -762,76 +762,87 @@ function getCardAccentClass(item) {
                 :class="getRowStyle(item)"
               >
                 <!-- 1. Nama Outlet (Tipe Outlet) & Pemilik (No. HP) -->
-                <td class="p-3 align-top">
-                  <div class="font-semibold text-[13.5px] text-slate-900 truncate" :title="item.nama_noo">
+                <td class="px-4 py-3 align-top">
+                  <div class="font-bold text-[13.5px] text-slate-900 group-hover:text-indigo-600 transition-colors truncate" :title="item.nama_noo">
                     {{ item.nama_noo }}
-                    <span v-if="item.type_outlet_code" class="text-[11px] font-medium text-slate-500 font-sans">
-                      ({{ item.type_outlet_code }})
+                    <span
+                      v-if="item.type_outlet_code"
+                      class="inline-block ml-1 px-1.5 py-0.2 text-[10px] font-bold uppercase rounded bg-indigo-50 text-indigo-700 border border-indigo-200/80 shadow-2xs font-sans"
+                    >
+                      {{ item.type_outlet_code }}
                     </span>
                   </div>
-                  <div class="text-[12px] text-slate-500 mt-0.5 truncate">
+                  <div class="text-[12px] text-slate-600 font-medium mt-1 truncate">
                     <span>{{ item.nama_pemilik_outlet || '-' }}</span>
-                    <span v-if="item.no_hp_noo || item.no_hp" class="text-slate-400 font-mono text-[11px] ml-1">
-                      ({{ item.no_hp_noo || item.no_hp }})
+                    <span v-if="item.no_hp_noo || item.no_hp" class="inline-block ml-1 px-1.5 py-0.2 text-[10.5px] font-mono text-slate-600 bg-slate-100 rounded border border-slate-200/80">
+                      {{ item.no_hp_noo || item.no_hp }}
                     </span>
                   </div>
                 </td>
 
                 <!-- 2. Salesman & Distributor/Branch -->
-                <td class="p-3 align-top">
-                  <div class="font-medium text-[13px] text-slate-900 truncate" :title="item.salesman_name">
+                <td class="px-4 py-3 align-top">
+                  <div class="font-semibold text-[13px] text-slate-800 truncate" :title="item.salesman_name">
                     {{ item.salesman_name || '-' }}
                   </div>
-                  <div class="text-[11.5px] text-slate-500 mt-0.5 truncate" :title="item.branch_name || item.branch_id">
-                    {{ item.branch_name || item.branch_id || '-' }}
+                  <div class="text-[11.5px] text-slate-500 font-medium mt-1 truncate flex items-center gap-1.5" :title="item.branch_name || item.branch_id">
+                    <span class="w-1.5 h-1.5 rounded-full bg-slate-400 shrink-0"></span>
+                    <span class="truncate">{{ item.branch_name || item.branch_id || '-' }}</span>
                   </div>
                 </td>
 
                 <!-- 3. Alamat (Max 2 Baris, Selebihnya ..., Tanpa Expand Hover) -->
-                <td class="p-3 align-top">
-                  <div class="text-[12px] text-slate-700 line-clamp-2 leading-tight select-text" :title="item.alamat_noo">
+                <td class="px-4 py-3 align-top">
+                  <div class="text-[12px] text-slate-600 leading-snug line-clamp-2 select-text font-normal" :title="item.alamat_noo">
                     {{ item.alamat_noo || '-' }}
                   </div>
                 </td>
 
                 <!-- 4. Customer Code Distributor -->
-                <td class="p-3 align-top font-mono font-bold text-[#1D4ED8] text-[12.5px]">
-                  {{ item.custcode_distributor || '-' }}
+                <td class="px-3.5 py-3 align-top">
+                  <span
+                    class="px-2 py-0.5 rounded-md font-mono text-[12px] font-bold inline-block shadow-2xs"
+                    :class="item.custcode_distributor ? 'bg-blue-50 text-blue-700 border border-blue-200/80' : 'bg-slate-50 text-slate-400 border border-slate-200'"
+                    :title="'Custcode Distributor: ' + (item.custcode_distributor || '-')"
+                  >
+                    {{ item.custcode_distributor || '-' }}
+                  </span>
                 </td>
 
                 <!-- 5. Customer Code Principal -->
-                <td class="p-3 align-top font-mono font-semibold text-emerald-700 text-[12.5px]">
-                  <span v-if="item.code_noo_principal" class="px-1.5 py-0.5 bg-emerald-50 text-emerald-700 border border-emerald-200 rounded text-[11.5px]">
-                    {{ item.code_noo_principal }}
-                  </span>
-                  <span v-else class="text-slate-400 font-sans italic text-[11.5px] font-normal">
-                    -
+                <td class="px-3.5 py-3 align-top">
+                  <span
+                    class="px-2 py-0.5 rounded-md font-mono text-[12px] font-bold inline-block shadow-2xs"
+                    :class="item.code_noo_principal ? 'bg-emerald-50 text-emerald-700 border border-emerald-200/80' : 'bg-slate-50 text-slate-400 border border-slate-200'"
+                    :title="'Custcode Principal: ' + (item.code_noo_principal || '-')"
+                  >
+                    {{ item.code_noo_principal || '-' }}
                   </span>
                 </td>
 
                 <!-- 6. Jadwal Rute -->
-                <td class="p-3 align-top">
+                <td class="px-3.5 py-3 align-top">
                   <div v-if="item.h1 === 'Y' || item.h2 === 'Y' || item.h3 === 'Y' || item.h4 === 'Y' || item.h5 === 'Y' || item.h6 === 'Y' || item.h7 === 'Y'">
-                    <div class="text-[12px] font-semibold text-emerald-700">
+                    <span class="inline-block px-2 py-0.5 rounded-md text-[11.5px] font-bold bg-emerald-50 text-emerald-800 border border-emerald-200/80 shadow-2xs">
                       {{ getRouteDaysSummary(item) }}
-                    </div>
-                    <div class="text-[11px] text-slate-500 mt-0.5 font-medium">
-                      ({{ getRouteWeeksSummary(item) }})
+                    </span>
+                    <div class="text-[11px] text-slate-500 font-medium mt-1">
+                      {{ getRouteWeeksSummary(item) }}
                     </div>
                   </div>
                   <div v-else>
-                    <span class="inline-block px-2 py-0.5 text-[10.5px] font-semibold bg-amber-50 text-amber-700 border border-amber-200/80 rounded">
+                    <span class="inline-block px-2 py-0.5 text-[10.5px] font-bold bg-amber-50 text-amber-700 border border-amber-200/80 rounded-md shadow-2xs">
                       Perlu Set Rute
                     </span>
                   </div>
                 </td>
 
                 <!-- 7. Aksi / Button Detail -->
-                <td class="p-3 align-top text-center">
+                <td class="px-3 py-3 align-top text-center">
                   <button
                     type="button"
                     @click="openDetailModal(item)"
-                    class="px-3.5 py-1.5 text-[12.5px] font-semibold text-white bg-blue-600 hover:bg-blue-700 active:bg-blue-800 rounded-lg transition shadow-xs inline-flex items-center gap-1.5 mx-auto cursor-pointer"
+                    class="px-3 py-1.5 text-[12px] font-semibold text-white bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 active:scale-[0.98] rounded-lg transition-all shadow-2xs inline-flex items-center gap-1.5 mx-auto cursor-pointer"
                     title="Buka detail submisi & verifikasi rute toko"
                   >
                     <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
