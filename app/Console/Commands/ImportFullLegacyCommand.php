@@ -206,6 +206,7 @@ class ImportFullLegacyCommand extends Command
 
                 $spreadsheet->disconnectWorksheets();
                 unset($spreadsheet);
+                $this->info("✅ Tahap 2 Selesai: Berhasil menggabungkan data rute SPV Area.");
             } catch (Throwable $e) {
                 $this->warn("⚠️ Gagal membaca file SPV: {$e->getMessage()}");
             }
@@ -260,6 +261,7 @@ class ImportFullLegacyCommand extends Command
 
                 $spreadsheet->disconnectWorksheets();
                 unset($spreadsheet);
+                $this->info("✅ Tahap 3 Selesai: Berhasil menggabungkan data keputusan EDP Principal.");
             } catch (Throwable $e) {
                 $this->warn("⚠️ Gagal membaca file EDP: {$e->getMessage()}");
             }
