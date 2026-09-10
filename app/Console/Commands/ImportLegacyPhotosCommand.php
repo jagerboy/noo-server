@@ -189,9 +189,9 @@ class ImportLegacyPhotosCommand extends Command
             $sub = $submissionByCode[$code] ?? null;
 
             if (!$sub) {
-                $cleanCode = str_replace([' ', '_', '-'], '', $code);
+                $cleanCode = str_replace([' ', '_', '-'], '', (string)$code);
                 foreach ($submissionByCode as $k => $v) {
-                    if (str_replace([' ', '_', '-'], '', $k) === $cleanCode) {
+                    if (str_replace([' ', '_', '-'], '', (string)$k) === $cleanCode) {
                         $sub = $v;
                         break;
                     }
