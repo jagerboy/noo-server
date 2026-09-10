@@ -87,26 +87,48 @@ Route::get('/media-photo/{path}', function ($path) {
     if (str_starts_with($cleanPath, 'storage/')) $cleanPath = substr($cleanPath, 8);
     if (str_starts_with($cleanPath, 'media-photo/')) $cleanPath = substr($cleanPath, 12);
 
-    // Proteksi Keamanan: Cegah serangan Directory Traversal (misal: ../ atau ..\)
+    // Proteksi Keamanan: Cegah serangan Directory Traversal
     if (str_contains($cleanPath, '..') || str_contains($cleanPath, '\\')) {
         abort(403, 'Akses tidak diizinkan.');
     }
 
-    $fullPath = storage_path('app/public/' . $cleanPath);
-    if (!file_exists($fullPath)) {
-        $fullPathAlt = storage_path('app/' . $cleanPath);
-        if (file_exists($fullPathAlt)) {
-            $fullPath = $fullPathAlt;
-        } else {
-            abort(404);
+    $candidatePaths = [
+        storage_path('app/public/' . $cleanPath),
+        storage_path('app/' . $cleanPath),
+        public_path('storage/' . $cleanPath),
+        public_path($cleanPath),
+        base_path($cleanPath),
+    ];
+
+    $fullPath = null;
+    foreach ($candidatePaths as $candidate) {
+        if (file_exists($candidate)) {
+            $fullPath = $candidate;
+            break;
         }
     }
 
-    // Pastikan path yang dituju strictly berada di dalam direktori storage/app
-    $realFullPath = realpath($fullPath);
-    $storageRoot = realpath(storage_path('app'));
-    if (!$realFullPath || !$storageRoot || !str_starts_with($realFullPath, $storageRoot)) {
-        abort(403, 'Akses di luar direktori storage dilarang.');
+    // Fallback pencarian ekstensi file case-insensitive (.jpg vs .JPG vs .jpeg)
+    if (!$fullPath) {
+        $info = pathinfo($cleanPath);
+        $dirname = $info['dirname'] ?? '';
+        $filename = $info['filename'] ?? '';
+
+        $altExtensions = ['jpg', 'jpeg', 'png', 'webp', 'JPG', 'JPEG', 'PNG', 'WEBP'];
+        foreach ($altExtensions as $altExt) {
+            $altClean = ($dirname && $dirname !== '.' ? $dirname . '/' : '') . $filename . '.' . $altExt;
+            foreach ([storage_path('app/public/' . $altClean), storage_path('app/' . $altClean), public_path('storage/' . $altClean)] as $candidate) {
+                if (file_exists($candidate)) {
+                    $fullPath = $candidate;
+                    break 2;
+                }
+            }
+        }
+    }
+
+    if (!$fullPath) {
+        \Illuminate\Support\Facades\Log::warning("Media photo not found: {$cleanPath} (requested: {$path})");
+        abort(404);
     }
 
     $mime = @mime_content_type($fullPath);
