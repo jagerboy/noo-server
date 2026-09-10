@@ -736,89 +736,61 @@ function getCardAccentClass(item) {
           <table class="w-full text-left text-[14px] leading-[20px] text-[#374151] table-fixed min-w-[960px]">
             <thead class="bg-[#F3F4F6] text-[13px] sm:text-[14px] font-semibold text-[#1F2937] border-b border-[#E5E7EB] select-none">
               <tr>
-                <th class="w-[20%] px-3.5 py-2.5 font-semibold text-slate-700">Toko & Tipe Outlet</th>
-                <th class="w-[15%] px-3.5 py-2.5 font-semibold text-slate-700">Pemilik & Kontak</th>
-                <th class="w-[20%] px-3.5 py-2.5 font-semibold text-slate-700">Alamat & Wilayah</th>
-                <th class="w-[17%] px-3.5 py-2.5 font-semibold text-slate-700">Salesman & Submisi</th>
-                <th class="w-[13%] px-3.5 py-2.5 font-semibold text-slate-700">Jadwal Rute</th>
-                <th class="w-[15%] px-3.5 py-2.5 font-semibold text-slate-700">Status & Kode Toko</th>
+                <th class="p-3.5 text-xs font-semibold text-slate-700 uppercase tracking-wider">Cabang / Salesman</th>
+                <th class="p-3.5 text-xs font-semibold text-slate-700 uppercase tracking-wider">Nama Outlet & Pemilik</th>
+                <th class="p-3.5 text-xs font-semibold text-slate-700 uppercase tracking-wider">Jadwal Rute</th>
+                <th class="p-3.5 text-xs font-semibold text-slate-700 uppercase tracking-wider">CustCode Dist</th>
+                <th class="p-3.5 text-xs font-semibold text-slate-700 uppercase tracking-wider">Status Submisi</th>
+                <th class="p-3.5 text-xs font-semibold text-slate-700 uppercase tracking-wider text-center">Aksi</th>
               </tr>
             </thead>
-            <tbody class="divide-y divide-slate-200/70">
+            <tbody class="divide-y divide-slate-200/80">
               <!-- Empty State -->
               <tr v-if="sortedSubmissions.length === 0">
-                <td colspan="6" class="px-6 py-10 text-center text-slate-500 font-normal">
+                <td colspan="6" class="px-6 py-12 text-center text-slate-500 font-normal">
                   <div class="text-sm font-medium text-slate-800">Tidak Ada Data Submisi</div>
                   <p class="text-[12px] text-slate-500 mt-0.5">Tidak ada data submisi toko yang sesuai dengan kata kunci pencarian Anda.</p>
                 </td>
               </tr>
 
-              <!-- Row Item -->
+              <!-- Row Item (Strictly Principal Inbox Style, No Row Click) -->
               <tr
                 v-for="item in sortedSubmissions"
                 :key="item.id || item.request_id"
-                @click="openDetailModal(item)"
-                class="transition-colors border-b cursor-pointer group select-none"
+                class="transition-colors border-b hover:bg-slate-50/80"
                 :class="getRowStyle(item)"
-                title="Klik untuk membuka detail submisi & kelola rute toko"
               >
-                <!-- 1. Toko & Tipe Outlet -->
-                <td class="px-3.5 py-2.5 align-middle">
-                  <div class="font-semibold text-[13.5px] text-slate-900 group-hover:text-indigo-600 transition-colors truncate" :title="item.nama_noo">
+                <!-- 1. Cabang / Salesman -->
+                <td class="p-3.5 align-middle">
+                  <div class="font-medium text-[13px] text-slate-900 truncate max-w-[170px]" :title="item.branch_name || item.branch_id">
+                    {{ item.branch_name || item.branch_id || '-' }}
+                  </div>
+                  <div class="text-[11.5px] text-slate-500 truncate max-w-[170px]" :title="item.salesman_name">
+                    {{ item.salesman_name || '-' }}
+                  </div>
+                </td>
+
+                <!-- 2. Nama Outlet & Pemilik -->
+                <td class="p-3.5 align-middle">
+                  <div class="font-semibold text-[13.5px] text-slate-900 truncate max-w-[220px]" :title="item.nama_noo">
                     {{ item.nama_noo }}
                   </div>
-                  <div class="flex items-center gap-1.5 mt-0.5 truncate">
-                    <span
-                      v-if="item.type_outlet_code"
-                      class="px-1.5 py-0.2 rounded text-[10px] font-semibold bg-blue-50 text-blue-700 border border-blue-200/80 shrink-0"
-                    >
+                  <div class="text-[11.5px] text-slate-500 mt-0.5 truncate max-w-[220px]">
+                    <span v-if="item.nama_pemilik_outlet">Pemilik: {{ item.nama_pemilik_outlet }}</span>
+                    <span v-else>Outlet</span>
+                    <span v-if="item.type_outlet_code" class="ml-1.5 px-1.5 py-0.2 rounded text-[10px] font-semibold bg-blue-50 text-blue-700 border border-blue-200/80">
                       {{ item.type_outlet_code }}
                     </span>
-                    <span class="text-[11.5px] text-slate-500 truncate">{{ item.type_outlet_desc || 'Outlet' }}</span>
                   </div>
                 </td>
 
-                <!-- 2. Pemilik & Kontak -->
-                <td class="px-3.5 py-2.5 align-middle">
-                  <div class="font-medium text-[12.5px] text-slate-800 truncate" :title="item.nama_pemilik_outlet">
-                    {{ item.nama_pemilik_outlet || '-' }}
-                  </div>
-                  <div class="text-[11.5px] text-slate-500 mt-0.5 truncate font-mono" :title="item.no_hp_noo || item.no_hp">
-                    {{ item.no_hp_noo || item.no_hp || '-' }}
-                  </div>
-                </td>
-
-                <!-- 3. Alamat & Wilayah -->
-                <td class="px-3.5 py-2.5 align-middle">
-                  <div class="text-[12.5px] text-slate-700 truncate" :title="item.alamat_noo">
-                    {{ item.alamat_noo || '-' }}
-                  </div>
-                  <div class="text-[11px] text-slate-500 mt-0.5 truncate font-normal" :title="[item.kec_noo, item.kab_kota_noo].filter(Boolean).join(', ')">
-                    {{ [item.kec_noo, item.kab_kota_noo].filter(Boolean).join(', ') || '-' }}
-                  </div>
-                </td>
-
-                <!-- 4. Salesman & Tanggal -->
-                <td class="px-3.5 py-2.5 align-middle">
-                  <div class="font-medium text-[12.5px] text-slate-800 truncate" :title="item.salesman_name">
-                    {{ item.salesman_name || '-' }}
-                    <span v-if="item.salesman_code" class="text-[11px] text-slate-400">({{ item.salesman_code }})</span>
-                  </div>
-                  <div class="text-[11px] text-slate-500 mt-0.5 truncate flex items-center justify-between gap-1">
-                    <span class="truncate max-w-[90px]">{{ item.branch_name || item.branch_id || '-' }}</span>
-                    <span class="text-slate-400 text-[10.5px] shrink-0">{{ formatDate(item.pushed_to_spv_at || item.submitted_at || item.created_at) }}</span>
-                  </div>
-                </td>
-
-                <!-- 5. Jadwal Rute Toko -->
-                <td class="px-3.5 py-2.5 align-middle">
+                <!-- 3. Jadwal Rute Toko -->
+                <td class="p-3.5 align-middle">
                   <div v-if="item.h1 === 'Y' || item.h2 === 'Y' || item.h3 === 'Y' || item.h4 === 'Y' || item.h5 === 'Y' || item.h6 === 'Y' || item.h7 === 'Y'">
-                    <div class="text-[12px] font-semibold text-emerald-700 truncate">
+                    <span class="text-[12px] font-semibold text-emerald-700">
                       {{ getRouteDaysSummary(item) }}
-                    </div>
-                    <div class="text-[11px] text-slate-500 mt-0.5">
-                      Pola: <span class="font-medium text-slate-700">{{ getRouteWeeksSummary(item) }}</span>
-                    </div>
+                    </span>
+                    <span class="text-[11px] text-slate-500 ml-1">({{ getRouteWeeksSummary(item) }})</span>
                   </div>
                   <div v-else>
                     <span class="inline-block px-2 py-0.5 text-[10.5px] font-semibold bg-amber-50 text-amber-700 border border-amber-200/80 rounded">
@@ -827,23 +799,34 @@ function getCardAccentClass(item) {
                   </div>
                 </td>
 
-                <!-- 6. Status & Kode Toko -->
-                <td class="px-3.5 py-2.5 align-middle">
-                  <div class="space-y-1">
-                    <div>
-                      <span class="inline-block px-2 py-0.5 rounded-full text-[11px] font-semibold border shadow-2xs" :class="getStatusBadgeStyle(item.status)">
-                        {{ formatStatusLabel(item.status) }}
-                      </span>
-                    </div>
-                    <div class="flex items-center gap-1 text-[10.5px] font-mono text-slate-500">
-                      <span v-if="item.custcode_distributor" class="px-1.5 py-0.2 bg-slate-100 rounded border border-slate-200" title="Custcode Distributor">
-                        Dist: {{ item.custcode_distributor }}
-                      </span>
-                      <span v-if="item.code_noo_principal" class="px-1.5 py-0.2 bg-emerald-50 text-emerald-700 rounded border border-emerald-200" title="Custcode Principal">
-                        Princ: {{ item.code_noo_principal }}
-                      </span>
-                    </div>
+                <!-- 4. CustCode Dist -->
+                <td class="p-3.5 align-middle font-mono font-bold text-[#1D4ED8] text-[13px]">
+                  {{ item.custcode_distributor || '-' }}
+                </td>
+
+                <!-- 5. Status Submisi -->
+                <td class="p-3.5 align-middle">
+                  <div>
+                    <span class="px-2.5 py-1 text-[11.5px] font-semibold rounded-[8px] border inline-flex items-center gap-1" :class="getStatusBadgeStyle(item.status)">
+                      {{ formatStatusLabel(item.status) }}
+                    </span>
                   </div>
+                </td>
+
+                <!-- 6. Aksi (Hanya lewat Button Detail) -->
+                <td class="p-3.5 align-middle text-center">
+                  <button
+                    type="button"
+                    @click="openDetailModal(item)"
+                    class="px-3.5 py-1.5 text-[12.5px] font-semibold text-white bg-blue-600 hover:bg-blue-700 active:bg-blue-800 rounded-lg transition shadow-xs inline-flex items-center gap-1.5 mx-auto cursor-pointer"
+                    title="Buka detail submisi & verifikasi rute toko"
+                  >
+                    <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/>
+                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"/>
+                    </svg>
+                    <span>Detail</span>
+                  </button>
                 </td>
               </tr>
             </tbody>
