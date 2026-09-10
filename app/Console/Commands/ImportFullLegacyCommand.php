@@ -33,6 +33,9 @@ class ImportFullLegacyCommand extends Command
 
     public function handle(): int
     {
+        @ini_set('memory_limit', '1024M');
+        @set_time_limit(0);
+
         $basePath = $this->argument('path');
         $isDryRun = (bool) $this->option('dry-run');
 
@@ -87,7 +90,9 @@ class ImportFullLegacyCommand extends Command
                 $this->line("  📄 Membaca file Admin ({$scannedAdminFiles}): <comment>{$fileName}</comment>");
 
                 try {
-                    $spreadsheet = IOFactory::load($filePath);
+                    $reader = IOFactory::createReaderForFile($filePath);
+                    $reader->setReadDataOnly(true);
+                    $spreadsheet = $reader->load($filePath);
                     $sheet = $spreadsheet->getSheetByName('NOO_INBOX') ?: $spreadsheet->getActiveSheet();
                     $rows = $sheet->toArray(null, true, true, true);
 
@@ -157,7 +162,9 @@ class ImportFullLegacyCommand extends Command
         if (file_exists($spvFile)) {
             $this->line("📂 Membaca sheet SPV Area di: <comment>{$spvFile}</comment>...");
             try {
-                $spreadsheet = IOFactory::load($spvFile);
+                $reader = IOFactory::createReaderForFile($spvFile);
+                $reader->setReadDataOnly(true);
+                $spreadsheet = $reader->load($spvFile);
                 $sheet = $spreadsheet->getSheetByName('JKS_QUEUE') ?: $spreadsheet->getActiveSheet();
                 $rows = $sheet->toArray(null, true, true, true);
 
@@ -211,7 +218,9 @@ class ImportFullLegacyCommand extends Command
         if (file_exists($edpFile)) {
             $this->line("📂 Membaca sheet EDP Principal di: <comment>{$edpFile}</comment>...");
             try {
-                $spreadsheet = IOFactory::load($edpFile);
+                $reader = IOFactory::createReaderForFile($edpFile);
+                $reader->setReadDataOnly(true);
+                $spreadsheet = $reader->load($edpFile);
                 $sheet = $spreadsheet->getSheetByName('EDP_REVIEW_QUEUE') ?: $spreadsheet->getActiveSheet();
                 $rows = $sheet->toArray(null, true, true, true);
 
