@@ -610,17 +610,19 @@ function getLineStyle(stepBefore, item) {
 
 function getRowStyle(item) {
   const st = item?.status || '';
-  if (['APPROVED_SPV', 'APPROVED_BY_SPV', 'APPROVED_EDP', 'EDP_APPROVED', 'INJECTED'].includes(st)) {
-    return 'bg-emerald-50/40 hover:bg-emerald-100/50 text-slate-900';
+  if (['APPROVED_SPV', 'APPROVED_BY_SPV', 'PUSHED_TO_EDP'].includes(st)) {
+    return 'border-l-4 border-l-purple-500 bg-white hover:bg-purple-50/20 text-slate-900';
+  }
+  if (['APPROVED_EDP', 'EDP_APPROVED', 'INJECTED'].includes(st)) {
+    return 'border-l-4 border-l-emerald-500 bg-white hover:bg-emerald-50/20 text-slate-900';
   }
   if (['SPV_REJECTED', 'REJECTED_SPV', 'EDP_REJECTED', 'REJECTED_EDP', 'ADMIN_REJECTED', 'REJECTED_ADMIN'].includes(st)) {
-    return 'bg-rose-50/40 hover:bg-rose-100/50 text-slate-900';
+    return 'border-l-4 border-l-rose-500 bg-white hover:bg-rose-50/20 text-slate-900';
   }
   if (st === 'PUSHED_TO_SPV') {
-    return 'bg-amber-50/30 hover:bg-amber-100/40 text-slate-900';
+    return 'border-l-4 border-l-amber-500 bg-amber-50/20 hover:bg-amber-50/40 text-slate-900';
   }
-  // Pending lainnya
-  return 'bg-white hover:bg-slate-50 text-slate-900';
+  return 'border-l-4 border-l-slate-300 bg-white hover:bg-slate-50 text-slate-900';
 }
 
 function getCardAccentClass(item) {
@@ -734,21 +736,20 @@ function getCardAccentClass(item) {
           <table class="w-full text-left text-[14px] leading-[20px] text-[#374151] table-fixed min-w-[960px]">
             <thead class="bg-[#F3F4F6] text-[13px] sm:text-[14px] font-semibold text-[#1F2937] border-b border-[#E5E7EB] select-none">
               <tr>
-                <th class="w-[18%] px-4 py-3.5">Toko & Tipe Outlet</th>
-                <th class="w-[15%] px-4 py-3.5">Pemilik & Kontak</th>
-                <th class="w-[20%] px-4 py-3.5">Alamat & Wilayah</th>
-                <th class="w-[15%] px-4 py-3.5">Salesman & Tanggal</th>
-                <th class="w-[14%] px-4 py-3.5">Jadwal Rute</th>
-                <th class="w-[18%] px-4 py-3.5">Status & Kode Toko</th>
+                <th class="w-[20%] px-3.5 py-2.5 font-semibold text-slate-700">Toko & Tipe Outlet</th>
+                <th class="w-[15%] px-3.5 py-2.5 font-semibold text-slate-700">Pemilik & Kontak</th>
+                <th class="w-[20%] px-3.5 py-2.5 font-semibold text-slate-700">Alamat & Wilayah</th>
+                <th class="w-[17%] px-3.5 py-2.5 font-semibold text-slate-700">Salesman & Submisi</th>
+                <th class="w-[13%] px-3.5 py-2.5 font-semibold text-slate-700">Jadwal Rute</th>
+                <th class="w-[15%] px-3.5 py-2.5 font-semibold text-slate-700">Status & Kode Toko</th>
               </tr>
             </thead>
-            <tbody class="divide-y divide-[#E5E7EB]">
+            <tbody class="divide-y divide-slate-200/70">
               <!-- Empty State -->
               <tr v-if="sortedSubmissions.length === 0">
-                <td colspan="6" class="px-6 py-12 text-center text-[#6B7280] font-normal">
-                  <div class="text-3xl mb-2">📋</div>
-                  <div class="text-[14px] font-medium text-[#1F2937]">Tidak Ada Data Submisi</div>
-                  <p class="text-[12.5px] text-[#6B7280] mt-1">Tidak ada data submisi toko yang sesuai dengan kata kunci pencarian Anda.</p>
+                <td colspan="6" class="px-6 py-10 text-center text-slate-500 font-normal">
+                  <div class="text-sm font-medium text-slate-800">Tidak Ada Data Submisi</div>
+                  <p class="text-[12px] text-slate-500 mt-0.5">Tidak ada data submisi toko yang sesuai dengan kata kunci pencarian Anda.</p>
                 </td>
               </tr>
 
@@ -757,115 +758,89 @@ function getCardAccentClass(item) {
                 v-for="item in sortedSubmissions"
                 :key="item.id || item.request_id"
                 @click="openDetailModal(item)"
-                class="transition border-b cursor-pointer group hover:bg-indigo-50/40 select-none"
+                class="transition-colors border-b cursor-pointer group select-none"
                 :class="getRowStyle(item)"
                 title="Klik untuk membuka detail submisi & kelola rute toko"
               >
                 <!-- 1. Toko & Tipe Outlet -->
-                <td class="px-4 py-3.5 align-top">
-                  <div class="font-bold text-[14px] text-[#111827] group-hover:text-[#1D4ED8] transition truncate" :title="item.nama_noo">
+                <td class="px-3.5 py-2.5 align-middle">
+                  <div class="font-semibold text-[13.5px] text-slate-900 group-hover:text-indigo-600 transition-colors truncate" :title="item.nama_noo">
                     {{ item.nama_noo }}
                   </div>
-                  <div class="flex items-center gap-1.5 mt-1 truncate">
+                  <div class="flex items-center gap-1.5 mt-0.5 truncate">
                     <span
                       v-if="item.type_outlet_code"
-                      class="px-1.5 py-0.2 rounded text-[10px] font-semibold bg-[#DBEAFE] text-[#1D4ED8] border border-[#93C5FD] shrink-0"
+                      class="px-1.5 py-0.2 rounded text-[10px] font-semibold bg-blue-50 text-blue-700 border border-blue-200/80 shrink-0"
                     >
                       {{ item.type_outlet_code }}
                     </span>
-                    <span class="text-[12px] text-[#6B7280] truncate">{{ item.type_outlet_desc || 'Outlet' }}</span>
+                    <span class="text-[11.5px] text-slate-500 truncate">{{ item.type_outlet_desc || 'Outlet' }}</span>
                   </div>
                 </td>
 
-                <!-- 2. Pemilik & Kontak (Kolom Mandiri) -->
-                <td class="px-4 py-3.5 align-top">
-                  <div class="font-semibold text-[13px] text-[#1F2937] truncate" :title="item.nama_pemilik_outlet">
-                    👤 {{ item.nama_pemilik_outlet || '-' }}
+                <!-- 2. Pemilik & Kontak -->
+                <td class="px-3.5 py-2.5 align-middle">
+                  <div class="font-medium text-[12.5px] text-slate-800 truncate" :title="item.nama_pemilik_outlet">
+                    {{ item.nama_pemilik_outlet || '-' }}
                   </div>
-                  <div class="text-[12px] font-medium text-[#2563EB] mt-0.5 truncate" :title="item.no_hp_noo || item.no_hp">
-                    📞 {{ item.no_hp_noo || item.no_hp || '-' }}
+                  <div class="text-[11.5px] text-slate-500 mt-0.5 truncate font-mono" :title="item.no_hp_noo || item.no_hp">
+                    {{ item.no_hp_noo || item.no_hp || '-' }}
                   </div>
                 </td>
 
                 <!-- 3. Alamat & Wilayah -->
-                <td class="px-4 py-3.5 align-top">
-                  <div class="text-[13px] text-[#374151] line-clamp-1 group-hover:line-clamp-none transition-all" :title="item.alamat_noo">
+                <td class="px-3.5 py-2.5 align-middle">
+                  <div class="text-[12.5px] text-slate-700 truncate" :title="item.alamat_noo">
                     {{ item.alamat_noo || '-' }}
                   </div>
-                  <div class="text-[11.5px] text-[#6B7280] mt-0.5 truncate flex items-center gap-1 font-medium" :title="[item.kec_noo, item.kab_kota_noo].filter(Boolean).join(', ')">
-                    <span class="text-slate-400 shrink-0">📍</span>
-                    <span class="truncate">{{ [item.kec_noo, item.kab_kota_noo].filter(Boolean).join(', ') || '-' }}</span>
+                  <div class="text-[11px] text-slate-500 mt-0.5 truncate font-normal" :title="[item.kec_noo, item.kab_kota_noo].filter(Boolean).join(', ')">
+                    {{ [item.kec_noo, item.kab_kota_noo].filter(Boolean).join(', ') || '-' }}
                   </div>
                 </td>
 
-                <!-- 4. Salesman & Tanggal Submisi -->
-                <td class="px-4 py-3.5 align-top">
-                  <div class="font-medium text-[13px] text-[#1F2937] truncate" :title="item.salesman_name">
+                <!-- 4. Salesman & Tanggal -->
+                <td class="px-3.5 py-2.5 align-middle">
+                  <div class="font-medium text-[12.5px] text-slate-800 truncate" :title="item.salesman_name">
                     {{ item.salesman_name || '-' }}
-                    <span v-if="item.salesman_code" class="text-[11px] text-[#6B7280]">({{ item.salesman_code }})</span>
+                    <span v-if="item.salesman_code" class="text-[11px] text-slate-400">({{ item.salesman_code }})</span>
                   </div>
-                  <div class="text-[11.5px] text-[#6B7280] mt-0.5 truncate">
-                    🏢 {{ item.branch_name || item.branch_id || '-' }}
-                  </div>
-                  <div class="text-[11px] text-[#9CA3AF] mt-0.5">
-                    🕒 {{ formatDate(item.pushed_to_spv_at || item.submitted_at || item.created_at) }}
+                  <div class="text-[11px] text-slate-500 mt-0.5 truncate flex items-center justify-between gap-1">
+                    <span class="truncate max-w-[90px]">{{ item.branch_name || item.branch_id || '-' }}</span>
+                    <span class="text-slate-400 text-[10.5px] shrink-0">{{ formatDate(item.pushed_to_spv_at || item.submitted_at || item.created_at) }}</span>
                   </div>
                 </td>
 
                 <!-- 5. Jadwal Rute Toko -->
-                <td class="px-4 py-3.5 align-top">
-                  <div v-if="item.h1 === 'Y' || item.h2 === 'Y' || item.h3 === 'Y' || item.h4 === 'Y' || item.h5 === 'Y' || item.h6 === 'Y' || item.h7 === 'Y'" class="space-y-0.5">
-                    <div class="text-[12px] font-semibold text-[#15803D] flex items-center gap-1">
-                      <span>📅</span>
-                      <span>{{ getRouteDaysSummary(item) }}</span>
+                <td class="px-3.5 py-2.5 align-middle">
+                  <div v-if="item.h1 === 'Y' || item.h2 === 'Y' || item.h3 === 'Y' || item.h4 === 'Y' || item.h5 === 'Y' || item.h6 === 'Y' || item.h7 === 'Y'">
+                    <div class="text-[12px] font-semibold text-emerald-700 truncate">
+                      {{ getRouteDaysSummary(item) }}
                     </div>
-                    <div class="text-[11px] text-[#4B5563]">
-                      Pola: <span class="font-medium text-[#1F2937]">{{ getRouteWeeksSummary(item) }}</span>
+                    <div class="text-[11px] text-slate-500 mt-0.5">
+                      Pola: <span class="font-medium text-slate-700">{{ getRouteWeeksSummary(item) }}</span>
                     </div>
                   </div>
-                  <div v-else class="space-y-0.5">
-                    <span class="inline-flex items-center gap-1 text-[11px] font-bold px-2 py-0.5 bg-amber-100 text-amber-800 border border-amber-200 rounded-md">
-                      <span>⚠️</span>
-                      <span>Belum Diatur</span>
+                  <div v-else>
+                    <span class="inline-block px-2 py-0.5 text-[10.5px] font-semibold bg-amber-50 text-amber-700 border border-amber-200/80 rounded">
+                      Perlu Set Rute
                     </span>
-                    <div class="text-[10.5px] text-[#B45309] font-medium">Perlu set rute</div>
                   </div>
                 </td>
 
-                <!-- 6. Status & Kode Toko (Sejajar Proporsional Rata Kiri) -->
-                <td class="px-4 py-3.5 align-top">
-                  <div class="space-y-1.5">
-                    <!-- Status Badge -->
-                    <div class="flex items-center justify-between gap-1 flex-wrap">
-                      <span class="inline-block px-2.5 py-0.5 rounded-full text-[11.5px] font-semibold border shadow-2xs" :class="getStatusBadgeStyle(item.status)">
+                <!-- 6. Status & Kode Toko -->
+                <td class="px-3.5 py-2.5 align-middle">
+                  <div class="space-y-1">
+                    <div>
+                      <span class="inline-block px-2 py-0.5 rounded-full text-[11px] font-semibold border shadow-2xs" :class="getStatusBadgeStyle(item.status)">
                         {{ formatStatusLabel(item.status) }}
                       </span>
-                      <span
-                        v-if="item.status === 'PUSHED_TO_SPV'"
-                        class="text-[10.5px] font-bold text-indigo-700 bg-indigo-50 border border-indigo-200 px-1.5 py-0.5 rounded shadow-2xs shrink-0"
-                      >
-                        ⚡ Atur Rute
-                      </span>
                     </div>
-
-                    <!-- Kode Distributor & Principal Berdampingan Proporsional -->
-                    <div class="flex items-center gap-1 flex-wrap">
-                      <span
-                        class="text-[11px] font-mono px-1.5 py-0.5 rounded border shadow-2xs inline-flex items-center gap-0.5"
-                        :class="item.custcode_distributor ? 'bg-[#DBEAFE] text-[#1D4ED8] border-[#93C5FD] font-semibold' : 'bg-slate-50 text-slate-400 border-slate-200'"
-                        :title="'Custcode Distributor: ' + (item.custcode_distributor || '-')"
-                      >
-                        <span class="text-[9.5px] font-sans font-bold text-slate-400">Dist:</span>
-                        <span class="truncate max-w-[80px]">{{ item.custcode_distributor || '-' }}</span>
+                    <div class="flex items-center gap-1 text-[10.5px] font-mono text-slate-500">
+                      <span v-if="item.custcode_distributor" class="px-1.5 py-0.2 bg-slate-100 rounded border border-slate-200" title="Custcode Distributor">
+                        Dist: {{ item.custcode_distributor }}
                       </span>
-
-                      <span
-                        class="text-[11px] font-mono px-1.5 py-0.5 rounded border shadow-2xs inline-flex items-center gap-0.5"
-                        :class="item.code_noo_principal ? 'bg-[#DCFCE7] text-[#15803D] border-[#86EFAC] font-semibold' : 'bg-slate-50 text-slate-400 border-slate-200'"
-                        :title="'Custcode Principal: ' + (item.code_noo_principal || '-')"
-                      >
-                        <span class="text-[9.5px] font-sans font-bold text-slate-400">Princ:</span>
-                        <span class="truncate max-w-[80px]">{{ item.code_noo_principal || '-' }}</span>
+                      <span v-if="item.code_noo_principal" class="px-1.5 py-0.2 bg-emerald-50 text-emerald-700 rounded border border-emerald-200" title="Custcode Principal">
+                        Princ: {{ item.code_noo_principal }}
                       </span>
                     </div>
                   </div>

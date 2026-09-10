@@ -84,3 +84,28 @@
       3. **Tahap 3**: *SPV Mengisi & Menentukan JKS* (Mockup validasi rute kunjungan, penetapan hari H1-H7 & minggu M1-M4, verifikasi radius outlet).
       4. **Tahap 4**: *Principal (EDP) Melakukan Approval NOO* (Validasi Customer Master dan inject data outlet baru ke Eskalink).
     - Navigasi slide otomatis (interval 5.5 detik, pause saat hover), indikator titik (*morphing pagination dots*), dan tombol chevron prev/next.
+
+## Impor Migrasi Total & Backup Foto Legacy
+- **Commands**:
+  - `php artisan noo:import-full-legacy {path}`
+  - `php artisan noo:import-legacy-photos {path} [--dry-run] [--force]`
+- **Command Files**:
+  - `app/Console/Commands/ImportFullLegacyCommand.php`
+  - `app/Console/Commands/ImportLegacyPhotosCommand.php`
+- **Fitur Impor & Optimasi**:
+  1. **Full Legacy Migrator (`noo:import-full-legacy`)**:
+     - Menggabungkan data toko dari sheet Admin Distributor (`02_ADMIN_SHEET/`), SPV (`03_SPV_SHEET/NOO_SPV_JKS.xlsx`), dan EDP (`04_EDP_SHEET/NOO_EDP_REVIEW.xlsx`).
+     - **Deduplikasi Strict**: Menggunakan `request_id` (UUID) sebagai kunci unik untuk mengabaikan submisi yang sudah ada di database `noo_submissions`.
+     - **Auto Branch Registration**: Pendaftaran otomatis kode cabang baru ke `master_branches` bila belum terdaftar.
+     - **Optimasi RAM PhpSpreadsheet**: Menggunakan `setReadDataOnly(true)` dan menonaktifkan evaluasi formula (`$calculateFormulas = false`) serta formatting (`$formatData = false`) di `toArray()` agar memuat file Excel besar (>40.000 baris) dengan cepat tanpa OOM (Out Of Memory / Exit Code 137) di container Docker.
+     - **Excel Serial Date Converter**: Menggunakan `\PhpOffice\PhpSpreadsheet\Shared\Date::excelToDateTimeObject()` untuk mengonversi angka float serial Excel (contoh: `46134.6455` -> `2026-04-22 15:29:32`), menyelesaikan masalah tanggal `submitted_at` terset ke Epoch Unix `1970-01-01 12:49:10`.
+     - **Auto Repair Tanggal 1970**: Otomatis memperbarui kolom `submitted_at` pada data toko lama di database yang terlanjur bernilai `1970-01-01`.
+  2. **Legacy Photo Importer (`noo:import-legacy-photos`)**:
+     - **Multi-Passe Engine**:
+       - **Passe 0**: Deteksi UUID `request_id` di folder/filename foto (100% Direct Match).
+       - **Passe 1**: Pencocokan Kode Principal (`code_noo_principal`, `previous_code_noo_principal`, `custcode_distributor`).
+       - **Passe 2**: Pencocokan Nama Toko (`nama_noo`).
+       - **Passe 3**: Pencocokan Cabang + Tanggal Presisi (`branch_id` + `submitted_at`).
+       - **Passe 4**: Fallback Match per Cabang.
+     - **Klasifikasi Tipe Foto**: Mendukung keyword `DEPAN` (`DEPAN`, `STORE`, `OUTLET`, `OUTSIDE`, `TOKO`, `FRONT`), `DALAM` (`DALAM`, `INSIDE`, `INTERIOR`), dan `KTP` (`KTP`, `SELFIE`, `OWNER`, `PEMILIK`, `TAX`, `NPWP`).
+     - **Path Storage Target**: Disimpan ke `storage/app/public/noo_photos/{branch_id}/{submitted_at_date}/{request_id}_{type}.jpg` dan dapat diakses publik secara instan via static route `/storage/`.
