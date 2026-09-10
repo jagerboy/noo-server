@@ -33,7 +33,7 @@ class ImportFullLegacyCommand extends Command
 
     public function handle(): int
     {
-        @ini_set('memory_limit', '1024M');
+        @ini_set('memory_limit', '2048M');
         @set_time_limit(0);
 
         $basePath = $this->argument('path');
@@ -94,7 +94,7 @@ class ImportFullLegacyCommand extends Command
                     $reader->setReadDataOnly(true);
                     $spreadsheet = $reader->load($filePath);
                     $sheet = $spreadsheet->getSheetByName('NOO_INBOX') ?: $spreadsheet->getActiveSheet();
-                    $rows = $sheet->toArray(null, true, true, true);
+                    $rows = $sheet->toArray(null, false, false, true);
 
                     if (count($rows) < 2) continue;
 
@@ -166,7 +166,7 @@ class ImportFullLegacyCommand extends Command
                 $reader->setReadDataOnly(true);
                 $spreadsheet = $reader->load($spvFile);
                 $sheet = $spreadsheet->getSheetByName('JKS_QUEUE') ?: $spreadsheet->getActiveSheet();
-                $rows = $sheet->toArray(null, true, true, true);
+                $rows = $sheet->toArray(null, false, false, true);
 
                 $headerRowIndex = null;
                 $headerMap = [];
@@ -223,7 +223,7 @@ class ImportFullLegacyCommand extends Command
                 $reader->setReadDataOnly(true);
                 $spreadsheet = $reader->load($edpFile);
                 $sheet = $spreadsheet->getSheetByName('EDP_REVIEW_QUEUE') ?: $spreadsheet->getActiveSheet();
-                $rows = $sheet->toArray(null, true, true, true);
+                $rows = $sheet->toArray(null, false, false, true);
 
                 $headerRowIndex = null;
                 $headerMap = [];
