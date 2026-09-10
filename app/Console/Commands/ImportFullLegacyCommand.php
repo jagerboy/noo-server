@@ -128,8 +128,20 @@ class ImportFullLegacyCommand extends Command
 
                         $totalAdminRows++;
 
-                        // RULE KUNCI: Jika sudah ada di DB, JANGAN ditambahkan lagi!
+                        // Parse fields dari Admin Sheet
+                        $rec = $this->parseAdminRow($rowValues, $headerMap);
+
+                        // RULE KUNCI: Jika sudah ada di DB, perbarui submitted_at jika nilainya 1970-01-01
                         if (isset($existingRequestIds[$reqId])) {
+                            if (!empty($rec['submitted_at']) && !str_starts_with($rec['submitted_at'], '1970')) {
+                                DB::table('noo_submissions')
+                                    ->where('request_id', $reqId)
+                                    ->where('submitted_at', 'like', '1970%')
+                                    ->update([
+                                        'submitted_at' => $rec['submitted_at'],
+                                        'updated_at' => now()->toDateTimeString(),
+                                    ]);
+                            }
                             continue;
                         }
 
@@ -138,8 +150,6 @@ class ImportFullLegacyCommand extends Command
                             continue;
                         }
 
-                        // Parse fields dari Admin Sheet
-                        $rec = $this->parseAdminRow($rowValues, $headerMap);
                         if (!empty($rec['request_id'])) {
                             $candidates[$reqId] = $rec;
                         }
@@ -497,11 +507,18 @@ class ImportFullLegacyCommand extends Command
         return trim((string)($r[$col] ?? ''));
     }
 
-    private function parseDate(?string $val): ?Carbon
+    private function parseDate($val): ?Carbon
     {
-        if (empty($val)) return null;
+        if ($val === null || $val === '') return null;
         try {
-            return Carbon::parse($val);
+            if (is_numeric($val)) {
+                $num = (float)$val;
+                if ($num > 30000 && $num < 70000) {
+                    $dt = \PhpOffice\PhpSpreadsheet\Shared\Date::excelToDateTimeObject($num);
+                    return Carbon::instance($dt);
+                }
+            }
+            return Carbon::parse((string)$val);
         } catch (Throwable) {
             return null;
         }
