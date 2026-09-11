@@ -122,8 +122,8 @@ function submitLogin() {
           
           <div>
             <!-- Header Brand: Logo NOO+ & Portal Principal (Tanpa Teks ASW • INA) -->
-            <div class="flex items-center gap-2 mb-3">
-              <img src="/logo-noo-plus.png" alt="Logo NOO+" class="h-6 w-auto object-contain rounded drop-shadow-2xs" />
+            <div class="flex items-center gap-2.5 mb-3">
+              <img src="/logo-noo-plus.png" alt="Logo NOO+" class="h-7.5 sm:h-8 w-auto object-contain rounded drop-shadow-2xs" />
               <span class="text-[12.5px] font-bold text-[#D9232A] tracking-tight">Portal Principal</span>
             </div>
 

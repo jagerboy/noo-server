@@ -21,10 +21,13 @@ use App\Http\Controllers\Auth\EdpLoginController;
 
 Route::get('/logo-noo-plus.png', function () {
     $dest = public_path('images/logo-noo-plus.png');
+    if (!file_exists($dest)) {
+        $dest = public_path('logo-noo-plus.png');
+    }
     if (file_exists($dest)) {
         return response()->file($dest, [
             'Content-Type' => 'image/png',
-            'Cache-Control' => 'public, max-age=604800, immutable',
+            'Cache-Control' => 'no-cache, must-revalidate',
         ]);
     }
     abort(404);

@@ -55,11 +55,50 @@
 ## Portal SPV Area - Inbox Submisi (`/spv/inbox`)
 - **Controller**: `app/Http/Controllers/Web/SpvPortalController.php` (`index`, `approve`, `reject`)
 - **View**: `resources/js/Pages/Spv/Inbox.vue`
-- **Dukungan Tampilan Desktop & Tablet**:
-  - **Header & Metric Cards**: Menggunakan grid responsif 2 kolom di ponsel dan 4 kolom di tablet & desktop (`grid-cols-2 sm:grid-cols-4`) dengan kartu berukuran proporsional (`min-w-[110px] md:min-w-[125px]`).
-  - **Filter Bar**: Ditata sejajar di tablet dan desktop (`md:flex-row md:items-center md:justify-between`) sehingga pencarian dan dropdown filter status/sort tidak menumpuk vertikal dan menghemat ruang layar tablet.
-  - **Tabel Submisi**: Mendukung lebar minimum adaptif `min-w-[860px] md:min-w-[920px] lg:min-w-[960px]` dengan padding sel responsif (`px-3 md:px-4 py-2.5 md:py-3.5`), teks rapi, dan tombol "Kelola & Rute" yang pas di tablet.
-  - **Modal Detail & Rute**: Dialog modal dengan tinggi maksimal adaptif (`max-h-[88vh] md:max-h-[85vh]`), header/body/footer proporsional, tombol pemilihan hari rute (H1-H7) dan minggu rute (M1-M4) yang ramah sentuhan (*touch-friendly*) di tablet.
+- **Komponen Pendukung**: `resources/js/Components/Pagination.vue`, `resources/js/Pages/Spv/Components/ProgressTrackingModal.vue`
+- **Tata Letak Tabel 8 Kolom Minimalis (Sesuai Referensi & Bebas Ikon Sampah)**:
+  - Seluruh ikon emoji sampah (👤, 📞, 📍, 🏢, 🕒, 📅, ⚠️, ⚡, 📋) telah dihilangkan agar desain tampil bersih, modern, dan minimalis.
+  - Urutan 8 kolom tabel:
+    1. **Toko & Sub-Toko**: Menampilkan Nama Toko (`nama_noo`), badge kode sub-toko (`type_outlet_code`) & deskripsi. **Tanpa info principal (badge ASWFOODS dihilangkan) dan tanpa badge EXIF**. Nama pemilik outlet dan No. HP disatukan secara ringkas di bawahnya (`Nama Pemilik • No HP`).
+    2. **Salesman & Cabang**: Nama salesman (`salesman_name`), kode salesman, dan nama cabang binaan (`branch_name` / `branch_id`).
+    3. **Alamat Ringkas**: Alamat jalan toko (`alamat_noo`) dan wilayah ringkas (Kecamatan, Kab/Kota).
+    4. **Status**: Badge pill status approval (*Pushed to SPV*, *Approved SPV*, *Approved EDP*, *Ditolak*).
+    5. **Cust Dist.**: Monospace badge rapi untuk `custcode_distributor` (atau tanda `-` bila belum diisi).
+    6. **Cust Principal**: Monospace badge rapi untuk `code_noo_principal` (atau tanda `-` bila belum diisi).
+    7. **Rute Kunjungan**: Rincian hari kunjungan (`Hari: ...`) & pola minggu (`Minggu: ...`), atau teks minimalis `Belum di-set`.
+    8. **Aksi**: Tombol biru solid `#2563EB` **Kelola & Rute** untuk memicu modal detail verifikasi dan penyusunan rute toko.
+- **Filter Toolbar Semi-Bertingkat (Cascading Filter)**:
+  - **Cabang Binaan**: Dropdown cabang yang secara ketat hanya menampilkan daftar cabang (`myBranches`) yang dinaungi oleh akun SPV aktif dari tabel `master_spvs`.
+  - **Sub-Grup**: Dropdown sub-grup / tipe outlet toko.
+  - **Filter Status SPV**: Pilihan untuk membedakan data:
+    - `Semua Status SPV`
+    - `Belum Diproses SPV` (Menunggu review & approval SPV: status `PUSHED_TO_SPV` / `ADMIN_APPROVED`)
+    - `Sudah Diproses SPV` (Sudah diapprove SPV atau ditolak SPV)
+  - **Filter Status EDP (Terpisah & Semi-Bertingkat)**:
+    - Pilihan: `Semua Status EDP`, `EDP: Pending Review`, `EDP: Approved`, `EDP: Rejected`.
+    - **Logika Semi-Bertingkat**: Ketika Status SPV bernilai *"Belum Diproses SPV"*, filter Status EDP otomatis dinonaktifkan (*disabled*) dengan label *"Belum ke EDP"* karena data submisi belum dikirim ke principal EDP. Begitu status EDP tertentu dipilih, filter status SPV otomatis menyesuaikan data yang sudah diproses.
+  - **Urutan (Sort)**: Dropdown sort Terbaru, Terlama, Nama Toko (A-Z / Z-A), dan Salesman (A-Z).
+  - **Metric Cards Interaktif**: Kartu metrik di atas (*Pending Review*, *Disetujui SPV*, *EDP Approved*, *Ditolak*) dapat diklik untuk menyaring data dengan instan.
+  - **Dua Lapis Filtering (Hybrid Fast & Server Query)**: Menggunakan Inertia `router.get` dengan query URL otomatis ter-update (debouce 400ms) sekaligus reaktivitas client-side Vue untuk performa kilat.
+- **Perbaikan Dropdown Pagination & Input Select**:
+  - Pada `Pagination.vue` dan seluruh `<select>` dropdown di bilah filter, diterapkan `appearance-none` dengan padding kanan lapang (`pr-7` / `pr-8`) serta ikon panah dropdown chevron SVG tersendiri di posisi yang presisi (`right-2` / `right-2.5`), menjamin teks pilihan panjang (seperti *"Tampilkan Semua"*) **tidak akan pernah menimpa ikon panah dropdown**.
+
+## Standar Perintah Deployment Git (CMD & Terminus)
+- **Wajib Diberikan**: Setiap kali ada perubahan fitur atau kode selesai dikerjakan, selalu sertakan perintah copy-paste berikut:
+  1. **CMD Windows (Lokal)**:
+     ```cmd
+     cd /d d:\AndroidStudioProjects\noo-server
+     npm run build
+     git add .
+     git commit -m "<deskripsi perubahan>"
+     git push origin main
+     ```
+  2. **Terminus (SSH Server ASWFOODS 172.22.1.232)**:
+     ```bash
+     cd /var/www/noo-server
+     git pull origin main
+     docker compose exec app php artisan optimize:clear
+     ```
 
 ## Portal Admin Distributor - Login (`/distributor-login`)
 - **Controller**: `app/Http/Controllers/Auth/DistributorLoginController.php` (`create`, `store`, `destroy`, `getBootstrapData`)
