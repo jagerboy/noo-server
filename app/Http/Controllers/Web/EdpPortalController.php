@@ -769,7 +769,7 @@ class EdpPortalController extends Controller
                 });
         }
 
-        if (!empty($branchId)) {
+        if (!empty($branchId) && $branchId !== 'ALL') {
             $query->where(function ($q) use ($branchId) {
                 $q->where('branch_id', $branchId)
                   ->orWhere('branch_name', 'ILIKE', "%{$branchId}%");
@@ -824,7 +824,7 @@ class EdpPortalController extends Controller
             if (!empty($endDate)) {
                 $query->whereRaw("COALESCE(edp_reviewed_at, updated_at, created_at)::date <= ?", [$endDate]);
             }
-            if (!empty($branchId)) {
+            if (!empty($branchId) && $branchId !== 'ALL') {
                 $query->where('branch_id', $branchId);
             }
         }
@@ -835,10 +835,17 @@ class EdpPortalController extends Controller
             return back()->with('error', 'Tidak ada data NOO Approved yang dipilih untuk diekspor.');
         }
 
-        $branchName = $submissions[0]['branch_name'] ?? $submissions[0]['branch_id'] ?? 'ALL';
+        $isAllBranches = ($branchId === 'ALL' || empty($branchId));
+        $distinctBranchCount = collect($submissions)->pluck('branch_id')->filter()->unique()->count();
+        if ($distinctBranchCount > 1 || $branchId === 'ALL') {
+            $isAllBranches = true;
+        }
+
+        $branchName = $isAllBranches ? '' : ($submissions[0]['branch_name'] ?? $submissions[0]['branch_id'] ?? '');
+        $branchSuffix = $isAllBranches ? 'ALL_CABANG' : ($submissions[0]['branch_id'] ?? 'APPROVED');
         $excelBinary = $this->excelExportService->generateExcel($submissions, 'APPROVED', $branchName);
 
-        $filename = "EXPORT_TEMPLATE_NOO_" . ($submissions[0]['branch_id'] ?? 'APPROVED') . "_" . date('Ymd_His') . ".xlsx";
+        $filename = "EXPORT_TEMPLATE_NOO_{$branchSuffix}_" . date('Ymd_His') . ".xlsx";
 
         return response()->streamDownload(
             fn() => print($excelBinary),

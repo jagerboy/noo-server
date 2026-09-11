@@ -42,7 +42,11 @@ class ExcelExportService
         $sheet->getStyle('A2')->getFont()->setBold(true)->setSize(22);
 
         // Row 4: Header Nama Distributor (Overflow / spill melimpah keluar dari sel A4)
-        $sheet->setCellValue('A4', "Nama Distributor : {$branchName}");
+        $cleanBranch = trim($branchName);
+        $distributorLabel = (!empty($cleanBranch) && strtoupper($cleanBranch) !== 'ALL' && strtoupper($cleanBranch) !== 'SEMUA CABANG' && strtoupper($cleanBranch) !== 'ALL_CABANG')
+            ? "Nama Distributor : {$cleanBranch}"
+            : "Nama Distributor : ";
+        $sheet->setCellValue('A4', $distributorLabel);
         $sheet->getStyle('A4')->getFont()->setBold(true)->setSize(11);
         $sheet->getStyle('A4')->getAlignment()->setWrapText(false);
 

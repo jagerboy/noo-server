@@ -819,7 +819,7 @@ async function fetchExportBranches() {
     exportBranches.value = data.branches || [];
 
     // Auto-reset branch if currently selected branch is not in the filtered branches for this date range
-    if (exportBranch.value && !exportBranches.value.some((b) => b.branch_id === exportBranch.value)) {
+    if (exportBranch.value && exportBranch.value !== 'ALL' && !exportBranches.value.some((b) => b.branch_id === exportBranch.value)) {
       exportBranch.value = '';
       exportSubmissions.value = [];
       selectedExportIds.value = [];
@@ -918,7 +918,7 @@ async function submitExportSelected() {
     const link = document.createElement('a');
     link.href = downloadUrl;
 
-    const branchSuffix = exportBranch.value || 'APPROVED';
+    const branchSuffix = exportBranch.value === 'ALL' ? 'ALL_CABANG' : (exportBranch.value || 'APPROVED');
     link.download = `EXPORT_TEMPLATE_NOO_${branchSuffix}_${getLocalDateString(new Date())}.xlsx`;
 
     document.body.appendChild(link);
@@ -2620,7 +2620,10 @@ function getLineStyle(stepBefore, item) {
                   >
                     <option v-if="isLoadingExportBranches" value="" disabled selected>🔄 Memuat daftar distributor...</option>
                     <option v-else-if="exportBranches.length === 0" value="" disabled selected>⚠️ Tidak Ada Distributor dengan Data Approved pada Tanggal Ini</option>
-                    <option v-else value="">-- Pilih Distributor ({{ exportBranches.length }} Tersedia) --</option>
+                    <template v-else>
+                      <option value="">-- Pilih Distributor ({{ exportBranches.length }} Tersedia) --</option>
+                      <option value="ALL" class="font-bold text-blue-700 bg-blue-50 py-1">🌐 Semua Cabang (Seluruh Distributor)</option>
+                    </template>
                     
                     <optgroup
                       v-for="(group, regionKey) in groupedExportBranches"
@@ -2645,7 +2648,7 @@ function getLineStyle(stepBefore, item) {
             <!-- Table Result Section -->
             <div class="space-y-2">
               <div class="flex items-center justify-between text-[13px] text-[#4B5563] font-medium">
-                <span>{{ exportSubmissions.length }} data Approved untuk {{ exportBranch ? exportBranch : 'distributor' }}.</span>
+                <span>{{ exportSubmissions.length }} data Approved untuk {{ exportBranch === 'ALL' ? 'Semua Cabang' : (exportBranch ? exportBranch : 'distributor') }}.</span>
                 <span v-if="isLoadingExportData" class="text-[#2563EB] font-bold animate-pulse">🔄 Memuat data...</span>
               </div>
 
@@ -2658,7 +2661,7 @@ function getLineStyle(stepBefore, item) {
                   </div>
                   <div class="space-y-1">
                     <span class="text-sm font-extrabold text-slate-800 block">🔄 Memuat Data NOO Approved...</span>
-                    <span class="text-xs text-slate-500 font-medium block">Sedang mengambil data toko untuk distributor <strong class="text-blue-600">{{ exportBranch }}</strong></span>
+                    <span class="text-xs text-slate-500 font-medium block">Sedang mengambil data toko untuk <strong class="text-blue-600">{{ exportBranch === 'ALL' ? 'Semua Cabang' : exportBranch }}</strong></span>
                   </div>
                 </div>
 
@@ -2685,7 +2688,7 @@ function getLineStyle(stepBefore, item) {
                   <tbody>
                     <tr v-if="!exportBranch">
                       <td colspan="8" class="p-8 text-center text-[#4B5563]">
-                        <span class="text-[14px]">🏬 Silakan pilih <strong>Distributor</strong> terlebih dahulu untuk menampilkan data NOO Approved.</span>
+                        <span class="text-[14px]">🏬 Silakan pilih <strong>Distributor</strong> atau <strong>Semua Cabang</strong> terlebih dahulu untuk menampilkan data NOO Approved.</span>
                       </td>
                     </tr>
                     <tr v-else-if="exportSubmissions.length === 0">
