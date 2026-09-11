@@ -1,0 +1,1 @@
+import{_ as c}from"./_plugin-vue_export-helper-DlAUqK2U.js";import{o as r,c as e,M as n}from"./app-BiDrlaqq.js";const s={};function t(o,a){return r(),e("img",n({src:"/logo-noo-plus-v2.png",alt:"Logo NOO+"},o.$attrs,{class:"object-contain"}),null,16)}const i=c(s,[["render",t]]);export{i as A};

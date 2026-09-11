@@ -32,13 +32,13 @@ const showingNavigationDropdown = ref(false);
             <div>
               <div class="flex items-center space-x-2">
                 <h1 class="text-base font-bold tracking-wide text-white flex items-center gap-1.5">
-                  PORTAL SPV AREA
+                  PORTAL SUPERVISOR
                   <span class="text-[10px] font-extrabold px-2 py-0.5 rounded-full bg-[#F59E0B] text-slate-900 border border-amber-300 uppercase tracking-tight shadow-xs flex items-center gap-1">
-                    <span>👑</span> SPV SUPERVISOR
+                    <span>👑</span> DISTRIBUSI AREA
                   </span>
                 </h1>
               </div>
-              <p class="text-xs text-amber-200/90">Verifikasi Rute Kunjungan & Persetujuan Outlet</p>
+              <p class="text-xs text-amber-200/90">Verifikasi Rute Kunjungan & Validasi Submisi Outlet</p>
             </div>
           </div>
 
@@ -51,9 +51,6 @@ const showingNavigationDropdown = ref(false);
                     type="button"
                     class="inline-flex items-center rounded-lg bg-[#542B85] px-3.5 py-2 text-xs font-semibold text-white hover:bg-[#3B0764] focus:outline-none transition shadow-sm border border-purple-400/30"
                   >
-                    <div class="w-6 h-6 rounded-md bg-[#1E2B7B] text-[#F59E0B] flex items-center justify-center font-black me-2 shrink-0 border border-[#F59E0B]/40">
-                      {{ page.props.auth.user ? page.props.auth.user.name.charAt(0) : 'S' }}
-                    </div>
                     <span class="font-bold text-xs whitespace-nowrap">{{ page.props.auth.user ? page.props.auth.user.name : 'Supervisor Area' }}</span>
 
                     <svg class="-me-0.5 ms-2 h-4 w-4 text-amber-300" fill="currentColor" viewBox="0 0 20 20">

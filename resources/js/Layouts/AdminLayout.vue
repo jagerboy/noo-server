@@ -49,14 +49,11 @@ const showingNavigationDropdown = ref(false);
                 <template #trigger>
                   <button
                     type="button"
-                    class="inline-flex items-center rounded-lg bg-[#1E2B7B] px-3.5 py-2 text-xs font-semibold text-white hover:bg-[#162057] focus:outline-none transition shadow-sm border border-blue-400/30"
+                    class="inline-flex items-center rounded-lg bg-black/20 hover:bg-black/50 backdrop-blur-md px-3.5 py-2 text-xs font-semibold text-white focus:outline-none transition-all duration-200 shadow-sm border border-[#F59E0B] hover:border-amber-300"
                   >
-                    <div class="w-6 h-6 rounded-md bg-[#0F172A] text-[#F59E0B] flex items-center justify-center font-black me-2 shrink-0 border border-[#F59E0B]/40">
-                      {{ page.props.auth.user.name.charAt(0) }}
-                    </div>
                     <span class="font-bold text-xs whitespace-nowrap">{{ page.props.auth.user.name }}</span>
 
-                    <svg class="-me-0.5 ms-2 h-4 w-4 text-amber-300" fill="currentColor" viewBox="0 0 20 20">
+                    <svg class="-me-0.5 ms-2 h-4 w-4 text-[#F59E0B]" fill="currentColor" viewBox="0 0 20 20">
                       <path fill-rule="evenodd" d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z" clip-rule="evenodd"/>
                     </svg>
                   </button>

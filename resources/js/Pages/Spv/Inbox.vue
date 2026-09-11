@@ -36,10 +36,9 @@ const props = defineProps({
   },
 });
 
-// State Pencarian & Filter Bertingkat
+// State Pencarian & Multi-Filter
 const searchQuery = ref(props.filters?.search || '');
 const branchFilter = ref(props.filters?.branch_id || 'ALL');
-const subGroupFilter = ref(props.filters?.sub_group || 'ALL');
 const spvStatusFilter = ref(props.filters?.spv_status || 'ALL'); // 'ALL' | 'PENDING' | 'PROCESSED'
 const edpStatusFilter = ref(props.filters?.edp_status || 'ALL'); // 'ALL' | 'PENDING' | 'APPROVED' | 'REJECTED'
 const sortSelect = ref(props.filters?.sort || 'submitted_at_desc');
@@ -72,42 +71,6 @@ const rawSubmissions = computed(() => {
   return [];
 });
 
-// Opsi Sub-Grup Otomatis dari Master & Data Submisi
-const subGroupOptions = computed(() => {
-  const set = new Set();
-  if (Array.isArray(props.subGroups)) {
-    props.subGroups.forEach((g) => {
-      if (g) set.add(String(g).trim());
-    });
-  }
-  rawSubmissions.value.forEach((item) => {
-    if (item.type_outlet_code) set.add(String(item.type_outlet_code).trim());
-  });
-  return Array.from(set).sort();
-});
-
-// Semi-bertingkat: Jika Status SPV = 'PENDING', maka EDP Status dinonaktifkan (karena belum sampai ke EDP)
-const isEdpDisabled = computed(() => {
-  return spvStatusFilter.value === 'PENDING';
-});
-
-function onSpvStatusChange() {
-  if (spvStatusFilter.value === 'PENDING') {
-    edpStatusFilter.value = 'ALL';
-  }
-  triggerServerFilter(true);
-}
-
-function onEdpStatusChange() {
-  if (edpStatusFilter.value !== 'ALL') {
-    // Memilih status EDP mengindikasikan submisi telah diproses SPV
-    if (spvStatusFilter.value === 'PENDING') {
-      spvStatusFilter.value = 'PROCESSED';
-    }
-  }
-  triggerServerFilter(true);
-}
-
 function onFilterChange() {
   triggerServerFilter(true);
 }
@@ -124,7 +87,6 @@ function triggerServerFilter(immediate = true) {
     const params = {};
     if (searchQuery.value) params.search = searchQuery.value;
     if (branchFilter.value && branchFilter.value !== 'ALL') params.branch_id = branchFilter.value;
-    if (subGroupFilter.value && subGroupFilter.value !== 'ALL') params.sub_group = subGroupFilter.value;
     if (spvStatusFilter.value && spvStatusFilter.value !== 'ALL') params.spv_status = spvStatusFilter.value;
     if (edpStatusFilter.value && edpStatusFilter.value !== 'ALL') params.edp_status = edpStatusFilter.value;
     if (sortSelect.value && sortSelect.value !== 'default') params.sort = sortSelect.value;
@@ -148,7 +110,6 @@ const hasActiveFilter = computed(() => {
   return (
     Boolean(searchQuery.value) ||
     branchFilter.value !== 'ALL' ||
-    subGroupFilter.value !== 'ALL' ||
     spvStatusFilter.value !== 'ALL' ||
     edpStatusFilter.value !== 'ALL' ||
     (sortSelect.value !== 'submitted_at_desc' && sortSelect.value !== 'default')
@@ -158,7 +119,6 @@ const hasActiveFilter = computed(() => {
 function resetAllFilters() {
   searchQuery.value = '';
   branchFilter.value = 'ALL';
-  subGroupFilter.value = 'ALL';
   spvStatusFilter.value = 'ALL';
   edpStatusFilter.value = 'ALL';
   sortSelect.value = 'submitted_at_desc';
@@ -222,13 +182,7 @@ const filteredSubmissions = computed(() => {
     });
   }
 
-  // Filter Sub-Grup
-  if (subGroupFilter.value && subGroupFilter.value !== 'ALL') {
-    const sg = String(subGroupFilter.value).toLowerCase().trim();
-    list = list.filter((item) => String(item.type_outlet_code || '').toLowerCase().trim() === sg);
-  }
-
-  // Filter SPV Status
+  // Filter Status Review Area (SPV)
   if (spvStatusFilter.value === 'PENDING') {
     list = list.filter((item) => ['PUSHED_TO_SPV', 'ADMIN_APPROVED'].includes(item.status));
   } else if (spvStatusFilter.value === 'PROCESSED') {
@@ -490,6 +444,11 @@ function openDetailModal(item) {
   showDetailModal.value = true;
 }
 
+function closeDetailModal() {
+  showDetailModal.value = false;
+  selectedSubmission.value = null;
+}
+
 // Buka Modal Reject SPV
 function openRejectModal(item) {
   selectedSubmission.value = item;
@@ -550,7 +509,7 @@ function getRouteWeeksSummary(item) {
   return weeks.length > 0 ? weeks.join(', ') : 'Belum di-set';
 }
 
-// Helper Format Label Status (Bebas dari underscore, tampilan elegan & rapi)
+// Helper Format Label Status (Informatif, rapi, bebas dari redundansi SPV/Area)
 function formatStatusLabel(status) {
   if (!status) return '-';
   switch (status) {
@@ -559,23 +518,23 @@ function formatStatusLabel(status) {
       return 'Pending Admin';
     case 'PUSHED_TO_SPV':
     case 'ADMIN_APPROVED':
-      return 'Pushed to SPV';
+      return 'Menunggu Review';
     case 'APPROVED_SPV':
     case 'APPROVED_BY_SPV':
     case 'PUSHED_TO_EDP':
-      return 'Approved SPV';
+      return 'Disetujui Area';
     case 'APPROVED_EDP':
     case 'EDP_APPROVED':
-      return 'Approved EDP';
+      return 'Approved Principal';
     case 'ADMIN_REJECTED':
     case 'REJECTED_ADMIN':
       return 'Ditolak Admin';
     case 'SPV_REJECTED':
     case 'REJECTED_SPV':
-      return 'Ditolak SPV Area';
+      return 'Ditolak Area';
     case 'EDP_REJECTED':
     case 'REJECTED_EDP':
-      return 'Ditolak EDP';
+      return 'Ditolak Principal';
     case 'REVISION_KTP':
       return 'Revisi KTP';
     default:
@@ -804,9 +763,9 @@ function getCardAccentClass(item) {
       <div class="flex flex-col md:flex-row md:items-center md:justify-between gap-4 md:gap-6">
         <div>
           <div class="flex items-center space-x-2.5 sm:space-x-3 flex-wrap gap-y-2">
-            <h1 class="text-lg sm:text-xl md:text-[24px] font-semibold text-[#111827] tracking-tight leading-[1.4]">Inbox Submisi SPV Area</h1>
+            <h1 class="text-lg sm:text-xl md:text-[24px] font-semibold text-[#111827] tracking-tight leading-[1.4]">Inbox Submisi Toko</h1>
             <span class="px-2.5 py-0.5 md:px-3 md:py-1 rounded-lg text-[11px] md:text-xs font-semibold bg-[#F3E8FF] text-[#7E22CE] border border-[#C084FC]">
-              Supervisor Area
+              Verifikasi & Approval
             </span>
             <!-- Tombol Modal Progress Tracking NOO -->
             <button
@@ -822,7 +781,7 @@ function getCardAccentClass(item) {
             </button>
           </div>
           <p class="text-[12.5px] md:text-[14px] leading-[1.5] font-normal text-[#6B7280] mt-0.5 md:mt-1">
-            Verifikasi data pendaftaran toko, pengisian rute kunjungan H1-H7 & M1-M4, dan persetujuan ke EDP Principal.
+            Verifikasi pendaftaran outlet baru, alokasi jadwal kunjungan sales (H1-H7 & M1-M4), dan persetujuan ke Principal.
           </p>
         </div>
 
@@ -832,7 +791,7 @@ function getCardAccentClass(item) {
             @click="filterByMetric('pendingSpv')"
             class="p-2.5 sm:p-3 md:p-3.5 rounded-xl border shadow-[0_1px_3px_rgba(0,0,0,0.06)] text-center flex flex-col justify-between h-full min-w-[110px] md:min-w-[125px] cursor-pointer transition select-none hover:shadow-sm"
             :class="spvStatusFilter === 'PENDING' ? 'bg-blue-50/50 border-[#2563EB] ring-2 ring-[#2563EB]/20' : 'bg-white border-[#E5E7EB] hover:border-blue-300'"
-            title="Klik untuk filter data yang belum diproses SPV"
+            title="Klik untuk filter data yang belum diproses review"
           >
             <div class="min-h-[26px] md:min-h-[32px] flex items-center justify-center">
               <span class="text-[10px] md:text-[11px] font-semibold uppercase tracking-wider text-[#1D4ED8]">Pending Review</span>
@@ -843,10 +802,10 @@ function getCardAccentClass(item) {
             @click="filterByMetric('approvedSpv')"
             class="p-2.5 sm:p-3 md:p-3.5 rounded-xl border shadow-[0_1px_3px_rgba(0,0,0,0.06)] text-center flex flex-col justify-between h-full min-w-[110px] md:min-w-[125px] cursor-pointer transition select-none hover:shadow-sm"
             :class="spvStatusFilter === 'PROCESSED' && edpStatusFilter === 'PENDING' ? 'bg-purple-50/50 border-[#9333EA] ring-2 ring-[#9333EA]/20' : 'bg-white border-[#E5E7EB] hover:border-purple-300'"
-            title="Klik untuk filter data yang disetujui SPV & menunggu EDP"
+            title="Klik untuk filter data yang disetujui area & menunggu Principal"
           >
             <div class="min-h-[26px] md:min-h-[32px] flex items-center justify-center">
-              <span class="text-[10px] md:text-[11px] font-semibold uppercase tracking-wider text-[#7E22CE]">Disetujui SPV</span>
+              <span class="text-[10px] md:text-[11px] font-semibold uppercase tracking-wider text-[#7E22CE]">Disetujui Area</span>
             </div>
             <div class="text-xl md:text-2xl font-bold text-[#9333EA] mt-0.5 md:mt-1">{{ stats.approvedSpv }}</div>
           </div>
@@ -854,10 +813,10 @@ function getCardAccentClass(item) {
             @click="filterByMetric('approvedEdp')"
             class="p-2.5 sm:p-3 md:p-3.5 rounded-xl border shadow-[0_1px_3px_rgba(0,0,0,0.06)] text-center flex flex-col justify-between h-full min-w-[110px] md:min-w-[125px] cursor-pointer transition select-none hover:shadow-sm"
             :class="spvStatusFilter === 'PROCESSED' && edpStatusFilter === 'APPROVED' ? 'bg-emerald-50/50 border-[#16A34A] ring-2 ring-[#16A34A]/20' : 'bg-white border-[#E5E7EB] hover:border-emerald-300'"
-            title="Klik untuk filter data yang telah di-approve EDP"
+            title="Klik untuk filter data yang telah disetujui Principal"
           >
             <div class="min-h-[26px] md:min-h-[32px] flex items-center justify-center">
-              <span class="text-[10px] md:text-[11px] font-semibold uppercase tracking-wider text-[#15803D]">EDP Approved</span>
+              <span class="text-[10px] md:text-[11px] font-semibold uppercase tracking-wider text-[#15803D]">Approved Principal</span>
             </div>
             <div class="text-xl md:text-2xl font-bold text-[#16A34A] mt-0.5 md:mt-1">{{ stats.approvedEdp }}</div>
           </div>
@@ -875,7 +834,7 @@ function getCardAccentClass(item) {
         </div>
       </div>
 
-      <!-- Toolbar Pencarian & Filter Semi-Bertingkat (Minimalist & No Icon Overlapping) -->
+      <!-- Toolbar Pencarian & Multi-Filter Fleksibel -->
       <div class="bg-white p-3.5 md:p-4 rounded-xl border border-[#E5E7EB] shadow-[0_1px_3px_rgba(0,0,0,0.06)] space-y-3">
         <div class="flex flex-col lg:flex-row items-stretch lg:items-center gap-3">
           
@@ -893,28 +852,10 @@ function getCardAccentClass(item) {
             />
           </div>
 
-          <!-- Dropdown Filter Groups -->
+          <!-- Dropdown Multi-Filter Groups: Cabang, Status SPV, Status EDP, Urutkan -->
           <div class="flex flex-wrap items-center gap-2.5">
 
-            <!-- 1. Dropdown Sub-Grup -->
-            <div class="relative inline-flex items-center">
-              <label class="text-[12px] font-medium text-slate-500 mr-1.5 hidden sm:inline">Sub-Grup:</label>
-              <select
-                v-model="subGroupFilter"
-                @change="onFilterChange"
-                class="appearance-none pl-3 pr-8 py-1.5 text-[12.5px] font-medium rounded-lg bg-white border border-[#D1D5DB] text-[#1F2937] focus:ring-2 focus:ring-blue-600 focus:border-blue-600 shadow-2xs cursor-pointer"
-              >
-                <option value="ALL">Semua Sub-Grup</option>
-                <option v-for="sg in subGroupOptions" :key="sg" :value="sg">
-                  {{ sg }}
-                </option>
-              </select>
-              <svg class="pointer-events-none absolute right-2.5 w-3.5 h-3.5 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
-              </svg>
-            </div>
-
-            <!-- 2. Dropdown Cabang SPV Binaan -->
+            <!-- 1. Dropdown Cabang -->
             <div v-if="myBranches && myBranches.length > 0" class="relative inline-flex items-center">
               <label class="text-[12px] font-medium text-slate-500 mr-1.5 hidden sm:inline">Cabang:</label>
               <select
@@ -922,7 +863,7 @@ function getCardAccentClass(item) {
                 @change="onFilterChange"
                 class="appearance-none pl-3 pr-8 py-1.5 text-[12.5px] font-medium rounded-lg bg-white border border-[#D1D5DB] text-[#1F2937] focus:ring-2 focus:ring-blue-600 focus:border-blue-600 shadow-2xs cursor-pointer max-w-[200px] truncate"
               >
-                <option value="ALL">Semua Cabang SPV</option>
+                <option value="ALL">Semua Cabang</option>
                 <option
                   v-for="b in myBranches"
                   :key="b.branch_id || b"
@@ -936,45 +877,42 @@ function getCardAccentClass(item) {
               </svg>
             </div>
 
-            <!-- 3. Dropdown Filter Status SPV (Belum Diproses vs Sudah Diproses) -->
+            <!-- 2. Dropdown Status SPV (Review Area) -->
             <div class="relative inline-flex items-center">
-              <label class="text-[12px] font-medium text-slate-500 mr-1.5 hidden sm:inline">Status SPV:</label>
+              <label class="text-[12px] font-medium text-slate-500 mr-1.5 hidden sm:inline">Status Review:</label>
               <select
                 v-model="spvStatusFilter"
-                @change="onSpvStatusChange"
+                @change="onFilterChange"
                 class="appearance-none pl-3 pr-8 py-1.5 text-[12.5px] font-medium rounded-lg bg-white border border-[#D1D5DB] text-[#1F2937] focus:ring-2 focus:ring-blue-600 focus:border-blue-600 shadow-2xs cursor-pointer"
               >
-                <option value="ALL">Semua Status SPV</option>
-                <option value="PENDING">Belum Diproses SPV</option>
-                <option value="PROCESSED">Sudah Diproses SPV</option>
+                <option value="ALL">Semua Review</option>
+                <option value="PENDING">Menunggu Review</option>
+                <option value="PROCESSED">Sudah Diproses</option>
               </select>
               <svg class="pointer-events-none absolute right-2.5 w-3.5 h-3.5 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
               </svg>
             </div>
 
-            <!-- 4. Dropdown Filter Status EDP (Semi-Bertingkat) -->
+            <!-- 3. Dropdown Status EDP (Principal) -->
             <div class="relative inline-flex items-center">
-              <label class="text-[12px] font-medium text-slate-500 mr-1.5 hidden sm:inline">Status EDP:</label>
+              <label class="text-[12px] font-medium text-slate-500 mr-1.5 hidden sm:inline">Status Principal:</label>
               <select
                 v-model="edpStatusFilter"
-                @change="onEdpStatusChange"
-                :disabled="isEdpDisabled"
-                class="appearance-none pl-3 pr-8 py-1.5 text-[12.5px] font-medium rounded-lg border shadow-2xs cursor-pointer transition"
-                :class="isEdpDisabled ? 'bg-slate-50 text-slate-400 border-slate-200 cursor-not-allowed' : 'bg-white border-[#D1D5DB] text-[#1F2937] focus:ring-2 focus:ring-blue-600 focus:border-blue-600'"
-                :title="isEdpDisabled ? 'Status EDP hanya aktif untuk toko yang sudah diproses SPV' : 'Filter Status Keputusan EDP'"
+                @change="onFilterChange"
+                class="appearance-none pl-3 pr-8 py-1.5 text-[12.5px] font-medium rounded-lg bg-white border border-[#D1D5DB] text-[#1F2937] focus:ring-2 focus:ring-blue-600 focus:border-blue-600 shadow-2xs cursor-pointer"
               >
-                <option value="ALL">{{ isEdpDisabled ? 'Belum ke EDP' : 'Semua Status EDP' }}</option>
-                <option value="PENDING">EDP: Pending Review</option>
-                <option value="APPROVED">EDP: Approved</option>
-                <option value="REJECTED">EDP: Rejected</option>
+                <option value="ALL">Semua Principal</option>
+                <option value="PENDING">Pending Principal</option>
+                <option value="APPROVED">Approved Principal</option>
+                <option value="REJECTED">Ditolak Principal</option>
               </select>
               <svg class="pointer-events-none absolute right-2.5 w-3.5 h-3.5 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
               </svg>
             </div>
 
-            <!-- 5. Dropdown Urutkan -->
+            <!-- 4. Dropdown Urutkan -->
             <div class="relative inline-flex items-center">
               <label class="text-[12px] font-medium text-slate-500 mr-1.5 hidden sm:inline">Urutkan:</label>
               <select
@@ -1007,26 +945,25 @@ function getCardAccentClass(item) {
         </div>
       </div>
 
-      <!-- TABEL SUBMISI SPV AREA (8 KOLOM MINIMALIS, BEBAS DARI IKON SAMPAH, TANPA PRINCIPAL & EXIF) -->
+      <!-- TABEL SUBMISI OUTLET (7 KOLOM EFISIEN & INFORMATIF) -->
       <div class="bg-white rounded-xl border border-[#E5E7EB] shadow-[0_1px_3px_rgba(0,0,0,0.06)] overflow-hidden">
         <div class="w-full overflow-x-auto">
           <table class="w-full text-left text-[13px] leading-[18px] text-[#374151] table-fixed min-w-[1040px]">
             <thead class="bg-[#F8FAFC] text-[12px] font-semibold text-[#475569] border-b border-[#E2E8F0] select-none">
               <tr>
-                <th class="w-[24%] px-4 py-3.5">Toko & Sub-Toko</th>
-                <th class="w-[15%] px-4 py-3.5">Salesman & Cabang</th>
-                <th class="w-[18%] px-4 py-3.5">Alamat Ringkas</th>
-                <th class="w-[11%] px-3 py-3.5">Status</th>
-                <th class="w-[9%] px-3 py-3.5">Cust Dist.</th>
-                <th class="w-[9%] px-3 py-3.5">Cust Principal</th>
-                <th class="w-[12%] px-3 py-3.5">Rute Kunjungan</th>
-                <th class="w-[12%] px-4 py-3.5 text-center">Aksi</th>
+                <th class="w-[28%] px-4 py-3.5">Toko & Salesman</th>
+                <th class="w-[19%] px-4 py-3.5">Alamat Ringkas</th>
+                <th class="w-[12%] px-3 py-3.5">Status</th>
+                <th class="w-[11%] px-3 py-3.5">Cust Dist.</th>
+                <th class="w-[11%] px-3 py-3.5">Cust Principal</th>
+                <th class="w-[11%] px-3 py-3.5">Rute Kunjungan</th>
+                <th class="w-[8%] px-3 py-3.5 text-center">Aksi</th>
               </tr>
             </thead>
             <tbody class="divide-y divide-[#E2E8F0]">
               <!-- Empty State -->
               <tr v-if="sortedSubmissions.length === 0">
-                <td colspan="8" class="px-6 py-12 text-center text-slate-500 font-normal">
+                <td colspan="7" class="px-6 py-12 text-center text-slate-500 font-normal">
                   <div class="text-[13.5px] font-semibold text-slate-800">Tidak Ada Data Submisi</div>
                   <p class="text-[12px] text-slate-500 mt-1">Tidak ada data submisi toko yang sesuai dengan filter atau kata kunci pencarian Anda.</p>
                 </td>
@@ -1040,45 +977,31 @@ function getCardAccentClass(item) {
                 class="transition border-b cursor-pointer group hover:bg-slate-50/80 select-none bg-white"
                 title="Klik untuk membuka detail submisi & kelola rute toko"
               >
-                <!-- 1. Toko, Sub-Toko, Pemilik & No HP (Tanpa principal info & Tanpa EXIF) -->
+                <!-- 1. Toko, Salesman & Cabang (Nama Pemilik & No HP dihilangkan dari tabel, tampil di modal detail) -->
                 <td class="px-4 py-3.5 align-top">
                   <div class="font-bold text-[13.5px] text-slate-900 group-hover:text-blue-600 transition truncate" :title="item.nama_noo">
                     {{ item.nama_noo }}
                   </div>
-                  <!-- Sub-grup / Sub-toko badge ONLY -->
-                  <div class="flex items-center gap-1.5 mt-1 truncate">
+                  <!-- Sub-baris: Salesman & Cabang digabung rapi di bawah Nama Toko (tidak membengkak ke bawah) -->
+                  <div class="flex items-center gap-1.5 mt-1 text-[11.5px] text-slate-600 truncate" :title="(item.salesman_name || '-') + (item.salesman_code ? ' (' + item.salesman_code + ')' : '') + ' • ' + (item.branch_name || item.branch_id || '-')">
                     <span
                       v-if="item.type_outlet_code"
-                      class="px-2 py-0.5 rounded text-[10.5px] font-semibold bg-blue-50 text-blue-700 border border-blue-200 shrink-0"
+                      class="px-1.5 py-0.2 rounded text-[10px] font-semibold bg-blue-50 text-blue-700 border border-blue-200 shrink-0"
                     >
                       {{ item.type_outlet_code }}
                     </span>
-                    <span v-if="item.type_outlet_desc" class="text-[11.5px] text-slate-500 truncate">
-                      {{ item.type_outlet_desc }}
+                    <span class="font-medium text-slate-800 truncate">
+                      {{ item.salesman_name || '-' }}
+                      <span v-if="item.salesman_code" class="text-slate-500 font-normal">({{ item.salesman_code }})</span>
                     </span>
-                  </div>
-                  <!-- Nama Pemilik & No HP Disatukan (Minimalis, rapi tanpa ikon sampah) -->
-                  <div class="text-[11.5px] text-slate-600 mt-1 truncate" :title="(item.nama_pemilik_outlet || '-') + ' • ' + (item.no_hp_noo || item.no_hp || '-')">
-                    <span class="font-medium text-slate-700">{{ item.nama_pemilik_outlet || '-' }}</span>
-                    <span class="mx-1 text-slate-300">•</span>
-                    <span class="text-slate-500">{{ item.no_hp_noo || item.no_hp || '-' }}</span>
+                    <span class="text-slate-300 shrink-0">•</span>
+                    <span class="text-slate-500 truncate">{{ item.branch_name || item.branch_id || '-' }}</span>
                   </div>
                 </td>
 
-                <!-- 2. Salesman & Cabang -->
+                <!-- 2. Alamat Ringkas -->
                 <td class="px-4 py-3.5 align-top">
-                  <div class="font-medium text-[13px] text-slate-900 truncate" :title="item.salesman_name">
-                    {{ item.salesman_name || '-' }}
-                    <span v-if="item.salesman_code" class="text-[11px] text-slate-500 font-normal">({{ item.salesman_code }})</span>
-                  </div>
-                  <div class="text-[12px] text-slate-500 mt-0.5 truncate" :title="item.branch_name || item.branch_id">
-                    {{ item.branch_name || item.branch_id || '-' }}
-                  </div>
-                </td>
-
-                <!-- 3. Alamat Ringkas -->
-                <td class="px-4 py-3.5 align-top">
-                  <div class="text-[12.5px] text-slate-800 line-clamp-2" :title="item.alamat_noo">
+                  <div class="text-[12.5px] text-slate-800 line-clamp-1" :title="item.alamat_noo">
                     {{ item.alamat_noo || '-' }}
                   </div>
                   <div class="text-[11px] text-slate-500 mt-0.5 truncate" :title="[item.kec_noo, item.kab_kota_noo].filter(Boolean).join(', ')">
@@ -1086,40 +1009,40 @@ function getCardAccentClass(item) {
                   </div>
                 </td>
 
-                <!-- 4. Status -->
+                <!-- 3. Status -->
                 <td class="px-3 py-3.5 align-top">
                   <span class="inline-block px-2.5 py-0.5 rounded-full text-[11px] font-semibold border shadow-2xs whitespace-nowrap" :class="getStatusBadgeStyle(item.status)">
                     {{ formatStatusLabel(item.status) }}
                   </span>
                 </td>
 
-                <!-- 5. Cust Dist. -->
+                <!-- 4. Cust Dist. -->
                 <td class="px-3 py-3.5 align-top">
                   <span
                     v-if="item.custcode_distributor"
-                    class="text-[11.5px] font-mono font-medium px-2 py-0.5 rounded bg-blue-50 text-blue-700 border border-blue-200 block truncate max-w-[100px]"
+                    class="text-[11.5px] font-mono font-medium px-2 py-0.5 rounded bg-blue-50 text-blue-700 border border-blue-200 inline-block whitespace-nowrap"
                     :title="item.custcode_distributor"
                   >
                     {{ item.custcode_distributor }}
                   </span>
-                  <span v-else class="text-slate-400 text-xs">-</span>
+                  <span v-else class="text-slate-400 text-xs italic">-</span>
                 </td>
 
-                <!-- 6. Cust Principal -->
+                <!-- 5. Cust Principal -->
                 <td class="px-3 py-3.5 align-top">
                   <span
                     v-if="item.code_noo_principal"
-                    class="text-[11.5px] font-mono font-medium px-2 py-0.5 rounded bg-emerald-50 text-emerald-700 border border-emerald-200 block truncate max-w-[100px]"
+                    class="text-[11.5px] font-mono font-medium px-2 py-0.5 rounded bg-emerald-50 text-emerald-700 border border-emerald-200 inline-block whitespace-nowrap"
                     :title="item.code_noo_principal"
                   >
                     {{ item.code_noo_principal }}
                   </span>
-                  <span v-else class="text-slate-400 text-xs">-</span>
+                  <span v-else class="text-slate-400 text-xs italic">-</span>
                 </td>
 
-                <!-- 7. Rute Kunjungan -->
+                <!-- 6. Rute Kunjungan -->
                 <td class="px-3 py-3.5 align-top">
-                  <div v-if="hasRoute(item)" class="text-[11.5px] space-y-0.5">
+                  <div v-if="hasRoute(item)" class="text-[11.5px] space-y-0.5 whitespace-nowrap">
                     <div class="text-slate-700">Hari: <span class="font-medium text-slate-900">{{ getRouteDaysSummary(item) }}</span></div>
                     <div class="text-slate-500">Minggu: <span class="font-medium text-slate-800">{{ getRouteWeeksSummary(item) }}</span></div>
                   </div>
@@ -1128,12 +1051,12 @@ function getCardAccentClass(item) {
                   </div>
                 </td>
 
-                <!-- 8. Button Detail (Kelola & Rute) -->
-                <td class="px-4 py-3.5 align-top text-center" @click.stop>
+                <!-- 7. Button Detail (Kelola & Rute) -->
+                <td class="px-3 py-3.5 align-top text-center" @click.stop>
                   <button
                     type="button"
                     @click="openDetailModal(item)"
-                    class="inline-flex items-center justify-center px-3.5 py-1.5 text-[11.5px] font-semibold text-white bg-blue-600 hover:bg-blue-700 active:bg-blue-800 rounded-lg shadow-xs transition cursor-pointer shrink-0"
+                    class="inline-flex items-center justify-center px-3 py-1.5 text-[11.5px] font-semibold text-white bg-blue-600 hover:bg-blue-700 active:bg-blue-800 rounded-lg shadow-xs transition cursor-pointer shrink-0 whitespace-nowrap"
                   >
                     Kelola & Rute
                   </button>
