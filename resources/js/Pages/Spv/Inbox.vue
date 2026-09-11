@@ -6,7 +6,7 @@
  * persetujuan SPV (Approve & Pushed ke EDP), dan penolakan SPV.
  */
 import { ref, computed, onMounted, onUnmounted } from 'vue';
-import { useForm, Head } from '@inertiajs/vue3';
+import { useForm, Head, router } from '@inertiajs/vue3';
 import SpvLayout from '@/Layouts/SpvLayout.vue';
 import Pagination from '@/Components/Pagination.vue';
 import BaseButton from '@/Components/BaseButton.vue';
@@ -26,16 +26,23 @@ const props = defineProps({
     type: Array,
     default: () => [],
   },
+  subGroups: {
+    type: Array,
+    default: () => [],
+  },
   filters: {
     type: Object,
     default: () => ({}),
   },
 });
 
-// State Pencarian & Filter
-const searchQuery = ref('');
-const statusFilter = ref('ALL');
-const branchFilter = ref('ALL');
+// State Pencarian & Filter Bertingkat
+const searchQuery = ref(props.filters?.search || '');
+const branchFilter = ref(props.filters?.branch_id || 'ALL');
+const subGroupFilter = ref(props.filters?.sub_group || 'ALL');
+const spvStatusFilter = ref(props.filters?.spv_status || 'ALL'); // 'ALL' | 'PENDING' | 'PROCESSED'
+const edpStatusFilter = ref(props.filters?.edp_status || 'ALL'); // 'ALL' | 'PENDING' | 'APPROVED' | 'REJECTED'
+const sortSelect = ref(props.filters?.sort || 'submitted_at_desc');
 
 // State Modal Detail & Action
 const showDetailModal = ref(false);
@@ -65,11 +72,147 @@ const rawSubmissions = computed(() => {
   return [];
 });
 
-// Filter Submisi Data Toko (Filter Cabang Binaan & Pencarian Komprehensif)
+// Opsi Sub-Grup Otomatis dari Master & Data Submisi
+const subGroupOptions = computed(() => {
+  const set = new Set();
+  if (Array.isArray(props.subGroups)) {
+    props.subGroups.forEach((g) => {
+      if (g) set.add(String(g).trim());
+    });
+  }
+  rawSubmissions.value.forEach((item) => {
+    if (item.type_outlet_code) set.add(String(item.type_outlet_code).trim());
+  });
+  return Array.from(set).sort();
+});
+
+// Semi-bertingkat: Jika Status SPV = 'PENDING', maka EDP Status dinonaktifkan (karena belum sampai ke EDP)
+const isEdpDisabled = computed(() => {
+  return spvStatusFilter.value === 'PENDING';
+});
+
+function onSpvStatusChange() {
+  if (spvStatusFilter.value === 'PENDING') {
+    edpStatusFilter.value = 'ALL';
+  }
+  triggerServerFilter(true);
+}
+
+function onEdpStatusChange() {
+  if (edpStatusFilter.value !== 'ALL') {
+    // Memilih status EDP mengindikasikan submisi telah diproses SPV
+    if (spvStatusFilter.value === 'PENDING') {
+      spvStatusFilter.value = 'PROCESSED';
+    }
+  }
+  triggerServerFilter(true);
+}
+
+function onFilterChange() {
+  triggerServerFilter(true);
+}
+
+let searchTimer = null;
+function onSearchInput() {
+  triggerServerFilter(false);
+}
+
+function triggerServerFilter(immediate = true) {
+  if (searchTimer) clearTimeout(searchTimer);
+
+  const execute = () => {
+    const params = {};
+    if (searchQuery.value) params.search = searchQuery.value;
+    if (branchFilter.value && branchFilter.value !== 'ALL') params.branch_id = branchFilter.value;
+    if (subGroupFilter.value && subGroupFilter.value !== 'ALL') params.sub_group = subGroupFilter.value;
+    if (spvStatusFilter.value && spvStatusFilter.value !== 'ALL') params.spv_status = spvStatusFilter.value;
+    if (edpStatusFilter.value && edpStatusFilter.value !== 'ALL') params.edp_status = edpStatusFilter.value;
+    if (sortSelect.value && sortSelect.value !== 'default') params.sort = sortSelect.value;
+    params.page = 1;
+
+    router.get(route('spv.inbox'), params, {
+      preserveState: true,
+      preserveScroll: true,
+      replace: true,
+    });
+  };
+
+  if (immediate) {
+    execute();
+  } else {
+    searchTimer = setTimeout(execute, 400);
+  }
+}
+
+const hasActiveFilter = computed(() => {
+  return (
+    Boolean(searchQuery.value) ||
+    branchFilter.value !== 'ALL' ||
+    subGroupFilter.value !== 'ALL' ||
+    spvStatusFilter.value !== 'ALL' ||
+    edpStatusFilter.value !== 'ALL' ||
+    (sortSelect.value !== 'submitted_at_desc' && sortSelect.value !== 'default')
+  );
+});
+
+function resetAllFilters() {
+  searchQuery.value = '';
+  branchFilter.value = 'ALL';
+  subGroupFilter.value = 'ALL';
+  spvStatusFilter.value = 'ALL';
+  edpStatusFilter.value = 'ALL';
+  sortSelect.value = 'submitted_at_desc';
+  triggerServerFilter(true);
+}
+
+function filterByMetric(statType) {
+  if (statType === 'pendingSpv') {
+    if (spvStatusFilter.value === 'PENDING') {
+      spvStatusFilter.value = 'ALL';
+    } else {
+      spvStatusFilter.value = 'PENDING';
+      edpStatusFilter.value = 'ALL';
+    }
+  } else if (statType === 'approvedSpv') {
+    if (spvStatusFilter.value === 'PROCESSED' && edpStatusFilter.value === 'PENDING') {
+      spvStatusFilter.value = 'ALL';
+      edpStatusFilter.value = 'ALL';
+    } else {
+      spvStatusFilter.value = 'PROCESSED';
+      edpStatusFilter.value = 'PENDING';
+    }
+  } else if (statType === 'approvedEdp') {
+    if (spvStatusFilter.value === 'PROCESSED' && edpStatusFilter.value === 'APPROVED') {
+      spvStatusFilter.value = 'ALL';
+      edpStatusFilter.value = 'ALL';
+    } else {
+      spvStatusFilter.value = 'PROCESSED';
+      edpStatusFilter.value = 'APPROVED';
+    }
+  } else if (statType === 'rejected') {
+    if (edpStatusFilter.value === 'REJECTED') {
+      spvStatusFilter.value = 'ALL';
+      edpStatusFilter.value = 'ALL';
+    } else {
+      spvStatusFilter.value = 'ALL';
+      edpStatusFilter.value = 'REJECTED';
+    }
+  }
+  triggerServerFilter(true);
+}
+
+function hasRoute(item) {
+  if (!item) return false;
+  const days = ['h1', 'h2', 'h3', 'h4', 'h5', 'h6', 'h7'];
+  const weeks = ['m1', 'm2', 'm3', 'm4'];
+  return days.some((d) => item[d] === 'Y' || item[d] === 'YES') || weeks.some((w) => item[w] === 'Y' || item[w] === 'YES');
+}
+
+// Filter Submisi Data Toko (Client-side fast responsiveness)
 const filteredSubmissions = computed(() => {
   let list = rawSubmissions.value;
 
-  // Filter Berdasarkan Cabang Binaan SPV
+  // Filter Cabang Binaan SPV
   if (branchFilter.value && branchFilter.value !== 'ALL') {
     const targetBranch = String(branchFilter.value).toLowerCase().trim();
     list = list.filter((item) => {
@@ -77,6 +220,33 @@ const filteredSubmissions = computed(() => {
       const bName = String(item.branch_name || '').toLowerCase().trim();
       return bId === targetBranch || bName === targetBranch || bId.includes(targetBranch) || bName.includes(targetBranch);
     });
+  }
+
+  // Filter Sub-Grup
+  if (subGroupFilter.value && subGroupFilter.value !== 'ALL') {
+    const sg = String(subGroupFilter.value).toLowerCase().trim();
+    list = list.filter((item) => String(item.type_outlet_code || '').toLowerCase().trim() === sg);
+  }
+
+  // Filter SPV Status
+  if (spvStatusFilter.value === 'PENDING') {
+    list = list.filter((item) => ['PUSHED_TO_SPV', 'ADMIN_APPROVED'].includes(item.status));
+  } else if (spvStatusFilter.value === 'PROCESSED') {
+    list = list.filter((item) => [
+      'APPROVED_SPV', 'APPROVED_BY_SPV', 'PUSHED_TO_EDP',
+      'APPROVED_EDP', 'EDP_APPROVED',
+      'REJECTED_SPV', 'SPV_REJECTED',
+      'REJECTED_EDP', 'EDP_REJECTED'
+    ].includes(item.status));
+  }
+
+  // Filter EDP Status
+  if (edpStatusFilter.value === 'PENDING') {
+    list = list.filter((item) => ['APPROVED_SPV', 'APPROVED_BY_SPV', 'PUSHED_TO_EDP'].includes(item.status));
+  } else if (edpStatusFilter.value === 'APPROVED') {
+    list = list.filter((item) => ['APPROVED_EDP', 'EDP_APPROVED'].includes(item.status));
+  } else if (edpStatusFilter.value === 'REJECTED') {
+    list = list.filter((item) => ['REJECTED_EDP', 'EDP_REJECTED'].includes(item.status));
   }
 
   if (!searchQuery.value) return list;
@@ -101,55 +271,33 @@ const filteredSubmissions = computed(() => {
   });
 });
 
-// State & Handler Sort Tabel (Default: Pending SPV & kapan admin melakukan submit terbaru)
-const sortKey = ref('default_order');
-const sortDir = ref('asc');
-
-const sortSelect = computed({
-  get() {
-    if (sortKey.value === 'default_order') return 'submitted_at_desc';
-    return `${sortKey.value}_${sortDir.value}`;
-  },
-  set(val) {
-    if (val === 'submitted_at_desc') {
-      sortKey.value = 'default_order';
-      sortDir.value = 'asc';
-    } else {
-      const parts = val.split('_');
-      sortDir.value = parts.pop();
-      sortKey.value = parts.join('_');
-    }
-  },
-});
-
 const sortedSubmissions = computed(() => {
   const list = [...filteredSubmissions.value];
-  if (!sortKey.value || sortKey.value === 'default_order') {
+  if (sortSelect.value === 'submitted_at_asc') {
     return list.sort((a, b) => {
-      const aPending = a.status === 'PUSHED_TO_SPV' ? 0 : 1;
-      const bPending = b.status === 'PUSHED_TO_SPV' ? 0 : 1;
-      if (aPending !== bPending) return aPending - bPending;
       const aTime = a.pushed_to_spv_at ? new Date(a.pushed_to_spv_at).getTime() : (a.submitted_at ? new Date(a.submitted_at).getTime() : 0);
       const bTime = b.pushed_to_spv_at ? new Date(b.pushed_to_spv_at).getTime() : (b.submitted_at ? new Date(b.submitted_at).getTime() : 0);
-      return bTime - aTime;
+      return aTime - bTime;
     });
   }
+  if (sortSelect.value === 'nama_noo_asc') {
+    return list.sort((a, b) => String(a.nama_noo || '').localeCompare(String(b.nama_noo || '')));
+  }
+  if (sortSelect.value === 'nama_noo_desc') {
+    return list.sort((a, b) => String(b.nama_noo || '').localeCompare(String(a.nama_noo || '')));
+  }
+  if (sortSelect.value === 'salesman_name_asc') {
+    return list.sort((a, b) => String(a.salesman_name || '').localeCompare(String(b.salesman_name || '')));
+  }
 
+  // default: 'submitted_at_desc' (Prioritas Pending SPV lalu waktu terbaru)
   return list.sort((a, b) => {
-    let valA = a[sortKey.value] ?? '';
-    let valB = b[sortKey.value] ?? '';
-
-    if (['submitted_at', 'created_at', 'pushed_to_spv_at', 'spv_submit_at', 'pushed_to_edp_at', 'edp_reviewed_at'].includes(sortKey.value)) {
-      valA = valA ? new Date(valA).getTime() : 0;
-      valB = valB ? new Date(valB).getTime() : 0;
-    } else if (typeof valA === 'string') {
-      valA = valA.toLowerCase();
-      valB = valB.toLowerCase();
-    }
-
-    if (valA < valB) return sortDir.value === 'asc' ? -1 : 1;
-    if (valA > valB) return sortDir.value === 'asc' ? 1 : -1;
-    return 0;
+    const aPending = a.status === 'PUSHED_TO_SPV' ? 0 : 1;
+    const bPending = b.status === 'PUSHED_TO_SPV' ? 0 : 1;
+    if (aPending !== bPending) return aPending - bPending;
+    const aTime = a.pushed_to_spv_at ? new Date(a.pushed_to_spv_at).getTime() : (a.submitted_at ? new Date(a.submitted_at).getTime() : 0);
+    const bTime = b.pushed_to_spv_at ? new Date(b.pushed_to_spv_at).getTime() : (b.submitted_at ? new Date(b.submitted_at).getTime() : 0);
+    return bTime - aTime;
   });
 });
 
@@ -678,27 +826,47 @@ function getCardAccentClass(item) {
           </p>
         </div>
 
-        <!-- Metric Stat Badges (Grid 2 kolom di HP, 4 kolom di Tablet & Desktop) -->
+        <!-- Metric Stat Badges (Klik untuk filter cepat) -->
         <div class="grid grid-cols-2 sm:grid-cols-4 gap-2 md:gap-3 w-full md:w-auto shrink-0">
-          <div class="bg-white p-2.5 sm:p-3 md:p-3.5 rounded-xl border border-[#E5E7EB] shadow-[0_1px_3px_rgba(0,0,0,0.08)] text-center flex flex-col justify-between h-full min-w-[110px] md:min-w-[125px]">
+          <div
+            @click="filterByMetric('pendingSpv')"
+            class="p-2.5 sm:p-3 md:p-3.5 rounded-xl border shadow-[0_1px_3px_rgba(0,0,0,0.06)] text-center flex flex-col justify-between h-full min-w-[110px] md:min-w-[125px] cursor-pointer transition select-none hover:shadow-sm"
+            :class="spvStatusFilter === 'PENDING' ? 'bg-blue-50/50 border-[#2563EB] ring-2 ring-[#2563EB]/20' : 'bg-white border-[#E5E7EB] hover:border-blue-300'"
+            title="Klik untuk filter data yang belum diproses SPV"
+          >
             <div class="min-h-[26px] md:min-h-[32px] flex items-center justify-center">
               <span class="text-[10px] md:text-[11px] font-semibold uppercase tracking-wider text-[#1D4ED8]">Pending Review</span>
             </div>
             <div class="text-xl md:text-2xl font-bold text-[#2563EB] mt-0.5 md:mt-1">{{ stats.pendingSpv }}</div>
           </div>
-          <div class="bg-white p-2.5 sm:p-3 md:p-3.5 rounded-xl border border-[#E5E7EB] shadow-[0_1px_3px_rgba(0,0,0,0.08)] text-center flex flex-col justify-between h-full min-w-[110px] md:min-w-[125px]">
+          <div
+            @click="filterByMetric('approvedSpv')"
+            class="p-2.5 sm:p-3 md:p-3.5 rounded-xl border shadow-[0_1px_3px_rgba(0,0,0,0.06)] text-center flex flex-col justify-between h-full min-w-[110px] md:min-w-[125px] cursor-pointer transition select-none hover:shadow-sm"
+            :class="spvStatusFilter === 'PROCESSED' && edpStatusFilter === 'PENDING' ? 'bg-purple-50/50 border-[#9333EA] ring-2 ring-[#9333EA]/20' : 'bg-white border-[#E5E7EB] hover:border-purple-300'"
+            title="Klik untuk filter data yang disetujui SPV & menunggu EDP"
+          >
             <div class="min-h-[26px] md:min-h-[32px] flex items-center justify-center">
               <span class="text-[10px] md:text-[11px] font-semibold uppercase tracking-wider text-[#7E22CE]">Disetujui SPV</span>
             </div>
             <div class="text-xl md:text-2xl font-bold text-[#9333EA] mt-0.5 md:mt-1">{{ stats.approvedSpv }}</div>
           </div>
-          <div class="bg-white p-2.5 sm:p-3 md:p-3.5 rounded-xl border border-[#E5E7EB] shadow-[0_1px_3px_rgba(0,0,0,0.08)] text-center flex flex-col justify-between h-full min-w-[110px] md:min-w-[125px]">
+          <div
+            @click="filterByMetric('approvedEdp')"
+            class="p-2.5 sm:p-3 md:p-3.5 rounded-xl border shadow-[0_1px_3px_rgba(0,0,0,0.06)] text-center flex flex-col justify-between h-full min-w-[110px] md:min-w-[125px] cursor-pointer transition select-none hover:shadow-sm"
+            :class="spvStatusFilter === 'PROCESSED' && edpStatusFilter === 'APPROVED' ? 'bg-emerald-50/50 border-[#16A34A] ring-2 ring-[#16A34A]/20' : 'bg-white border-[#E5E7EB] hover:border-emerald-300'"
+            title="Klik untuk filter data yang telah di-approve EDP"
+          >
             <div class="min-h-[26px] md:min-h-[32px] flex items-center justify-center">
               <span class="text-[10px] md:text-[11px] font-semibold uppercase tracking-wider text-[#15803D]">EDP Approved</span>
             </div>
             <div class="text-xl md:text-2xl font-bold text-[#16A34A] mt-0.5 md:mt-1">{{ stats.approvedEdp }}</div>
           </div>
-          <div class="bg-white p-2.5 sm:p-3 md:p-3.5 rounded-xl border border-[#E5E7EB] shadow-[0_1px_3px_rgba(0,0,0,0.08)] text-center flex flex-col justify-between h-full min-w-[110px] md:min-w-[125px]">
+          <div
+            @click="filterByMetric('rejected')"
+            class="p-2.5 sm:p-3 md:p-3.5 rounded-xl border shadow-[0_1px_3px_rgba(0,0,0,0.06)] text-center flex flex-col justify-between h-full min-w-[110px] md:min-w-[125px] cursor-pointer transition select-none hover:shadow-sm"
+            :class="edpStatusFilter === 'REJECTED' ? 'bg-rose-50/50 border-[#DC2626] ring-2 ring-[#DC2626]/20' : 'bg-white border-[#E5E7EB] hover:border-rose-300'"
+            title="Klik untuk filter data yang ditolak"
+          >
             <div class="min-h-[26px] md:min-h-[32px] flex items-center justify-center">
               <span class="text-[10px] md:text-[11px] font-semibold uppercase tracking-wider text-[#B91C1C]">Ditolak</span>
             </div>
@@ -707,83 +875,160 @@ function getCardAccentClass(item) {
         </div>
       </div>
 
-      <!-- Toolbar Pencarian & Urutan (Filter Status telah dihilangkan sesuai instruksi) -->
-      <div class="bg-white p-3 md:p-4 rounded-xl border border-[#E5E7EB] shadow-[0_1px_3px_rgba(0,0,0,0.08)] flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 md:gap-4">
-        
-        <!-- Search Input (Lebih Luas & Nyaman) -->
-        <div class="relative w-full sm:w-80 md:w-96">
-          <svg class="w-4 h-4 absolute left-3.5 top-3 text-[#9CA3AF]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/>
-          </svg>
-          <input
-            v-model="searchQuery"
-            type="text"
-            placeholder="Cari toko, pemilik, No. HP, salesman, alamat..."
-            class="w-full pl-9 md:pl-10 pr-4 py-2 text-[13.5px] md:text-[14px] font-normal rounded-lg bg-white border border-[#D1D5DB] text-[#374151] placeholder-[#9CA3AF] focus:ring-2 focus:ring-[#059669] focus:border-[#047857] transition"
-          />
-        </div>
-
-        <!-- Filter Cabang Binaan & Sort Dropdown -->
-        <div class="flex flex-col sm:flex-row items-stretch sm:items-center gap-3 w-full sm:w-auto shrink-0">
+      <!-- Toolbar Pencarian & Filter Semi-Bertingkat (Minimalist & No Icon Overlapping) -->
+      <div class="bg-white p-3.5 md:p-4 rounded-xl border border-[#E5E7EB] shadow-[0_1px_3px_rgba(0,0,0,0.06)] space-y-3">
+        <div class="flex flex-col lg:flex-row items-stretch lg:items-center gap-3">
           
-          <!-- Dropdown Filter Cabang Binaan SPV -->
-          <div v-if="myBranches && myBranches.length > 0" class="flex items-center space-x-2 w-full sm:w-auto">
-            <label class="text-[13px] md:text-[14px] font-medium text-[#4B5563] whitespace-nowrap">Cabang:</label>
-            <select
-              v-model="branchFilter"
-              class="w-full sm:w-48 md:w-56 text-[13px] md:text-[14px] font-medium rounded-lg bg-white border border-[#D1D5DB] text-[#1F2937] py-1.5 md:py-2 px-2.5 md:px-3 focus:ring-2 focus:ring-[#059669] focus:border-[#047857] shadow-xs cursor-pointer"
-            >
-              <option value="ALL">Semua Cabang Binaan ({{ myBranches.length }})</option>
-              <option
-                v-for="b in myBranches"
-                :key="b.branch_id || b"
-                :value="b.branch_id || b"
-              >
-                {{ typeof b === 'object' ? `${b.branch_id} - ${b.branch_name || b.branch_id}` : b }}
-              </option>
-            </select>
+          <!-- Search Input -->
+          <div class="relative flex-1 min-w-[240px]">
+            <svg class="w-4 h-4 absolute left-3.5 top-3 text-[#9CA3AF]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/>
+            </svg>
+            <input
+              v-model="searchQuery"
+              @input="onSearchInput"
+              type="text"
+              placeholder="Cari toko, salesman, cabang, alamat..."
+              class="w-full pl-10 pr-4 py-2 text-[13px] rounded-lg bg-white border border-[#D1D5DB] text-[#374151] placeholder-[#9CA3AF] focus:ring-2 focus:ring-blue-600 focus:border-blue-600 transition"
+            />
           </div>
 
-          <!-- Sort Dropdown -->
-          <div class="flex items-center space-x-2 w-full sm:w-auto">
-            <label class="text-[13px] md:text-[14px] font-medium text-[#4B5563] whitespace-nowrap">Urutkan:</label>
-            <select
-              v-model="sortSelect"
-              class="w-full sm:w-48 md:w-52 text-[13px] md:text-[14px] font-medium rounded-lg bg-white border border-[#D1D5DB] text-[#1F2937] py-1.5 md:py-2 px-2.5 md:px-3 focus:ring-2 focus:ring-[#059669] focus:border-[#047857] shadow-xs cursor-pointer"
+          <!-- Dropdown Filter Groups -->
+          <div class="flex flex-wrap items-center gap-2.5">
+
+            <!-- 1. Dropdown Sub-Grup -->
+            <div class="relative inline-flex items-center">
+              <label class="text-[12px] font-medium text-slate-500 mr-1.5 hidden sm:inline">Sub-Grup:</label>
+              <select
+                v-model="subGroupFilter"
+                @change="onFilterChange"
+                class="appearance-none pl-3 pr-8 py-1.5 text-[12.5px] font-medium rounded-lg bg-white border border-[#D1D5DB] text-[#1F2937] focus:ring-2 focus:ring-blue-600 focus:border-blue-600 shadow-2xs cursor-pointer"
+              >
+                <option value="ALL">Semua Sub-Grup</option>
+                <option v-for="sg in subGroupOptions" :key="sg" :value="sg">
+                  {{ sg }}
+                </option>
+              </select>
+              <svg class="pointer-events-none absolute right-2.5 w-3.5 h-3.5 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
+              </svg>
+            </div>
+
+            <!-- 2. Dropdown Cabang SPV Binaan -->
+            <div v-if="myBranches && myBranches.length > 0" class="relative inline-flex items-center">
+              <label class="text-[12px] font-medium text-slate-500 mr-1.5 hidden sm:inline">Cabang:</label>
+              <select
+                v-model="branchFilter"
+                @change="onFilterChange"
+                class="appearance-none pl-3 pr-8 py-1.5 text-[12.5px] font-medium rounded-lg bg-white border border-[#D1D5DB] text-[#1F2937] focus:ring-2 focus:ring-blue-600 focus:border-blue-600 shadow-2xs cursor-pointer max-w-[200px] truncate"
+              >
+                <option value="ALL">Semua Cabang SPV</option>
+                <option
+                  v-for="b in myBranches"
+                  :key="b.branch_id || b"
+                  :value="b.branch_id || b"
+                >
+                  {{ typeof b === 'object' ? `${b.branch_id} - ${b.branch_name || b.branch_id}` : b }}
+                </option>
+              </select>
+              <svg class="pointer-events-none absolute right-2.5 w-3.5 h-3.5 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
+              </svg>
+            </div>
+
+            <!-- 3. Dropdown Filter Status SPV (Belum Diproses vs Sudah Diproses) -->
+            <div class="relative inline-flex items-center">
+              <label class="text-[12px] font-medium text-slate-500 mr-1.5 hidden sm:inline">Status SPV:</label>
+              <select
+                v-model="spvStatusFilter"
+                @change="onSpvStatusChange"
+                class="appearance-none pl-3 pr-8 py-1.5 text-[12.5px] font-medium rounded-lg bg-white border border-[#D1D5DB] text-[#1F2937] focus:ring-2 focus:ring-blue-600 focus:border-blue-600 shadow-2xs cursor-pointer"
+              >
+                <option value="ALL">Semua Status SPV</option>
+                <option value="PENDING">Belum Diproses SPV</option>
+                <option value="PROCESSED">Sudah Diproses SPV</option>
+              </select>
+              <svg class="pointer-events-none absolute right-2.5 w-3.5 h-3.5 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
+              </svg>
+            </div>
+
+            <!-- 4. Dropdown Filter Status EDP (Semi-Bertingkat) -->
+            <div class="relative inline-flex items-center">
+              <label class="text-[12px] font-medium text-slate-500 mr-1.5 hidden sm:inline">Status EDP:</label>
+              <select
+                v-model="edpStatusFilter"
+                @change="onEdpStatusChange"
+                :disabled="isEdpDisabled"
+                class="appearance-none pl-3 pr-8 py-1.5 text-[12.5px] font-medium rounded-lg border shadow-2xs cursor-pointer transition"
+                :class="isEdpDisabled ? 'bg-slate-50 text-slate-400 border-slate-200 cursor-not-allowed' : 'bg-white border-[#D1D5DB] text-[#1F2937] focus:ring-2 focus:ring-blue-600 focus:border-blue-600'"
+                :title="isEdpDisabled ? 'Status EDP hanya aktif untuk toko yang sudah diproses SPV' : 'Filter Status Keputusan EDP'"
+              >
+                <option value="ALL">{{ isEdpDisabled ? 'Belum ke EDP' : 'Semua Status EDP' }}</option>
+                <option value="PENDING">EDP: Pending Review</option>
+                <option value="APPROVED">EDP: Approved</option>
+                <option value="REJECTED">EDP: Rejected</option>
+              </select>
+              <svg class="pointer-events-none absolute right-2.5 w-3.5 h-3.5 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
+              </svg>
+            </div>
+
+            <!-- 5. Dropdown Urutkan -->
+            <div class="relative inline-flex items-center">
+              <label class="text-[12px] font-medium text-slate-500 mr-1.5 hidden sm:inline">Urutkan:</label>
+              <select
+                v-model="sortSelect"
+                @change="onFilterChange"
+                class="appearance-none pl-3 pr-8 py-1.5 text-[12.5px] font-medium rounded-lg bg-white border border-[#D1D5DB] text-[#1F2937] focus:ring-2 focus:ring-blue-600 focus:border-blue-600 shadow-2xs cursor-pointer"
+              >
+                <option value="submitted_at_desc">Terbaru (Submisi)</option>
+                <option value="submitted_at_asc">Terlama (Submisi)</option>
+                <option value="nama_noo_asc">Nama Toko (A - Z)</option>
+                <option value="nama_noo_desc">Nama Toko (Z - A)</option>
+                <option value="salesman_name_asc">Salesman (A - Z)</option>
+              </select>
+              <svg class="pointer-events-none absolute right-2.5 w-3.5 h-3.5 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
+              </svg>
+            </div>
+
+            <!-- Reset Filter Button -->
+            <button
+              v-if="hasActiveFilter"
+              type="button"
+              @click="resetAllFilters"
+              class="inline-flex items-center px-2.5 py-1.5 text-[12px] font-semibold text-rose-600 bg-rose-50 hover:bg-rose-100 border border-rose-200 rounded-lg transition cursor-pointer"
+              title="Reset semua filter"
             >
-              <option value="submitted_at_desc">Terbaru (Submisi)</option>
-              <option value="submitted_at_asc">Terlama (Submisi)</option>
-              <option value="nama_noo_asc">Nama Toko (A - Z)</option>
-              <option value="nama_noo_desc">Nama Toko (Z - A)</option>
-              <option value="nama_pemilik_outlet_asc">Pemilik (A - Z)</option>
-              <option value="salesman_name_asc">Salesman (A - Z)</option>
-              <option value="status_asc">Status Approval (Asc)</option>
-            </select>
+              Reset
+            </button>
           </div>
         </div>
       </div>
 
-      <!-- TABEL SUBMISI SPV AREA: ENTERPRISE COLUMN LAYOUT (OPSI A) -->
-      <div class="bg-white rounded-xl border border-[#E5E7EB] shadow-[0_1px_3px_rgba(0,0,0,0.08)] overflow-hidden">
+      <!-- TABEL SUBMISI SPV AREA (8 KOLOM MINIMALIS, BEBAS DARI IKON SAMPAH, TANPA PRINCIPAL & EXIF) -->
+      <div class="bg-white rounded-xl border border-[#E5E7EB] shadow-[0_1px_3px_rgba(0,0,0,0.06)] overflow-hidden">
         <div class="w-full overflow-x-auto">
-          <table class="w-full text-left text-[14px] leading-[20px] text-[#374151] table-fixed min-w-[960px]">
-            <thead class="bg-[#F3F4F6] text-[13px] sm:text-[14px] font-semibold text-[#1F2937] border-b border-[#E5E7EB] select-none">
+          <table class="w-full text-left text-[13px] leading-[18px] text-[#374151] table-fixed min-w-[1040px]">
+            <thead class="bg-[#F8FAFC] text-[12px] font-semibold text-[#475569] border-b border-[#E2E8F0] select-none">
               <tr>
-                <th class="w-[18%] px-4 py-3.5">Toko & Tipe Outlet</th>
-                <th class="w-[15%] px-4 py-3.5">Pemilik & Kontak</th>
-                <th class="w-[20%] px-4 py-3.5">Alamat & Wilayah</th>
-                <th class="w-[15%] px-4 py-3.5">Salesman & Tanggal</th>
-                <th class="w-[14%] px-4 py-3.5">Jadwal Rute</th>
-                <th class="w-[18%] px-4 py-3.5">Status & Kode Toko</th>
+                <th class="w-[24%] px-4 py-3.5">Toko & Sub-Toko</th>
+                <th class="w-[15%] px-4 py-3.5">Salesman & Cabang</th>
+                <th class="w-[18%] px-4 py-3.5">Alamat Ringkas</th>
+                <th class="w-[11%] px-3 py-3.5">Status</th>
+                <th class="w-[9%] px-3 py-3.5">Cust Dist.</th>
+                <th class="w-[9%] px-3 py-3.5">Cust Principal</th>
+                <th class="w-[12%] px-3 py-3.5">Rute Kunjungan</th>
+                <th class="w-[12%] px-4 py-3.5 text-center">Aksi</th>
               </tr>
             </thead>
-            <tbody class="divide-y divide-[#E5E7EB]">
+            <tbody class="divide-y divide-[#E2E8F0]">
               <!-- Empty State -->
               <tr v-if="sortedSubmissions.length === 0">
-                <td colspan="6" class="px-6 py-12 text-center text-[#6B7280] font-normal">
-                  <div class="text-3xl mb-2">📋</div>
-                  <div class="text-[14px] font-medium text-[#1F2937]">Tidak Ada Data Submisi</div>
-                  <p class="text-[12.5px] text-[#6B7280] mt-1">Tidak ada data submisi toko yang sesuai dengan kata kunci pencarian Anda.</p>
+                <td colspan="8" class="px-6 py-12 text-center text-slate-500 font-normal">
+                  <div class="text-[13.5px] font-semibold text-slate-800">Tidak Ada Data Submisi</div>
+                  <p class="text-[12px] text-slate-500 mt-1">Tidak ada data submisi toko yang sesuai dengan filter atau kata kunci pencarian Anda.</p>
                 </td>
               </tr>
 
@@ -792,118 +1037,106 @@ function getCardAccentClass(item) {
                 v-for="item in sortedSubmissions"
                 :key="item.id || item.request_id"
                 @click="openDetailModal(item)"
-                class="transition border-b cursor-pointer group hover:bg-indigo-50/40 select-none"
-                :class="getRowStyle(item)"
+                class="transition border-b cursor-pointer group hover:bg-slate-50/80 select-none bg-white"
                 title="Klik untuk membuka detail submisi & kelola rute toko"
               >
-                <!-- 1. Toko & Tipe Outlet -->
+                <!-- 1. Toko, Sub-Toko, Pemilik & No HP (Tanpa principal info & Tanpa EXIF) -->
                 <td class="px-4 py-3.5 align-top">
-                  <div class="font-bold text-[14px] text-[#111827] group-hover:text-[#1D4ED8] transition truncate" :title="item.nama_noo">
+                  <div class="font-bold text-[13.5px] text-slate-900 group-hover:text-blue-600 transition truncate" :title="item.nama_noo">
                     {{ item.nama_noo }}
                   </div>
+                  <!-- Sub-grup / Sub-toko badge ONLY -->
                   <div class="flex items-center gap-1.5 mt-1 truncate">
                     <span
                       v-if="item.type_outlet_code"
-                      class="px-1.5 py-0.2 rounded text-[10px] font-semibold bg-[#DBEAFE] text-[#1D4ED8] border border-[#93C5FD] shrink-0"
+                      class="px-2 py-0.5 rounded text-[10.5px] font-semibold bg-blue-50 text-blue-700 border border-blue-200 shrink-0"
                     >
                       {{ item.type_outlet_code }}
                     </span>
-                    <span class="text-[12px] text-[#6B7280] truncate">{{ item.type_outlet_desc || 'Outlet' }}</span>
+                    <span v-if="item.type_outlet_desc" class="text-[11.5px] text-slate-500 truncate">
+                      {{ item.type_outlet_desc }}
+                    </span>
+                  </div>
+                  <!-- Nama Pemilik & No HP Disatukan (Minimalis, rapi tanpa ikon sampah) -->
+                  <div class="text-[11.5px] text-slate-600 mt-1 truncate" :title="(item.nama_pemilik_outlet || '-') + ' • ' + (item.no_hp_noo || item.no_hp || '-')">
+                    <span class="font-medium text-slate-700">{{ item.nama_pemilik_outlet || '-' }}</span>
+                    <span class="mx-1 text-slate-300">•</span>
+                    <span class="text-slate-500">{{ item.no_hp_noo || item.no_hp || '-' }}</span>
                   </div>
                 </td>
 
-                <!-- 2. Pemilik & Kontak (Kolom Mandiri) -->
+                <!-- 2. Salesman & Cabang -->
                 <td class="px-4 py-3.5 align-top">
-                  <div class="font-semibold text-[13px] text-[#1F2937] truncate" :title="item.nama_pemilik_outlet">
-                    👤 {{ item.nama_pemilik_outlet || '-' }}
+                  <div class="font-medium text-[13px] text-slate-900 truncate" :title="item.salesman_name">
+                    {{ item.salesman_name || '-' }}
+                    <span v-if="item.salesman_code" class="text-[11px] text-slate-500 font-normal">({{ item.salesman_code }})</span>
                   </div>
-                  <div class="text-[12px] font-medium text-[#2563EB] mt-0.5 truncate" :title="item.no_hp_noo || item.no_hp">
-                    📞 {{ item.no_hp_noo || item.no_hp || '-' }}
+                  <div class="text-[12px] text-slate-500 mt-0.5 truncate" :title="item.branch_name || item.branch_id">
+                    {{ item.branch_name || item.branch_id || '-' }}
                   </div>
                 </td>
 
-                <!-- 3. Alamat & Wilayah -->
+                <!-- 3. Alamat Ringkas -->
                 <td class="px-4 py-3.5 align-top">
-                  <div class="text-[13px] text-[#374151] line-clamp-1 group-hover:line-clamp-none transition-all" :title="item.alamat_noo">
+                  <div class="text-[12.5px] text-slate-800 line-clamp-2" :title="item.alamat_noo">
                     {{ item.alamat_noo || '-' }}
                   </div>
-                  <div class="text-[11.5px] text-[#6B7280] mt-0.5 truncate flex items-center gap-1 font-medium" :title="[item.kec_noo, item.kab_kota_noo].filter(Boolean).join(', ')">
-                    <span class="text-slate-400 shrink-0">📍</span>
-                    <span class="truncate">{{ [item.kec_noo, item.kab_kota_noo].filter(Boolean).join(', ') || '-' }}</span>
+                  <div class="text-[11px] text-slate-500 mt-0.5 truncate" :title="[item.kec_noo, item.kab_kota_noo].filter(Boolean).join(', ')">
+                    {{ [item.kec_noo, item.kab_kota_noo].filter(Boolean).join(', ') || '-' }}
                   </div>
                 </td>
 
-                <!-- 4. Salesman & Tanggal Submisi -->
-                <td class="px-4 py-3.5 align-top">
-                  <div class="font-medium text-[13px] text-[#1F2937] truncate" :title="item.salesman_name">
-                    {{ item.salesman_name || '-' }}
-                    <span v-if="item.salesman_code" class="text-[11px] text-[#6B7280]">({{ item.salesman_code }})</span>
+                <!-- 4. Status -->
+                <td class="px-3 py-3.5 align-top">
+                  <span class="inline-block px-2.5 py-0.5 rounded-full text-[11px] font-semibold border shadow-2xs whitespace-nowrap" :class="getStatusBadgeStyle(item.status)">
+                    {{ formatStatusLabel(item.status) }}
+                  </span>
+                </td>
+
+                <!-- 5. Cust Dist. -->
+                <td class="px-3 py-3.5 align-top">
+                  <span
+                    v-if="item.custcode_distributor"
+                    class="text-[11.5px] font-mono font-medium px-2 py-0.5 rounded bg-blue-50 text-blue-700 border border-blue-200 block truncate max-w-[100px]"
+                    :title="item.custcode_distributor"
+                  >
+                    {{ item.custcode_distributor }}
+                  </span>
+                  <span v-else class="text-slate-400 text-xs">-</span>
+                </td>
+
+                <!-- 6. Cust Principal -->
+                <td class="px-3 py-3.5 align-top">
+                  <span
+                    v-if="item.code_noo_principal"
+                    class="text-[11.5px] font-mono font-medium px-2 py-0.5 rounded bg-emerald-50 text-emerald-700 border border-emerald-200 block truncate max-w-[100px]"
+                    :title="item.code_noo_principal"
+                  >
+                    {{ item.code_noo_principal }}
+                  </span>
+                  <span v-else class="text-slate-400 text-xs">-</span>
+                </td>
+
+                <!-- 7. Rute Kunjungan -->
+                <td class="px-3 py-3.5 align-top">
+                  <div v-if="hasRoute(item)" class="text-[11.5px] space-y-0.5">
+                    <div class="text-slate-700">Hari: <span class="font-medium text-slate-900">{{ getRouteDaysSummary(item) }}</span></div>
+                    <div class="text-slate-500">Minggu: <span class="font-medium text-slate-800">{{ getRouteWeeksSummary(item) }}</span></div>
                   </div>
-                  <div class="text-[11.5px] text-[#6B7280] mt-0.5 truncate">
-                    🏢 {{ item.branch_name || item.branch_id || '-' }}
-                  </div>
-                  <div class="text-[11px] text-[#9CA3AF] mt-0.5">
-                    🕒 {{ formatDate(item.pushed_to_spv_at || item.submitted_at || item.created_at) }}
+                  <div v-else class="text-[11.5px] text-slate-400">
+                    Belum di-set
                   </div>
                 </td>
 
-                <!-- 5. Jadwal Rute Toko -->
-                <td class="px-4 py-3.5 align-top">
-                  <div v-if="item.h1 === 'Y' || item.h2 === 'Y' || item.h3 === 'Y' || item.h4 === 'Y' || item.h5 === 'Y' || item.h6 === 'Y' || item.h7 === 'Y'" class="space-y-0.5">
-                    <div class="text-[12px] font-semibold text-[#15803D] flex items-center gap-1">
-                      <span>📅</span>
-                      <span>{{ getRouteDaysSummary(item) }}</span>
-                    </div>
-                    <div class="text-[11px] text-[#4B5563]">
-                      Pola: <span class="font-medium text-[#1F2937]">{{ getRouteWeeksSummary(item) }}</span>
-                    </div>
-                  </div>
-                  <div v-else class="space-y-0.5">
-                    <span class="inline-flex items-center gap-1 text-[11px] font-bold px-2 py-0.5 bg-amber-100 text-amber-800 border border-amber-200 rounded-md">
-                      <span>⚠️</span>
-                      <span>Belum Diatur</span>
-                    </span>
-                    <div class="text-[10.5px] text-[#B45309] font-medium">Perlu set rute</div>
-                  </div>
-                </td>
-
-                <!-- 6. Status & Kode Toko (Sejajar Proporsional Rata Kiri) -->
-                <td class="px-4 py-3.5 align-top">
-                  <div class="space-y-1.5">
-                    <!-- Status Badge -->
-                    <div class="flex items-center justify-between gap-1 flex-wrap">
-                      <span class="inline-block px-2.5 py-0.5 rounded-full text-[11.5px] font-semibold border shadow-2xs" :class="getStatusBadgeStyle(item.status)">
-                        {{ formatStatusLabel(item.status) }}
-                      </span>
-                      <span
-                        v-if="item.status === 'PUSHED_TO_SPV'"
-                        class="text-[10.5px] font-bold text-indigo-700 bg-indigo-50 border border-indigo-200 px-1.5 py-0.5 rounded shadow-2xs shrink-0"
-                      >
-                        ⚡ Atur Rute
-                      </span>
-                    </div>
-
-                    <!-- Kode Distributor & Principal Berdampingan Proporsional -->
-                    <div class="flex items-center gap-1 flex-wrap">
-                      <span
-                        class="text-[11px] font-mono px-1.5 py-0.5 rounded border shadow-2xs inline-flex items-center gap-0.5"
-                        :class="item.custcode_distributor ? 'bg-[#DBEAFE] text-[#1D4ED8] border-[#93C5FD] font-semibold' : 'bg-slate-50 text-slate-400 border-slate-200'"
-                        :title="'Custcode Distributor: ' + (item.custcode_distributor || '-')"
-                      >
-                        <span class="text-[9.5px] font-sans font-bold text-slate-400">Dist:</span>
-                        <span class="truncate max-w-[80px]">{{ item.custcode_distributor || '-' }}</span>
-                      </span>
-
-                      <span
-                        class="text-[11px] font-mono px-1.5 py-0.5 rounded border shadow-2xs inline-flex items-center gap-0.5"
-                        :class="item.code_noo_principal ? 'bg-[#DCFCE7] text-[#15803D] border-[#86EFAC] font-semibold' : 'bg-slate-50 text-slate-400 border-slate-200'"
-                        :title="'Custcode Principal: ' + (item.code_noo_principal || '-')"
-                      >
-                        <span class="text-[9.5px] font-sans font-bold text-slate-400">Princ:</span>
-                        <span class="truncate max-w-[80px]">{{ item.code_noo_principal || '-' }}</span>
-                      </span>
-                    </div>
-                  </div>
+                <!-- 8. Button Detail (Kelola & Rute) -->
+                <td class="px-4 py-3.5 align-top text-center" @click.stop>
+                  <button
+                    type="button"
+                    @click="openDetailModal(item)"
+                    class="inline-flex items-center justify-center px-3.5 py-1.5 text-[11.5px] font-semibold text-white bg-blue-600 hover:bg-blue-700 active:bg-blue-800 rounded-lg shadow-xs transition cursor-pointer shrink-0"
+                  >
+                    Kelola & Rute
+                  </button>
                 </td>
               </tr>
             </tbody>

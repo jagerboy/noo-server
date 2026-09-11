@@ -125,6 +125,8 @@ class SpvPortalController extends Controller
             $s = trim((string) $request->input('search'));
             $query->where(function ($q) use ($s) {
                 $q->where('nama_noo', 'ILIKE', "%{$s}%")
+                  ->orWhere('nama_pemilik_outlet', 'ILIKE', "%{$s}%")
+                  ->orWhere('no_hp_noo', 'ILIKE', "%{$s}%")
                   ->orWhere('salesman_name', 'ILIKE', "%{$s}%")
                   ->orWhere('salesman_code', 'ILIKE', "%{$s}%")
                   ->orWhere('branch_name', 'ILIKE', "%{$s}%")
@@ -134,21 +136,75 @@ class SpvPortalController extends Controller
             });
         }
 
+        // Filter Cabang Binaan
+        if ($request->filled('branch_id') && $request->input('branch_id') !== 'ALL') {
+            $query->where('branch_id', $request->input('branch_id'));
+        }
+
+        // Filter Sub-Grup / Type Outlet
+        if ($request->filled('sub_group') && $request->input('sub_group') !== 'ALL') {
+            $query->where('type_outlet_code', $request->input('sub_group'));
+        }
+
+        // Filter Status SPV (Belum diproses vs Sudah diproses)
+        if ($request->filled('spv_status') && $request->input('spv_status') !== 'ALL') {
+            $spvSt = $request->input('spv_status');
+            if ($spvSt === 'PENDING') {
+                $query->whereIn('status', ['PUSHED_TO_SPV', 'ADMIN_APPROVED', NooStatusEnum::PUSHED_TO_SPV->value]);
+            } elseif ($spvSt === 'PROCESSED') {
+                $query->whereIn('status', [
+                    'APPROVED_SPV', 'APPROVED_BY_SPV', 'PUSHED_TO_EDP',
+                    'APPROVED_EDP', 'EDP_APPROVED',
+                    'REJECTED_SPV', 'SPV_REJECTED',
+                    'REJECTED_EDP', 'EDP_REJECTED'
+                ]);
+            }
+        }
+
+        // Filter Status EDP (Pending, Approve, Rejected)
+        if ($request->filled('edp_status') && $request->input('edp_status') !== 'ALL') {
+            $edpSt = $request->input('edp_status');
+            if ($edpSt === 'PENDING') {
+                $query->whereIn('status', ['APPROVED_SPV', 'APPROVED_BY_SPV', 'PUSHED_TO_EDP']);
+            } elseif ($edpSt === 'APPROVED') {
+                $query->whereIn('status', ['APPROVED_EDP', 'EDP_APPROVED', NooStatusEnum::APPROVED_EDP->value]);
+            } elseif ($edpSt === 'REJECTED') {
+                $query->whereIn('status', ['REJECTED_EDP', 'EDP_REJECTED', NooStatusEnum::REJECTED_EDP->value]);
+            }
+        }
+
+        // Legacy / Metric Card Quick Filter
         if ($request->filled('status') && $request->input('status') !== 'ALL') {
             $st = $request->input('status');
             if ($st === 'REJECTED') {
                 $query->whereIn('status', ['REJECTED_SPV', 'SPV_REJECTED', 'REJECTED_EDP', 'EDP_REJECTED', 'ADMIN_REJECTED', 'REJECTED_ADMIN']);
+            } elseif ($st === 'PENDING_REVIEW' || $st === 'PUSHED_TO_SPV') {
+                $query->whereIn('status', ['PUSHED_TO_SPV', 'ADMIN_APPROVED', NooStatusEnum::PUSHED_TO_SPV->value]);
+            } elseif ($st === 'APPROVED_SPV') {
+                $query->whereIn('status', ['APPROVED_SPV', 'APPROVED_BY_SPV', 'PUSHED_TO_EDP']);
+            } elseif ($st === 'APPROVED_EDP') {
+                $query->whereIn('status', ['APPROVED_EDP', 'EDP_APPROVED', NooStatusEnum::APPROVED_EDP->value]);
             } else {
                 $query->where('status', $st);
             }
         }
 
-        if ($request->filled('branch_id') && $request->input('branch_id') !== 'ALL') {
-            $query->where('branch_id', $request->input('branch_id'));
+        // Sorting
+        $sort = $request->input('sort', 'default');
+        if ($sort === 'submitted_at_desc') {
+            $query->orderByRaw("COALESCE(pushed_to_spv_at, submitted_at, created_at) DESC");
+        } elseif ($sort === 'submitted_at_asc') {
+            $query->orderByRaw("COALESCE(pushed_to_spv_at, submitted_at, created_at) ASC");
+        } elseif ($sort === 'nama_noo_asc') {
+            $query->orderBy('nama_noo', 'ASC');
+        } elseif ($sort === 'nama_noo_desc') {
+            $query->orderBy('nama_noo', 'DESC');
+        } elseif ($sort === 'salesman_name_asc') {
+            $query->orderBy('salesman_name', 'ASC');
+        } else {
+            $query->orderByRaw("CASE WHEN status = 'PUSHED_TO_SPV' THEN 0 ELSE 1 END ASC")
+                  ->orderByRaw("COALESCE(pushed_to_spv_at, submitted_at, created_at) DESC");
         }
-
-        $query->orderByRaw("CASE WHEN status = 'PUSHED_TO_SPV' THEN 0 ELSE 1 END ASC")
-              ->orderByRaw("COALESCE(pushed_to_spv_at, submitted_at, created_at) DESC");
 
         $formatPhoto = function ($path) {
             if (empty($path)) return null;
@@ -164,6 +220,7 @@ class SpvPortalController extends Controller
         });
 
         $branchesData = [];
+        $subGroups = [];
         if (!empty($myBranches)) {
             $branchesData = DB::table('master_branches')
                 ->whereIn('branch_id', $myBranches)
@@ -171,13 +228,32 @@ class SpvPortalController extends Controller
                 ->orderBy('branch_id')
                 ->get()
                 ->toArray();
+
+            $subGroups = DB::table('noo_submissions')
+                ->whereIn('branch_id', $myBranches)
+                ->whereNotNull('type_outlet_code')
+                ->where('type_outlet_code', '!=', '')
+                ->distinct()
+                ->pluck('type_outlet_code')
+                ->filter()
+                ->values()
+                ->toArray();
+        }
+
+        if (empty($subGroups)) {
+            $subGroups = DB::table('master_outlet_types')
+                ->pluck('type_code')
+                ->filter()
+                ->values()
+                ->toArray();
         }
 
         return Inertia::render('Spv/Inbox', [
             'submissions' => $submissions,
             'stats' => $stats,
             'myBranches' => $branchesData,
-            'filters' => $request->only(['search', 'status', 'branch_id']),
+            'subGroups' => array_values(array_unique($subGroups)),
+            'filters' => $request->only(['search', 'status', 'branch_id', 'sub_group', 'spv_status', 'edp_status', 'sort', 'per_page']),
         ]);
     }
 
