@@ -777,33 +777,33 @@ function formatActionLabel(action) {
     <div class="space-y-6">
       
       <!-- Page Header Card -->
-      <div class="flex flex-col md:flex-row md:items-center justify-between gap-4 bg-white p-6 rounded-xl border border-[#E5E7EB] shadow-xs">
+      <div class="flex flex-col md:flex-row md:items-center justify-between gap-3 bg-white p-3.5 sm:p-4 md:p-5 rounded-xl border border-[#E5E7EB] shadow-xs">
         <div>
-          <h1 class="text-2xl sm:text-3xl font-black text-[#111827] tracking-tight flex items-center gap-3">
+          <h1 class="text-lg sm:text-xl md:text-[22px] font-bold text-[#111827] tracking-tight flex items-center gap-3">
             <span>Executive Dashboard Overview NOO+</span>
           </h1>
-          <p class="text-xs sm:text-sm text-[#6B7280] mt-1.5 leading-relaxed">
+          <p class="text-[12.5px] md:text-[14px] leading-[1.5] text-[#6B7280] mt-0.5">
             Ringkasan Metrik Pengajuan Outlet Baru (NOO), Status Persetujuan Bertingkat, Analisis Grafik & Log Aktivitas.
           </p>
         </div>
 
         <div class="flex items-center gap-2">
-          <span class="text-xs font-bold px-3.5 py-1.5 rounded-full bg-purple-100 text-[#542B85] border border-purple-200 shadow-2xs">
+          <span class="text-xs font-semibold px-2.5 py-0.5 rounded-full bg-purple-100 text-[#542B85] border border-purple-200 shadow-2xs">
             Peran Login: {{ displayUserRole }}
           </span>
         </div>
       </div>
 
       <!-- FILTER BAR DASHBOARD -->
-      <div class="bg-white p-5 rounded-xl border border-[#E5E7EB] shadow-xs space-y-4">
-        <h2 class="text-xs font-bold text-[#4B5563] uppercase tracking-wider flex items-center gap-2">
-          <svg class="w-4 h-4 text-[#2563EB]" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2.586a1 1 0 01-.293.707l-6.414 6.414a1 1 0 00-.293.707V17l-4 4v-6.586a1 1 0 00-.293-.707L3.293 7.293A1 1 0 013 6.586V4z"/></svg>
-          <span>FILTER DATA WILAYAH, PRINCIPAL, CABANG & TAHUN</span>
+      <div class="bg-white p-3 sm:p-3.5 md:p-4 rounded-xl border border-[#E5E7EB] shadow-xs space-y-3">
+        <h2 class="text-[11.5px] font-semibold text-[#475569] uppercase tracking-wider flex items-center gap-2">
+          <svg class="w-3.5 h-3.5 text-[#2563EB]" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2.586a1 1 0 01-.293.707l-6.414 6.414a1 1 0 00-.293.707V17l-4 4v-6.586a1 1 0 00-.293-.707L3.293 7.293A1 1 0 013 6.586V4z"/></svg>
+          <span>Filter Data Wilayah, Principal, Cabang & Tahun</span>
         </h2>
 
-        <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-5 gap-4">
+        <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-5 gap-3">
           <div>
-            <label class="block text-xs font-semibold text-[#4B5563] mb-1">REGION</label>
+            <label class="block text-[11.5px] font-medium text-slate-500 mb-1">REGION</label>
             <SearchableSelect
               v-model="selectedRegion"
               :options="regionOptions"
@@ -814,7 +814,7 @@ function formatActionLabel(action) {
           </div>
 
           <div>
-            <label class="block text-xs font-semibold text-[#4B5563] mb-1">ENTITY / PRINCIPAL</label>
+            <label class="block text-[11.5px] font-medium text-slate-500 mb-1">ENTITY / PRINCIPAL</label>
             <SearchableSelect
               v-model="selectedPrincipal"
               :options="entityOptions"
@@ -825,7 +825,7 @@ function formatActionLabel(action) {
           </div>
 
           <div>
-            <label class="block text-xs font-semibold text-[#4B5563] mb-1">CABANG / BRANCH</label>
+            <label class="block text-[11.5px] font-medium text-slate-500 mb-1">CABANG / BRANCH</label>
             <SearchableSelect
               v-model="selectedBranch"
               :options="branchOptions"
@@ -837,31 +837,31 @@ function formatActionLabel(action) {
 
           <!-- BULAN PENGAJUAN (MULTISELECT CHECKBOX DROPDOWN) -->
           <div class="relative" ref="monthDropdownRef">
-            <label class="block text-xs font-semibold text-[#4B5563] mb-1">BULAN PENGAJUAN</label>
+            <label class="block text-[11.5px] font-medium text-slate-500 mb-1">BULAN PENGAJUAN</label>
 
             <button
               type="button"
               @click="isMonthDropdownOpen = !isMonthDropdownOpen"
-              class="w-full px-3 py-2 text-xs border border-slate-300 rounded-lg bg-white font-semibold text-slate-800 flex items-center justify-between shadow-2xs hover:border-blue-500 focus:outline-none transition cursor-pointer"
+              class="w-full px-2.5 py-1.5 text-[12px] border border-slate-300 rounded-lg bg-white font-medium text-slate-800 flex items-center justify-between shadow-2xs hover:border-blue-500 focus:outline-none transition cursor-pointer"
             >
               <span class="truncate pr-2">{{ selectedMonthsLabel }}</span>
               <div class="flex items-center gap-1.5 shrink-0">
                 <span
                   v-if="selectedMonths.length > 0 && selectedMonths.length < 12"
-                  class="w-5 h-5 rounded-full bg-blue-600 text-white text-[10px] font-bold flex items-center justify-center"
+                  class="w-4 h-4 rounded-full bg-blue-600 text-white text-[9.5px] font-bold flex items-center justify-center"
                 >
                   {{ selectedMonths.length }}
                 </span>
-                <span class="text-[10px] text-slate-500">▼</span>
+                <span class="text-[9px] text-slate-500">▼</span>
               </div>
             </button>
 
             <!-- DROPDOWN OVERLAY WITH CHECKBOXES -->
             <div
               v-if="isMonthDropdownOpen"
-              class="absolute left-0 top-full mt-1.5 w-72 bg-white rounded-2xl border border-slate-200 shadow-2xl z-50 p-3 space-y-2 text-xs"
+              class="absolute left-0 top-full mt-1.5 w-72 bg-white rounded-xl border border-slate-200 shadow-xl z-50 p-2.5 space-y-2 text-xs"
             >
-              <div class="grid grid-cols-2 gap-1.5 max-h-48 overflow-y-auto pt-1">
+              <div class="grid grid-cols-2 gap-1 max-h-48 overflow-y-auto pt-1">
                 <label
                   v-for="m in monthOptions"
                   :key="m.value"
@@ -891,11 +891,11 @@ function formatActionLabel(action) {
           </div>
 
           <div>
-            <label class="block text-xs font-semibold text-[#4B5563] mb-1">TAHUN PENGAJUAN</label>
+            <label class="block text-[11.5px] font-medium text-slate-500 mb-1">TAHUN PENGAJUAN</label>
             <select
               v-model="selectedYear"
               @change="applyFilters"
-              class="w-full px-3 py-2 text-xs border border-slate-300 rounded-lg bg-white font-semibold text-slate-800 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition cursor-pointer"
+              class="w-full px-2.5 py-1.5 text-[12px] border border-slate-300 rounded-lg bg-white font-medium text-slate-800 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition cursor-pointer"
             >
               <option value="">-- Semua Tahun --</option>
               <option v-for="y in yearOptions" :key="y.value" :value="y.value">{{ y.label }}</option>
@@ -906,13 +906,13 @@ function formatActionLabel(action) {
         <div class="flex justify-end gap-2 pt-2 border-t border-slate-100">
           <button
             @click="resetFilters"
-            class="px-4 py-2 text-xs font-semibold text-[#4B5563] bg-[#F3F4F6] hover:bg-[#E5E7EB] rounded-lg transition cursor-pointer"
+            class="px-3 py-1.5 text-[11px] font-semibold text-[#4B5563] bg-[#F3F4F6] hover:bg-[#E5E7EB] rounded-lg transition cursor-pointer"
           >
             Reset Filter
           </button>
           <button
             @click="applyFilters"
-            class="px-5 py-2 text-xs font-semibold text-white bg-[#2563EB] hover:bg-[#1D4ED8] rounded-lg transition shadow-xs cursor-pointer"
+            class="px-4 py-1.5 text-[11.5px] font-semibold text-white bg-[#2563EB] hover:bg-[#1D4ED8] rounded-lg transition shadow-xs cursor-pointer"
           >
             Terapkan Filter
           </button>
@@ -920,116 +920,116 @@ function formatActionLabel(action) {
       </div>
 
       <!-- METRICS GRID (SUB-SECTIONS LEGA DENGAN INNER PADDING & ROUNDED CARD CORNERS) -->
-      <div class="space-y-4">
+      <div class="space-y-3 sm:space-y-4">
         
         <!-- SECTION 1: TOTAL SUBMISI SE -->
-        <div class="bg-white p-5 rounded-xl border border-[#CBD5E1] shadow-xs hover:border-blue-300 transition">
+        <div class="bg-white p-3.5 sm:p-4 md:p-4.5 rounded-xl border border-[#CBD5E1] shadow-xs hover:border-blue-300 transition">
           <div class="flex items-center justify-between">
             <div>
-              <span class="text-xs font-bold text-[#64748B] uppercase tracking-wider">1. Total NOO Disubmit SE</span>
-              <h2 class="text-3xl sm:text-4xl font-black text-[#1E293B] mt-1 transition-all duration-300">
+              <span class="text-[10px] md:text-[11px] font-semibold text-[#64748B] uppercase tracking-wider">1. Total NOO Disubmit SE</span>
+              <h2 class="text-2xl sm:text-3xl font-bold text-[#1E293B] mt-0.5 transition-all duration-300">
                 {{ displayMetrics.total_submitted_se }}
               </h2>
-              <p class="text-xs text-[#64748B] mt-0.5">Total pengajuan outlet baru dari aplikasi mobile sales</p>
+              <p class="text-[11px] text-[#64748B] mt-0.5">Total pengajuan outlet baru dari aplikasi mobile sales</p>
             </div>
-            <div class="p-3.5 rounded-2xl bg-blue-50 text-blue-600 border border-blue-100 shadow-2xs">
-              <svg class="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/></svg>
+            <div class="p-2.5 sm:p-3 rounded-xl bg-blue-50 text-blue-600 border border-blue-100 shadow-2xs">
+              <svg class="w-6 h-6 sm:w-7 sm:h-7" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/></svg>
             </div>
           </div>
         </div>
 
         <!-- SECTION 2: PER TAHAP VERIFIKASI -->
-        <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-3 sm:gap-4">
           
           <!-- TAHAP 1: ADMIN DISTRIBUTOR -->
-          <div class="bg-white p-5 rounded-xl border border-slate-200 shadow-xs hover:border-blue-300 transition flex flex-col justify-between">
-            <div class="flex items-center justify-between border-b border-slate-100 pb-2.5">
-              <span class="text-xs font-bold text-slate-800 uppercase tracking-wider flex items-center gap-1.5">
+          <div class="bg-white p-3 sm:p-3.5 md:p-4 rounded-xl border border-slate-200 shadow-xs hover:border-blue-300 transition flex flex-col justify-between">
+            <div class="flex items-center justify-between border-b border-slate-100 pb-2">
+              <span class="text-[11.5px] font-bold text-slate-800 uppercase tracking-wider flex items-center gap-1.5">
                 <span>Admin Distributor</span>
               </span>
               <span class="text-[10px] font-bold px-2 py-0.5 rounded-full bg-slate-100 text-slate-600">Tahap 1</span>
             </div>
             
-            <div class="grid grid-cols-3 gap-2.5 mt-3 pt-1">
-              <div class="p-2.5 rounded-lg bg-amber-50/80 border border-amber-200/60 text-center flex flex-col justify-between h-full min-h-[84px] transition hover:bg-amber-100/80">
-                <div class="min-h-[30px] flex items-center justify-center">
-                  <span class="text-[10px] font-bold text-amber-800 uppercase tracking-wide leading-tight">Belum Diproses</span>
+            <div class="grid grid-cols-3 gap-2 mt-2.5">
+              <div class="p-2 sm:p-2.5 rounded-lg bg-amber-50/80 border border-amber-200/60 text-center flex flex-col justify-between h-full min-h-[72px] transition hover:bg-amber-100/80">
+                <div class="min-h-[26px] flex items-center justify-center">
+                  <span class="text-[10px] font-semibold text-amber-800 uppercase tracking-wide leading-tight">Belum Diproses</span>
                 </div>
-                <span class="text-xl font-black text-amber-950 block mt-1">{{ displayMetrics.pending_admin }}</span>
+                <span class="text-lg sm:text-xl font-bold text-amber-950 block mt-0.5">{{ displayMetrics.pending_admin }}</span>
               </div>
-              <div class="p-2.5 rounded-lg bg-emerald-50/80 border border-emerald-200/60 text-center flex flex-col justify-between h-full min-h-[84px] transition hover:bg-emerald-100/80">
-                <div class="min-h-[30px] flex items-center justify-center">
-                  <span class="text-[10px] font-bold text-emerald-800 uppercase tracking-wide leading-tight">Approved</span>
+              <div class="p-2 sm:p-2.5 rounded-lg bg-emerald-50/80 border border-emerald-200/60 text-center flex flex-col justify-between h-full min-h-[72px] transition hover:bg-emerald-100/80">
+                <div class="min-h-[26px] flex items-center justify-center">
+                  <span class="text-[10px] font-semibold text-emerald-800 uppercase tracking-wide leading-tight">Approved</span>
                 </div>
-                <span class="text-xl font-black text-emerald-950 block mt-1">{{ displayMetrics.approved_admin }}</span>
+                <span class="text-lg sm:text-xl font-bold text-emerald-950 block mt-0.5">{{ displayMetrics.approved_admin }}</span>
               </div>
-              <div class="p-2.5 rounded-lg bg-rose-50/80 border border-rose-200/60 text-center flex flex-col justify-between h-full min-h-[84px] transition hover:bg-rose-100/80">
-                <div class="min-h-[30px] flex items-center justify-center">
-                  <span class="text-[10px] font-bold text-rose-800 uppercase tracking-wide leading-tight">Rejected</span>
+              <div class="p-2 sm:p-2.5 rounded-lg bg-rose-50/80 border border-rose-200/60 text-center flex flex-col justify-between h-full min-h-[72px] transition hover:bg-rose-100/80">
+                <div class="min-h-[26px] flex items-center justify-center">
+                  <span class="text-[10px] font-semibold text-rose-800 uppercase tracking-wide leading-tight">Rejected</span>
                 </div>
-                <span class="text-xl font-black text-rose-950 block mt-1">{{ displayMetrics.rejected_admin }}</span>
+                <span class="text-lg sm:text-xl font-bold text-rose-950 block mt-0.5">{{ displayMetrics.rejected_admin }}</span>
               </div>
             </div>
           </div>
 
           <!-- TAHAP 2: SPV AREA -->
-          <div class="bg-white p-5 rounded-xl border border-slate-200 shadow-xs hover:border-purple-300 transition flex flex-col justify-between">
-            <div class="flex items-center justify-between border-b border-slate-100 pb-2.5">
-              <span class="text-xs font-bold text-slate-800 uppercase tracking-wider flex items-center gap-1.5">
+          <div class="bg-white p-3 sm:p-3.5 md:p-4 rounded-xl border border-slate-200 shadow-xs hover:border-purple-300 transition flex flex-col justify-between">
+            <div class="flex items-center justify-between border-b border-slate-100 pb-2">
+              <span class="text-[11.5px] font-bold text-slate-800 uppercase tracking-wider flex items-center gap-1.5">
                 <span>SPV Area</span>
               </span>
               <span class="text-[10px] font-bold px-2 py-0.5 rounded-full bg-slate-100 text-slate-600">Tahap 2</span>
             </div>
             
-            <div class="grid grid-cols-3 gap-2.5 mt-3 pt-1">
-              <div class="p-2.5 rounded-lg bg-amber-50/80 border border-amber-200/60 text-center flex flex-col justify-between h-full min-h-[84px] transition hover:bg-amber-100/80">
-                <div class="min-h-[30px] flex items-center justify-center">
-                  <span class="text-[10px] font-bold text-amber-800 uppercase tracking-wide leading-tight">Belum Diproses</span>
+            <div class="grid grid-cols-3 gap-2 mt-2.5">
+              <div class="p-2 sm:p-2.5 rounded-lg bg-amber-50/80 border border-amber-200/60 text-center flex flex-col justify-between h-full min-h-[72px] transition hover:bg-amber-100/80">
+                <div class="min-h-[26px] flex items-center justify-center">
+                  <span class="text-[10px] font-semibold text-amber-800 uppercase tracking-wide leading-tight">Belum Diproses</span>
                 </div>
-                <span class="text-xl font-black text-amber-950 block mt-1">{{ displayMetrics.pending_spv }}</span>
+                <span class="text-lg sm:text-xl font-bold text-amber-950 block mt-0.5">{{ displayMetrics.pending_spv }}</span>
               </div>
-              <div class="p-2.5 rounded-lg bg-teal-50/80 border border-teal-200/60 text-center flex flex-col justify-between h-full min-h-[84px] transition hover:bg-teal-100/80">
-                <div class="min-h-[30px] flex items-center justify-center">
-                  <span class="text-[10px] font-bold text-teal-800 uppercase tracking-wide leading-tight">Approved</span>
+              <div class="p-2 sm:p-2.5 rounded-lg bg-teal-50/80 border border-teal-200/60 text-center flex flex-col justify-between h-full min-h-[72px] transition hover:bg-teal-100/80">
+                <div class="min-h-[26px] flex items-center justify-center">
+                  <span class="text-[10px] font-semibold text-teal-800 uppercase tracking-wide leading-tight">Approved</span>
                 </div>
-                <span class="text-xl font-black text-teal-950 block mt-1">{{ displayMetrics.approved_spv }}</span>
+                <span class="text-lg sm:text-xl font-bold text-teal-950 block mt-0.5">{{ displayMetrics.approved_spv }}</span>
               </div>
-              <div class="p-2.5 rounded-lg bg-rose-50/80 border border-rose-200/60 text-center flex flex-col justify-between h-full min-h-[84px] transition hover:bg-rose-100/80">
-                <div class="min-h-[30px] flex items-center justify-center">
-                  <span class="text-[10px] font-bold text-rose-800 uppercase tracking-wide leading-tight">Rejected</span>
+              <div class="p-2 sm:p-2.5 rounded-lg bg-rose-50/80 border border-rose-200/60 text-center flex flex-col justify-between h-full min-h-[72px] transition hover:bg-rose-100/80">
+                <div class="min-h-[26px] flex items-center justify-center">
+                  <span class="text-[10px] font-semibold text-rose-800 uppercase tracking-wide leading-tight">Rejected</span>
                 </div>
-                <span class="text-xl font-black text-rose-950 block mt-1">{{ displayMetrics.rejected_spv }}</span>
+                <span class="text-lg sm:text-xl font-bold text-rose-950 block mt-0.5">{{ displayMetrics.rejected_spv }}</span>
               </div>
             </div>
           </div>
 
           <!-- TAHAP 3: EDP PRINCIPAL -->
-          <div class="bg-white p-5 rounded-xl border-2 border-emerald-500 shadow-xs bg-emerald-50/10 hover:border-emerald-600 transition flex flex-col justify-between">
-            <div class="flex items-center justify-between border-b border-emerald-100 pb-2.5">
-              <span class="text-xs font-bold text-[#065F46] uppercase tracking-wider flex items-center gap-1.5">
+          <div class="bg-white p-3 sm:p-3.5 md:p-4 rounded-xl border-2 border-emerald-500 shadow-xs bg-emerald-50/10 hover:border-emerald-600 transition flex flex-col justify-between">
+            <div class="flex items-center justify-between border-b border-emerald-100 pb-2">
+              <span class="text-[11.5px] font-bold text-[#065F46] uppercase tracking-wider flex items-center gap-1.5">
                 <span>Principal (EDP)</span>
               </span>
               <span class="text-[10px] font-bold px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-800">Final Verification</span>
             </div>
             
-            <div class="grid grid-cols-3 gap-2.5 mt-3 pt-1">
-              <div class="p-2.5 rounded-lg bg-amber-50/80 border border-amber-200/60 text-center flex flex-col justify-between h-full min-h-[84px] transition hover:bg-amber-100/80">
-                <div class="min-h-[30px] flex items-center justify-center">
-                  <span class="text-[10px] font-bold text-amber-800 uppercase tracking-wide leading-tight">Belum Diproses</span>
+            <div class="grid grid-cols-3 gap-2 mt-2.5">
+              <div class="p-2 sm:p-2.5 rounded-lg bg-amber-50/80 border border-amber-200/60 text-center flex flex-col justify-between h-full min-h-[72px] transition hover:bg-amber-100/80">
+                <div class="min-h-[26px] flex items-center justify-center">
+                  <span class="text-[10px] font-semibold text-amber-800 uppercase tracking-wide leading-tight">Belum Diproses</span>
                 </div>
-                <span class="text-xl font-black text-amber-950 block mt-1">{{ displayMetrics.pending_principal }}</span>
+                <span class="text-lg sm:text-xl font-bold text-amber-950 block mt-0.5">{{ displayMetrics.pending_principal }}</span>
               </div>
-              <div class="p-2.5 rounded-lg bg-emerald-600 text-white text-center flex flex-col justify-between h-full min-h-[84px] shadow-xs transition hover:bg-emerald-700">
-                <div class="min-h-[30px] flex items-center justify-center">
-                  <span class="text-[10px] font-bold uppercase tracking-wide opacity-90 leading-tight">Approved</span>
+              <div class="p-2 sm:p-2.5 rounded-lg bg-emerald-600 text-white text-center flex flex-col justify-between h-full min-h-[72px] shadow-xs transition hover:bg-emerald-700">
+                <div class="min-h-[26px] flex items-center justify-center">
+                  <span class="text-[10px] font-semibold uppercase tracking-wide opacity-90 leading-tight">Approved</span>
                 </div>
-                <span class="text-xl font-black block mt-1">{{ displayMetrics.approved_principal }}</span>
+                <span class="text-lg sm:text-xl font-bold block mt-0.5">{{ displayMetrics.approved_principal }}</span>
               </div>
-              <div class="p-2.5 rounded-lg bg-rose-50/80 border border-rose-200/60 text-center flex flex-col justify-between h-full min-h-[84px] transition hover:bg-rose-100/80">
-                <div class="min-h-[30px] flex items-center justify-center">
-                  <span class="text-[10px] font-bold text-rose-800 uppercase tracking-wide leading-tight">Rejected</span>
+              <div class="p-2 sm:p-2.5 rounded-lg bg-rose-50/80 border border-rose-200/60 text-center flex flex-col justify-between h-full min-h-[72px] transition hover:bg-rose-100/80">
+                <div class="min-h-[26px] flex items-center justify-center">
+                  <span class="text-[10px] font-semibold text-rose-800 uppercase tracking-wide leading-tight">Rejected</span>
                 </div>
-                <span class="text-xl font-black text-rose-950 block mt-1">{{ displayMetrics.rejected_principal }}</span>
+                <span class="text-lg sm:text-xl font-bold text-rose-950 block mt-0.5">{{ displayMetrics.rejected_principal }}</span>
               </div>
             </div>
           </div>
@@ -1335,53 +1335,53 @@ function formatActionLabel(action) {
       </div>
 
       <!-- SECTION 5: SUMMARY RECENT ACTIVITY AUDIT LOGS (TAMPILKAN 5 DATA TERBARU & TEKS AKTIVITAS RAPI) -->
-      <div class="bg-white p-6 rounded-xl border border-[#E5E7EB] shadow-xs space-y-4">
-        <div class="flex items-center justify-between border-b border-slate-100 pb-3">
+      <div class="bg-white p-3.5 sm:p-4 md:p-5 rounded-xl border border-[#E5E7EB] shadow-xs space-y-3">
+        <div class="flex items-center justify-between border-b border-slate-100 pb-2.5">
           <div>
-            <h3 class="text-sm font-bold text-[#111827] flex items-center gap-2">
+            <h3 class="text-[13px] md:text-[14px] font-bold text-[#111827] flex items-center gap-2">
               <span>Summary Recent Audit & Activity Logs</span>
             </h3>
-            <p class="text-xs text-slate-500 mt-0.5">Daftar 5 aktivitas pergerakan data pengajuan NOO terbaru</p>
+            <p class="text-[11px] text-slate-500 mt-0.5">Daftar 5 aktivitas pergerakan data pengajuan NOO terbaru</p>
           </div>
-          <span class="text-xs font-semibold px-2.5 py-1 rounded-full bg-slate-100 text-slate-600 border border-slate-200">
+          <span class="text-[10.5px] font-semibold px-2.5 py-0.5 rounded-full bg-slate-100 text-slate-600 border border-slate-200">
             Internal Audit Stream
           </span>
         </div>
 
         <div class="overflow-x-auto">
-          <table class="w-full text-xs text-left text-slate-700">
-            <thead class="bg-slate-50 border-b border-slate-200 text-slate-700 uppercase font-bold text-[10.5px]">
+          <table class="w-full text-left text-slate-700">
+            <thead class="bg-slate-50 border-b border-slate-200 text-[#475569] uppercase font-semibold text-[11px]">
               <tr>
-                <th class="p-3">Waktu & Tanggal</th>
-                <th class="p-3">Pengguna / User</th>
-                <th class="p-3">Aktivitas (Action)</th>
-                <th class="p-3">Entitas / Key</th>
-                <th class="p-3">Detail Catatan</th>
+                <th class="px-3 py-2.5">Waktu & Tanggal</th>
+                <th class="px-3 py-2.5">Pengguna / User</th>
+                <th class="px-3 py-2.5">Aktivitas (Action)</th>
+                <th class="px-3 py-2.5">Entitas / Key</th>
+                <th class="px-3 py-2.5">Detail Catatan</th>
               </tr>
             </thead>
-            <tbody class="divide-y divide-slate-100">
+            <tbody class="divide-y divide-slate-100 text-[12px] sm:text-[12.5px] leading-[17px]">
               <tr v-if="!recentLogs || recentLogs.length === 0">
-                <td colspan="5" class="p-4 text-center text-slate-400 italic">Belum ada log aktivitas tercatat.</td>
+                <td colspan="5" class="p-3 text-center text-slate-400 italic">Belum ada log aktivitas tercatat.</td>
               </tr>
               <tr v-else v-for="log in recentLogs.slice(0, 5)" :key="log.id" class="hover:bg-slate-50/80 transition">
-                <td class="p-3 font-mono text-[11px] whitespace-nowrap text-slate-600">
+                <td class="px-3 py-2.5 font-mono text-[11px] whitespace-nowrap text-slate-600">
                   {{ formatDate(log.timestamp || log.created_at) }}
                 </td>
-                <td class="p-3">
-                  <div class="font-semibold text-slate-800">{{ log.username || 'System' }}</div>
+                <td class="px-3 py-2.5">
+                  <div class="font-bold text-[#111827] text-[12.5px]">{{ log.username || 'System' }}</div>
                   <span class="text-[9.5px] font-bold px-1.5 py-0.5 rounded bg-slate-100 text-slate-600 border border-slate-200">
                     {{ formatRole(log.role || 'USER') }}
                   </span>
                 </td>
-                <td class="p-3 whitespace-nowrap">
-                  <span class="inline-block px-2.5 py-1 text-[11px] font-bold rounded-md bg-blue-50 text-blue-800 border border-blue-200 shadow-2xs whitespace-nowrap">
+                <td class="px-3 py-2.5 whitespace-nowrap">
+                  <span class="inline-block px-2 py-0.5 text-[10.5px] font-semibold rounded-md bg-blue-50 text-blue-800 border border-blue-200 shadow-2xs whitespace-nowrap">
                     {{ formatActionLabel(log.action) }}
                   </span>
                 </td>
-                <td class="p-3 font-mono text-[11px] text-slate-600">
+                <td class="px-3 py-2.5 font-mono text-[10.5px] font-bold text-slate-600">
                   {{ log.row_key || log.table_name || '-' }}
                 </td>
-                <td class="p-3 text-[11.5px] text-slate-700 whitespace-normal break-words">
+                <td class="px-3 py-2.5 text-[11.5px] text-slate-700 whitespace-normal break-words">
                   {{ log.notes || log.field_name || '-' }}
                 </td>
               </tr>

@@ -210,12 +210,12 @@ const isBulkModalOpen = ref(false);
     <div class="space-y-6">
       
       <!-- Page Header -->
-      <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-white p-5 rounded-xl border border-[#E5E7EB] shadow-xs">
+      <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 bg-white p-3.5 sm:p-4 md:p-5 rounded-xl border border-[#E5E7EB] shadow-xs">
         <div>
-          <h1 class="text-xl font-bold text-[#111827] flex items-center gap-2">
+          <h1 class="text-lg sm:text-xl md:text-[22px] font-bold text-[#111827] tracking-tight flex items-center gap-2">
             <span>Counter Sequence Kode Customer Principal</span>
           </h1>
-          <p class="text-xs text-[#6B7280] mt-1">
+          <p class="text-[12.5px] md:text-[14px] leading-[1.5] text-[#6B7280] mt-0.5">
             Penataan & Otomatisasi Sequence Nomor Urut Kode Customer Principal per Cabang Distributor.
           </p>
         </div>
@@ -224,30 +224,30 @@ const isBulkModalOpen = ref(false);
           <button
             v-if="canWriteFull"
             @click="openAddModal"
-            class="px-4 py-2 text-xs font-bold text-white bg-[#059669] hover:bg-[#047857] rounded-lg shadow-xs transition flex items-center gap-1.5 cursor-pointer"
+            class="px-3 py-1.5 text-[11.5px] font-semibold text-white bg-[#059669] hover:bg-[#047857] rounded-lg shadow-xs transition flex items-center gap-1.5 cursor-pointer"
           >
-            <span>➕ Setting Sequence Cabang Baru</span>
+            <span>+ Setting Sequence Cabang Baru</span>
           </button>
           <button
             v-if="$page.props.auth?.user?.role === 'SUPERADMIN'"
             @click="isBulkModalOpen = true"
-            class="px-3.5 py-2 text-xs font-semibold text-blue-700 bg-blue-50 hover:bg-blue-100 border border-blue-200 rounded-lg shadow-xs transition flex items-center gap-1.5 cursor-pointer"
+            class="px-3 py-1.5 text-[11.5px] font-semibold text-blue-700 bg-blue-50 hover:bg-blue-100 border border-blue-200 rounded-lg shadow-xs transition flex items-center gap-1.5 cursor-pointer"
           >
-            <span>📤 Bulk Upload</span>
+            <span>Bulk Upload</span>
           </button>
         </div>
       </div>
 
       <!-- FILTER BAR DINAMIS DENGAN SEARCHABLE SELECT -->
-      <div class="bg-white p-5 rounded-xl border border-[#E5E7EB] shadow-xs space-y-4">
-        <h2 class="text-xs font-bold text-[#374151] uppercase tracking-wider flex items-center gap-2">
-          <svg class="w-4 h-4 text-emerald-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2.586a1 1 0 01-.293.707l-6.414 6.414a1 1 0 00-.293.707V17l-4 4v-6.586a1 1 0 00-.293-.707L3.293 7.293A1 1 0 013 6.586V4z"/></svg>
+      <div class="bg-white p-3 sm:p-3.5 rounded-xl border border-[#E5E7EB] shadow-xs space-y-3">
+        <h2 class="text-[11.5px] font-semibold text-[#475569] uppercase tracking-wider flex items-center gap-2">
+          <svg class="w-3.5 h-3.5 text-emerald-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2.586a1 1 0 01-.293.707l-6.414 6.414a1 1 0 00-.293.707V17l-4 4v-6.586a1 1 0 00-.293-.707L3.293 7.293A1 1 0 013 6.586V4z"/></svg>
           <span>Filter Data Counter Sequence</span>
         </h2>
 
-        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
           <div>
-            <label class="block text-xs font-semibold text-[#4B5563] mb-1">REGION</label>
+            <label class="block text-[11.5px] font-medium text-slate-500 mb-1">REGION</label>
             <SearchableSelect
               v-model="selectedRegion"
               :options="regionOptions"
@@ -258,7 +258,7 @@ const isBulkModalOpen = ref(false);
           </div>
 
           <div>
-            <label class="block text-xs font-semibold text-[#4B5563] mb-1">ENTITY / PRINCIPAL</label>
+            <label class="block text-[11.5px] font-medium text-slate-500 mb-1">ENTITY / PRINCIPAL</label>
             <SearchableSelect
               v-model="selectedEntity"
               :options="entityOptions"
@@ -269,7 +269,7 @@ const isBulkModalOpen = ref(false);
           </div>
 
           <div>
-            <label class="block text-xs font-semibold text-[#4B5563] mb-1">CABANG / BRANCH</label>
+            <label class="block text-[11.5px] font-medium text-slate-500 mb-1">CABANG / BRANCH</label>
             <SearchableSelect
               v-model="selectedBranch"
               :options="branchOptions"
@@ -280,98 +280,98 @@ const isBulkModalOpen = ref(false);
           </div>
 
           <div>
-            <label class="block text-xs font-semibold text-[#4B5563] mb-1">CARI KATA KUNCI</label>
-            <input type="text" v-model="search" @keyup.enter="applyFilters" placeholder="Cari Branch ID, Prefix, Cabang..." class="w-full px-3 py-2 text-xs border rounded-lg" />
+            <label class="block text-[11.5px] font-medium text-slate-500 mb-1">CARI KATA KUNCI</label>
+            <input type="text" v-model="search" @keyup.enter="applyFilters" placeholder="Cari Branch ID, Prefix, Cabang..." class="w-full px-2.5 py-1.5 text-[12px] border border-slate-300 rounded-lg" />
           </div>
         </div>
 
-        <div class="flex justify-end gap-2 pt-1">
-          <button @click="resetFilters" class="px-3 py-1.5 text-xs font-semibold bg-gray-100 rounded-lg hover:bg-gray-200">Reset</button>
-          <button @click="applyFilters" class="px-4 py-1.5 text-xs font-semibold text-white bg-[#374151] rounded-lg hover:bg-black">Terapkan</button>
+        <div class="flex justify-end gap-2 pt-1 border-t border-slate-100">
+          <button @click="resetFilters" class="px-2.5 py-1 text-[10.5px] font-medium text-rose-500 hover:text-rose-700 hover:underline cursor-pointer">Reset</button>
+          <button @click="applyFilters" class="px-3 py-1 text-[11px] font-semibold text-white bg-[#374151] rounded-lg hover:bg-black cursor-pointer">Terapkan</button>
         </div>
       </div>
 
       <!-- Table Counter Sequence -->
       <div class="bg-white rounded-xl border border-[#E5E7EB] shadow-xs overflow-hidden">
         <div class="overflow-x-auto">
-          <table class="w-full text-left text-xs">
-            <thead class="bg-[#F9FAFB] border-b border-[#E5E7EB] font-bold text-[#374151] uppercase select-none">
+          <table class="w-full text-left">
+            <thead class="bg-[#F9FAFB] border-b border-[#E5E7EB] font-semibold text-[#475569] text-[11.5px] uppercase select-none">
               <tr>
-                <th @click="handleSort('branch_id')" class="px-4 py-3 cursor-pointer hover:bg-[#E5E7EB]">
+                <th @click="handleSort('branch_id')" class="px-3 py-3 cursor-pointer hover:bg-[#E5E7EB]">
                   <div class="flex items-center gap-1">
                     <span>ID Cabang</span>
                     <span v-if="sortKey === 'branch_id'">{{ sortDir === 'asc' ? '▲' : '▼' }}</span>
                     <span v-else class="opacity-30">↕</span>
                   </div>
                 </th>
-                <th @click="handleSort('branch_name')" class="px-4 py-3 cursor-pointer hover:bg-[#E5E7EB]">
+                <th @click="handleSort('branch_name')" class="px-3 py-3 cursor-pointer hover:bg-[#E5E7EB]">
                   <div class="flex items-center gap-1">
                     <span>Nama Cabang & Region</span>
                     <span v-if="sortKey === 'branch_name'">{{ sortDir === 'asc' ? '▲' : '▼' }}</span>
                     <span v-else class="opacity-30">↕</span>
                   </div>
                 </th>
-                <th @click="handleSort('principal_code')" class="px-4 py-3 cursor-pointer hover:bg-[#E5E7EB]">
+                <th @click="handleSort('principal_code')" class="px-3 py-3 cursor-pointer hover:bg-[#E5E7EB]">
                   <div class="flex items-center gap-1">
                     <span>Principal & Prefix Kode</span>
                     <span v-if="sortKey === 'principal_code'">{{ sortDir === 'asc' ? '▲' : '▼' }}</span>
                     <span v-else class="opacity-30">↕</span>
                   </div>
                 </th>
-                <th @click="handleSort('last_seq')" class="px-4 py-3 cursor-pointer hover:bg-[#E5E7EB]">
+                <th @click="handleSort('last_seq')" class="px-3 py-3 cursor-pointer hover:bg-[#E5E7EB]">
                   <div class="flex items-center gap-1">
                     <span>Sequence Terakhir (Last Seq)</span>
                     <span v-if="sortKey === 'last_seq'">{{ sortDir === 'asc' ? '▲' : '▼' }}</span>
                     <span v-else class="opacity-30">↕</span>
                   </div>
                 </th>
-                <th class="px-4 py-3">Preview Kode NOO Selanjutnya</th>
-                <th @click="handleSort('last_updated_at')" class="px-4 py-3 cursor-pointer hover:bg-[#E5E7EB]">
+                <th class="px-3 py-3">Preview Kode NOO Selanjutnya</th>
+                <th @click="handleSort('last_updated_at')" class="px-3 py-3 cursor-pointer hover:bg-[#E5E7EB]">
                   <div class="flex items-center gap-1">
                     <span>Terakhir Diperbarui</span>
                     <span v-if="sortKey === 'last_updated_at'">{{ sortDir === 'asc' ? '▲' : '▼' }}</span>
                     <span v-else class="opacity-30">↕</span>
                   </div>
                 </th>
-                <th class="px-4 py-3 text-right">Aksi</th>
+                <th class="px-3 py-3 text-right">Aksi</th>
               </tr>
             </thead>
-            <tbody class="divide-y divide-[#E5E7EB]">
+            <tbody class="divide-y divide-[#E5E7EB] text-[12.5px] leading-[17px]">
               <tr v-for="s in sortedSequences" :key="s.id" class="hover:bg-emerald-50/20 transition">
-                <td class="px-4 py-3 font-bold text-[#111827]">{{ s.branch_id }}</td>
-                <td class="px-4 py-3">
-                  <span class="font-medium text-[#374151]">{{ s.branch_name }}</span> <br>
-                  <span class="text-[10px] text-[#059669] font-bold">Region: {{ s.region_code }}</span>
+                <td class="px-3 py-2.5 font-bold text-[#111827] text-[13px]">{{ s.branch_id }}</td>
+                <td class="px-3 py-2.5">
+                  <span class="font-bold text-[#374151]">{{ s.branch_name }}</span> <br>
+                  <span class="text-[10.5px] text-[#059669] font-bold">Region: {{ s.region_code }}</span>
                 </td>
-                <td class="px-4 py-3">
-                  <span class="font-mono font-bold text-[#1D4ED8]">Code: {{ s.principal_code }}</span> |
-                  <span class="font-mono font-bold text-[#059669]">Prefix: {{ s.prefix }}</span>
+                <td class="px-3 py-2.5">
+                  <span class="font-mono font-bold text-[#1D4ED8] text-[11.5px]">Code: {{ s.principal_code }}</span> |
+                  <span class="font-mono font-bold text-[#059669] text-[11.5px]">Prefix: {{ s.prefix }}</span>
                 </td>
-                <td class="px-4 py-3">
-                  <span class="px-3 py-1 rounded-md bg-emerald-100 text-[#065F46] font-mono font-black text-xs">
+                <td class="px-3 py-2.5">
+                  <span class="px-2 py-0.5 rounded bg-emerald-100 text-[#065F46] font-mono font-bold text-[11.5px]">
                     {{ String(s.last_seq).padStart(5, '0') }} ({{ s.last_seq }})
                   </span>
                 </td>
                 <!-- PREVIEW KODE PRINCIPAL SELANJUTNYA -->
-                <td class="px-4 py-3">
-                  <span class="px-3 py-1 rounded-md bg-blue-50 border border-blue-200 text-blue-800 font-mono font-black text-xs">
+                <td class="px-3 py-2.5">
+                  <span class="px-2 py-0.5 rounded bg-blue-50 border border-blue-200 text-blue-800 font-mono font-bold text-[11.5px]">
                     👉 {{ generateNextCodePreview(s) }}
                   </span>
                 </td>
-                <td class="px-4 py-3 text-[#6B7280]">
+                <td class="px-3 py-2.5 text-[#6B7280] text-[11px] font-mono">
                   {{ s.last_updated_at ? new Date(s.last_updated_at).toLocaleString('id-ID') : '-' }}
                 </td>
-                <td class="px-4 py-3 text-right">
+                <td class="px-3 py-2.5 text-right">
                   <button
                     @click="openEditModal(s)"
-                    class="px-3 py-1.5 text-xs font-semibold text-white bg-[#059669] hover:bg-[#047857] rounded-md transition shadow-xs"
+                    class="px-2.5 py-1 text-[11px] font-semibold text-white bg-[#059669] hover:bg-[#047857] rounded-lg transition shadow-2xs cursor-pointer"
                   >
-                    ✏️ Update Sequence
+                    Update Sequence
                   </button>
                 </td>
               </tr>
               <tr v-if="sequences.data.length === 0">
-                <td colspan="7" class="px-4 py-8 text-center text-gray-400">Tidak ada data sequence.</td>
+                <td colspan="7" class="px-3 py-8 text-center text-gray-400">Tidak ada data sequence.</td>
               </tr>
             </tbody>
           </table>

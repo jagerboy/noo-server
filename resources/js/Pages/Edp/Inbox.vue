@@ -1531,30 +1531,30 @@ function getLineStyle(stepBefore, item) {
     <div class="space-y-6">
       
       <!-- Page Header -->
-      <div class="flex flex-col lg:flex-row lg:items-center justify-between gap-5 bg-white p-6 sm:p-7 rounded-xl border border-[#E5E7EB] shadow-xs">
-        <div class="space-y-1.5 max-w-3xl">
-          <h1 class="text-xl md:text-[24px] font-semibold text-[#111827] tracking-tight leading-[1.4] flex items-center gap-3">
+      <div class="flex flex-col lg:flex-row lg:items-center justify-between gap-4 md:gap-5 bg-white p-4 sm:p-5 rounded-xl border border-[#E5E7EB] shadow-2xs">
+        <div class="space-y-1 max-w-3xl">
+          <h1 class="text-lg sm:text-xl md:text-[22px] font-bold text-[#111827] tracking-tight leading-[1.4] flex items-center gap-3">
             <span>NOO Verification</span>
           </h1>
-          <p class="text-[14px] text-[#6B7280] leading-[1.5]">
+          <p class="text-[12.5px] md:text-[14px] text-[#6B7280] leading-[1.5]">
             Verifikasi Final EDP Principal, Penerbitan Kode Customer Principal, & Rekapitulasi Approval.
           </p>
-          <p class="text-[13px] text-[#6B7280]">
+          <p class="text-[11.5px] text-[#6B7280]">
             (Region Scope: <span class="font-semibold text-slate-800">{{ userRegion || 'Semua Region' }}</span>)
           </p>
         </div>
 
-        <div class="flex items-center gap-3 flex-wrap sm:flex-nowrap shrink-0">
+        <div class="flex items-center gap-2 flex-wrap sm:flex-nowrap shrink-0">
           <BaseButton
             variant="primary"
-            size="md"
+            size="sm"
             @click="openExportModal"
           >
             Export Approved (.xlsx)
           </BaseButton>
           <BaseButton
             variant="danger"
-            size="md"
+            size="sm"
             @click="openExportRejectedModal"
           >
             Export Rejected (.xlsx)
@@ -1563,10 +1563,10 @@ function getLineStyle(stepBefore, item) {
       </div>
 
       <!-- INLINE FILTER TOOLBAR & ACTIVE CHIPS (DESIGN REFERENCE STYLED) -->
-      <div class="bg-white p-4 rounded-2xl border border-[#E5E7EB] shadow-xs space-y-3">
+      <div class="bg-white p-3 sm:p-3.5 rounded-xl border border-[#E5E7EB] shadow-2xs space-y-2.5">
         
         <!-- ROW 1: SEARCH BAR + QUICK FILTER DROPDOWNS + MODAL TRIGGER -->
-        <div class="flex flex-col lg:flex-row items-stretch lg:items-center justify-between gap-3">
+        <div class="flex flex-col lg:flex-row items-stretch lg:items-center justify-between gap-2.5">
           
           <!-- Instant Search Input -->
           <div class="relative w-full lg:w-80 shrink-0">
@@ -1575,7 +1575,7 @@ function getLineStyle(stepBefore, item) {
               v-model="search"
               @keyup.enter="applyFilters"
               placeholder="Search by name, code, salesman..."
-              class="w-full pl-9 pr-8 py-2 text-xs font-semibold text-slate-800 bg-slate-50 border border-slate-300 rounded-xl focus:bg-white focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 transition placeholder:text-slate-400 shadow-2xs"
+              class="w-full pl-9 pr-8 py-1.5 text-[12px] font-medium text-slate-800 bg-slate-50 border border-slate-300 rounded-lg focus:bg-white focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 transition placeholder:text-slate-400 shadow-2xs"
             />
             <svg class="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/></svg>
             <button
@@ -1595,15 +1595,13 @@ function getLineStyle(stepBefore, item) {
               <select
                 v-model="selectedStatus"
                 @change="applyFilters"
-                class="pl-3.5 pr-9 py-2 text-xs font-bold rounded-xl border border-slate-300 bg-slate-50 hover:bg-white text-slate-700 focus:ring-2 focus:ring-blue-500 cursor-pointer shadow-2xs transition appearance-none max-w-[210px] truncate"
-                style="-webkit-appearance: none; -moz-appearance: none; appearance: none; background-image: none;"
+                class="pl-2.5 pr-7 py-1.5 text-[12px] font-medium rounded-lg border border-slate-300 bg-slate-50 hover:bg-white text-slate-700 focus:ring-2 focus:ring-blue-500 cursor-pointer shadow-2xs transition max-w-[210px] truncate"
               >
                 <option value="">Status Principal: Semua</option>
                 <option value="PENDING_EDP">⏳ Belum Diproses (Pending EDP)</option>
                 <option value="APPROVED_EDP">✔ Disetujui (Approved EDP)</option>
                 <option value="REJECTED_EDP">✖ Ditolak (Rejected EDP)</option>
               </select>
-              <svg class="w-3.5 h-3.5 absolute right-3 pointer-events-none text-slate-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/></svg>
             </div>
 
 
@@ -1612,21 +1610,21 @@ function getLineStyle(stepBefore, item) {
               <select
                 v-model="sortSelect"
                 @change="applyFilters"
-                class="pl-3.5 pr-9 py-2 text-xs font-bold rounded-xl border border-slate-300 bg-slate-50 hover:bg-white text-slate-700 focus:ring-2 focus:ring-blue-500 cursor-pointer shadow-2xs transition appearance-none max-w-[220px] truncate"
-                style="-webkit-appearance: none; -moz-appearance: none; appearance: none; background-image: none;"
+                class="pl-2.5 pr-7 py-1.5 text-[12px] font-medium rounded-lg border border-slate-300 bg-slate-50 hover:bg-white text-slate-700 focus:ring-2 focus:ring-blue-500 cursor-pointer shadow-2xs transition max-w-[220px] truncate"
               >
                 <option value="created_at_desc">Sort: Waktu Submit Terbaru</option>
                 <option value="created_at_asc">Sort: Waktu Submit Terlama</option>
                 <option value="nama_noo_asc">Sort: Nama Outlet (A-Z)</option>
-                <option value="branch_name_asc">Sort: Cabang (A-Z)</option>
+                <option value="nama_noo_desc">Sort: Nama Outlet (Z-A)</option>
+                <option value="branch_name_asc">Sort: Nama Cabang (A-Z)</option>
+                <option value="salesman_name_asc">Sort: Nama Salesman (A-Z)</option>
               </select>
-              <svg class="w-3.5 h-3.5 absolute right-3 pointer-events-none text-slate-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/></svg>
             </div>
 
             <!-- Filter & Sort Dialog Button -->
             <button
               @click="showFilterModal = true"
-              class="px-3.5 py-1.5 text-xs font-bold text-slate-800 bg-white hover:bg-slate-100 border border-slate-300 rounded-xl shadow-2xs transition flex items-center gap-1.5 cursor-pointer shrink-0"
+              class="px-2.5 py-1.5 text-[11px] font-semibold text-slate-800 bg-white hover:bg-slate-100 border border-slate-300 rounded-lg shadow-2xs transition flex items-center gap-1.5 cursor-pointer shrink-0"
             >
               <svg class="w-3.5 h-3.5 text-slate-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2.586a1 1 0 01-.293.707l-6.414 6.414a1 1 0 00-.293.707V17l-4 4v-6.586a1 1 0 00-.293-.707L3.293 7.293A1 1 0 013 6.586V4z"/></svg>
               <span>Filters & Scope</span>
@@ -1669,7 +1667,7 @@ function getLineStyle(stepBefore, item) {
       </div>
 
       <!-- Table Submisi NOO -->
-      <div class="bg-white rounded-[10px] border border-[#E5E7EB] shadow-xs overflow-hidden relative isolate min-h-[250px]" style="isolation: isolate;">
+      <div class="bg-white rounded-xl border border-[#E5E7EB] shadow-[0_1px_3px_rgba(0,0,0,0.06)] overflow-hidden relative isolate min-h-[250px]" style="isolation: isolate;">
         <!-- LOADING SPINNER OVERLAY (STRICTLY SCOPED INSIDE TABLE CARD) -->
         <div v-if="isLoadingFilters" class="absolute inset-0 bg-white/85 z-20 flex flex-col items-center justify-center gap-3 transition-opacity">
           <div class="w-9 h-9 border-4 border-blue-600 border-t-transparent rounded-full animate-spin"></div>
@@ -1677,20 +1675,20 @@ function getLineStyle(stepBefore, item) {
         </div>
 
         <div class="overflow-x-auto">
-          <table class="w-full text-[14px] text-left text-[#374151]">
-            <thead class="bg-[#F3F4F6] border-b border-[#E5E7EB] font-semibold text-[#111827] uppercase tracking-wider select-none">
+          <table class="w-full text-[12.5px] leading-[17px] text-left text-[#374151]">
+            <thead class="bg-[#F8FAFC] border-b border-[#E2E8F0] font-semibold text-[11.5px] text-[#475569] select-none">
               <tr>
-                <th class="p-4">Cabang / Salesman</th>
-                <th class="p-4">Nama Outlet & Pemilik</th>
-                <th class="p-4">CustCode Dist</th>
-                <th class="p-4">Customer Code Principal</th>
-                <th class="p-4">Status NOO</th>
-                <th class="p-4 text-center">Aksi</th>
+                <th class="px-3 py-3">Cabang / Salesman</th>
+                <th class="px-3 py-3">Nama Outlet & Pemilik</th>
+                <th class="px-3 py-3">CustCode Dist</th>
+                <th class="px-3 py-3">Customer Code Principal</th>
+                <th class="px-3 py-3">Status NOO</th>
+                <th class="px-3 py-3 text-center">Aksi</th>
               </tr>
             </thead>
-            <tbody class="divide-y divide-[#E5E7EB]">
+            <tbody class="divide-y divide-[#E2E8F0]">
               <tr v-if="sortedSubmissions.length === 0">
-                <td colspan="6" class="text-center py-12 text-[#9CA3AF] text-[14px]">
+                <td colspan="6" class="text-center py-12 text-[#9CA3AF] text-[12.5px]">
                   Belum ada data submisi toko masuk untuk verifikasi EDP.
                 </td>
               </tr>
@@ -1701,43 +1699,48 @@ function getLineStyle(stepBefore, item) {
                 class="transition border-b"
                 :class="getRowStyle(sub)"
               >
-                <td class="p-4 font-medium text-[#111827]">
+                <td class="px-3 py-2.5 font-semibold text-[#111827] text-[12.5px]">
                   {{ sub.branch_name }} <br>
-                  <span class="text-[12px] text-[#6B7280] font-normal">👤 {{ sub.salesman_name }}</span>
+                  <span class="text-[11px] text-[#6B7280] font-normal">👤 {{ sub.salesman_name }}</span>
                 </td>
-                <td class="p-4 font-semibold text-[#111827]">
+                <td class="px-3 py-2.5 font-bold text-[#111827] text-[13px]">
                   {{ sub.nama_noo }}
-                  <div v-if="sub.nama_pemilik_outlet" class="text-[12px] font-normal text-[#6B7280] mt-0.5">
+                  <div v-if="sub.nama_pemilik_outlet" class="text-[11px] font-normal text-[#6B7280] mt-0.5">
                     Pemilik: {{ sub.nama_pemilik_outlet }} ({{ sub.no_hp_noo || sub.no_hp || '-' }})
                   </div>
                 </td>
-                <td class="p-4 font-mono font-bold text-[#1D4ED8]">{{ sub.custcode_distributor || '-' }}</td>
-                <td class="p-4">
+                <td class="px-3 py-2.5">
+                  <span v-if="sub.custcode_distributor" class="font-mono text-[10.5px] font-bold text-[#1D4ED8] bg-[#DBEAFE] px-1.5 py-0.5 rounded border border-[#93C5FD] inline-block">
+                    {{ sub.custcode_distributor }}
+                  </span>
+                  <span v-else class="text-[11px] text-[#9CA3AF] italic">-</span>
+                </td>
+                <td class="px-3 py-2.5">
                   <span
                     v-if="sub.code_noo_principal"
-                    class="px-2.5 py-1 text-[13px] font-mono font-bold text-[#15803D] bg-[#DCFCE7] border border-[#86EFAC] rounded-[8px] inline-block"
+                    class="px-1.5 py-0.5 text-[10.5px] font-mono font-bold text-[#15803D] bg-[#DCFCE7] border border-[#86EFAC] rounded inline-block"
                   >
                     {{ sub.code_noo_principal }}
                   </span>
-                  <span v-else class="text-[12px] text-[#9CA3AF] italic">
+                  <span v-else class="text-[11px] text-[#9CA3AF] italic">
                     Belum tergenerate
                   </span>
                 </td>
 
                 <!-- STATUS BADGE COLUMN -->
-                <td class="p-4">
+                <td class="px-3 py-2.5">
                   <div>
-                    <span class="px-2.5 py-1 text-[12px] font-semibold rounded-[8px] border inline-flex items-center gap-1" :class="getStatusBadgeStyle(sub.status)">
+                    <span class="px-2 py-0.5 text-[10.5px] font-semibold rounded-full border inline-flex items-center gap-1" :class="getStatusBadgeStyle(sub.status)">
                       {{ formatStatusLabel(sub.status) }}
                     </span>
                   </div>
                 </td>
-                <td class="p-4 text-center">
+                <td class="px-3 py-2.5 text-center">
                   <button
                     @click="openDetailModal(sub)"
-                    class="px-4 py-2 text-[15px] font-semibold text-white bg-[#2563EB] hover:bg-[#1D4ED8] rounded-[8px] transition shadow-xs flex items-center gap-1.5 mx-auto cursor-pointer"
+                    class="px-2.5 py-1 text-[11px] font-semibold text-white bg-blue-600 hover:bg-blue-700 active:bg-blue-800 rounded-lg shadow-2xs transition inline-flex items-center gap-1.5 cursor-pointer whitespace-nowrap"
                   >
-                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"/></svg>
+                    <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"/></svg>
                     <span>Detail & Verifikasi</span>
                   </button>
                 </td>

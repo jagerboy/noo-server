@@ -353,47 +353,47 @@ const filteredSummary = computed(() => {
       </div>
 
       <!-- HEADER DASHBOARD TITLE & METRICS -->
-      <div class="bg-white p-6 rounded-2xl border border-slate-200 shadow-xs text-slate-900 flex flex-col lg:flex-row lg:items-center justify-between gap-5">
-        <div class="space-y-1.5">
-          <div class="flex items-center gap-3 flex-wrap">
-            <h1 class="text-xl md:text-2xl font-black text-slate-900 tracking-tight">
+      <div class="bg-white p-3.5 sm:p-4 md:p-5 rounded-xl border border-slate-200 shadow-xs text-slate-900 flex flex-col lg:flex-row lg:items-center justify-between gap-4">
+        <div class="space-y-1">
+          <div class="flex items-center gap-2.5 flex-wrap">
+            <h1 class="text-lg sm:text-xl md:text-[22px] font-bold text-slate-900 tracking-tight">
               Monitoring Target & Realisasi RO Salesman
             </h1>
-            <span class="px-3 py-1 rounded-full text-xs font-bold bg-blue-100 text-blue-800 border border-blue-200">
+            <span class="px-2.5 py-0.5 rounded-full text-xs font-semibold bg-blue-100 text-blue-800 border border-blue-200">
               Periode {{ selectedMonthName }} {{ selectedYear }}
             </span>
           </div>
-          <p class="text-xs text-slate-500 font-medium max-w-2xl leading-relaxed">
+          <p class="text-[12.5px] md:text-[14px] leading-[1.5] text-slate-500 max-w-2xl">
             Rekapitulasi capaian Registered Outlet (RO) toko approved vs target kuota per salesman per distributor per bulan (berdasarkan tanggal <span class="font-semibold text-slate-700">SE Submitted</span>).
           </p>
         </div>
 
-        <div class="flex items-center gap-3 flex-wrap shrink-0">
+        <div class="flex items-center gap-2.5 flex-wrap shrink-0">
           <button
             type="button"
             @click="openUploadModal()"
-            class="px-4 py-2.5 rounded-xl bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white font-bold text-xs shadow-md transition flex items-center gap-2 cursor-pointer shrink-0"
+            class="px-3 py-1.5 rounded-lg bg-blue-600 hover:bg-blue-700 text-white font-semibold text-[11.5px] shadow-xs transition flex items-center gap-1.5 cursor-pointer shrink-0"
           >
-            <svg class="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12"/></svg>
+            <svg class="w-3.5 h-3.5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12"/></svg>
             <span>Upload Target RO</span>
           </button>
 
           <!-- METRIC SUMMARY CARDS -->
-          <div class="grid grid-cols-2 sm:grid-cols-4 gap-2.5">
-            <div class="px-3.5 py-2.5 rounded-xl bg-slate-50 border border-slate-200 text-center">
-              <div class="text-[10px] font-bold text-slate-500 uppercase tracking-wider">Cabang</div>
+          <div class="grid grid-cols-2 sm:grid-cols-4 gap-2">
+            <div class="px-2.5 py-1.5 rounded-lg bg-slate-50 border border-slate-200 text-center min-w-[70px]">
+              <div class="text-[10px] font-semibold text-slate-500 uppercase tracking-wider">Cabang</div>
               <div class="text-base font-bold text-slate-900 mt-0.5">{{ filteredSummary.total_branches }}</div>
             </div>
-            <div class="px-3.5 py-2.5 rounded-xl bg-slate-50 border border-slate-200 text-center">
-              <div class="text-[10px] font-bold text-slate-500 uppercase tracking-wider">Salesman</div>
+            <div class="px-2.5 py-1.5 rounded-lg bg-slate-50 border border-slate-200 text-center min-w-[70px]">
+              <div class="text-[10px] font-semibold text-slate-500 uppercase tracking-wider">Salesman</div>
               <div class="text-base font-bold text-slate-900 mt-0.5">{{ filteredSummary.total_salesmen }}</div>
             </div>
-            <div class="px-3.5 py-2.5 rounded-xl bg-emerald-50 border border-emerald-200 text-center">
-              <div class="text-[10px] font-bold text-emerald-700 uppercase tracking-wider">Achieved</div>
+            <div class="px-2.5 py-1.5 rounded-lg bg-emerald-50 border border-emerald-200 text-center min-w-[70px]">
+              <div class="text-[10px] font-semibold text-emerald-700 uppercase tracking-wider">Achieved</div>
               <div class="text-base font-bold text-emerald-800 mt-0.5">{{ filteredSummary.total_achieved }}</div>
             </div>
-            <div class="px-3.5 py-2.5 rounded-xl bg-blue-50 border border-blue-200 text-center">
-              <div class="text-[10px] font-bold text-blue-700 uppercase tracking-wider">Approved RO</div>
+            <div class="px-2.5 py-1.5 rounded-lg bg-blue-50 border border-blue-200 text-center min-w-[90px]">
+              <div class="text-[10px] font-semibold text-blue-700 uppercase tracking-wider">Approved RO</div>
               <div class="text-base font-bold text-blue-900 mt-0.5">{{ filteredSummary.total_approved_ro }} / {{ filteredSummary.total_target_ro }}</div>
             </div>
           </div>
@@ -403,16 +403,16 @@ const filteredSummary = computed(() => {
       <!-- WARNING ALERT BANNER BILA TARGET BULAN INI BELUM DI-UPLOAD UNTUK DISTRIBUTOR TERPAUT -->
       <div
         v-if="missingTargetBranches && missingTargetBranches.length > 0"
-        class="bg-amber-50 border-2 border-amber-300 rounded-2xl p-4 sm:p-5 shadow-xs flex items-center gap-3"
+        class="bg-amber-50 border border-amber-300 rounded-xl p-3 sm:p-3.5 shadow-xs flex items-center gap-3"
       >
-        <div class="w-10 h-10 rounded-xl bg-amber-100 border border-amber-300 text-amber-700 flex items-center justify-center shrink-0 font-bold text-lg">
+        <div class="w-8 h-8 rounded-lg bg-amber-100 border border-amber-300 text-amber-700 flex items-center justify-center shrink-0 font-bold text-base">
           ⚠️
         </div>
-        <div class="space-y-1">
-          <h3 class="text-sm font-black text-amber-900">
+        <div class="space-y-0.5">
+          <h3 class="text-[13px] font-bold text-amber-900">
             Peringatan: Target RO Bulan {{ selectedMonthName }} {{ selectedYear }} Belum Lengkap!
           </h3>
-          <p class="text-xs text-amber-800 font-medium leading-relaxed">
+          <p class="text-[11.5px] text-amber-800 leading-relaxed">
             Target RO dari <strong>{{ missingTargetBranches.length }} distributor</strong> di bawah belum diupload oleh EDP untuk bulan {{ selectedMonthName }} {{ selectedYear }}:
             <span class="font-bold text-amber-950">
               {{ missingTargetBranches.map(b => b.branch_name).slice(0, 5).join(', ') }}{{ missingTargetBranches.length > 5 ? ` dan ${missingTargetBranches.length - 5} distributor lainnya` : '' }}
@@ -422,14 +422,14 @@ const filteredSummary = computed(() => {
       </div>
 
       <!-- FILTER BAR (MONTH, YEAR, REGION, PRINCIPAL, BRANCH) -->
-      <div class="bg-white p-5 rounded-2xl border border-slate-200 shadow-xs space-y-3">
+      <div class="bg-white p-3 sm:p-3.5 md:p-4 rounded-xl border border-slate-200 shadow-xs space-y-3">
         <div class="flex items-center justify-between">
-          <span class="text-xs font-bold uppercase tracking-wider text-slate-700 flex items-center gap-2">
+          <span class="text-[11.5px] font-semibold uppercase tracking-wider text-slate-700 flex items-center gap-2">
             Filter Monitoring RO Bulanan
           </span>
           <button
             @click="resetFilters"
-            class="text-xs font-bold text-blue-600 hover:text-blue-800 hover:underline cursor-pointer"
+            class="text-[10.5px] font-medium text-rose-500 hover:text-rose-700 hover:underline cursor-pointer"
           >
             Reset Filter
           </button>
@@ -438,11 +438,11 @@ const filteredSummary = computed(() => {
         <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-5 gap-3">
           <!-- Filter Bulan Target -->
           <div>
-            <label class="block text-[11px] font-bold text-slate-600 mb-1">Bulan Target RO:</label>
+            <label class="block text-[11.5px] font-medium text-slate-500 mb-1">Bulan Target RO:</label>
             <select
               v-model="selectedMonth"
               @change="applyFilters"
-              class="w-full text-xs p-2.5 rounded-xl border border-slate-300 focus:ring-2 focus:ring-blue-500 bg-white font-semibold text-slate-800 shadow-2xs"
+              class="w-full text-[12px] p-2 rounded-lg border border-slate-300 focus:ring-2 focus:ring-blue-500 bg-white font-medium text-slate-800 shadow-2xs"
             >
               <option v-for="m in monthOptions" :key="m.value" :value="m.value">
                 {{ m.label }}
@@ -452,11 +452,11 @@ const filteredSummary = computed(() => {
 
           <!-- Filter Tahun Target -->
           <div>
-            <label class="block text-[11px] font-bold text-slate-600 mb-1">Tahun Target RO:</label>
+            <label class="block text-[11.5px] font-medium text-slate-500 mb-1">Tahun Target RO:</label>
             <select
               v-model="selectedYear"
               @change="applyFilters"
-              class="w-full text-xs p-2.5 rounded-xl border border-slate-300 focus:ring-2 focus:ring-blue-500 bg-white font-medium shadow-2xs"
+              class="w-full text-[12px] p-2 rounded-lg border border-slate-300 focus:ring-2 focus:ring-blue-500 bg-white font-medium shadow-2xs"
             >
               <option v-for="y in yearOptions" :key="y.value" :value="y.value">
                 {{ y.label }}
@@ -466,7 +466,7 @@ const filteredSummary = computed(() => {
 
           <!-- Filter Region -->
           <div>
-            <label class="block text-[11px] font-bold text-slate-600 mb-1">1. Wilayah / Region:</label>
+            <label class="block text-[11.5px] font-medium text-slate-500 mb-1">1. Wilayah / Region:</label>
             <SearchableSelect
               v-model="selectedRegion"
               :options="regionOptions"
@@ -477,7 +477,7 @@ const filteredSummary = computed(() => {
 
           <!-- Filter Entity Principal -->
           <div>
-            <label class="block text-[11px] font-bold text-slate-600 mb-1">2. Entity Principal:</label>
+            <label class="block text-[11.5px] font-medium text-slate-500 mb-1">2. Entity Principal:</label>
             <SearchableSelect
               v-model="selectedPrincipal"
               :options="entityOptions"
@@ -488,7 +488,7 @@ const filteredSummary = computed(() => {
 
           <!-- Filter Branch -->
           <div>
-            <label class="block text-[11px] font-bold text-slate-600 mb-1">3. Cabang / Branch:</label>
+            <label class="block text-[11.5px] font-medium text-slate-500 mb-1">3. Cabang / Branch:</label>
             <SearchableSelect
               v-model="selectedBranch"
               :options="branchOptions"
@@ -790,48 +790,48 @@ const filteredSummary = computed(() => {
       </Teleport>
 
       <!-- REDESIGNED EXECUTIVE DATA TABLE SECTION -->
-      <div class="space-y-4">
+      <div class="space-y-3 sm:space-y-4">
         <div class="flex items-center justify-between flex-wrap gap-2 px-1">
           <div>
-            <h2 class="text-lg font-black text-slate-900 flex items-center gap-2">
+            <h2 class="text-[14px] sm:text-[15px] font-bold text-slate-900 flex items-center gap-2">
               <span>Tabel Detail RO per Distributor ({{ selectedMonthName }} {{ selectedYear }})</span>
             </h2>
-            <p class="text-xs text-slate-500 mt-0.5">
+            <p class="text-[11.5px] text-slate-500 mt-0.5">
               Rincian data per Cabang & Salesman beserta tipe kunjungan F2/F4, target bulanan, dan status keaktifan RO.
             </p>
           </div>
-          <span class="text-xs font-semibold px-3 py-1 rounded-xl bg-slate-100 text-slate-700 border border-slate-200">
+          <span class="text-[11px] font-semibold px-2.5 py-0.5 rounded-full bg-slate-100 text-slate-700 border border-slate-200">
             Total Cabang: <strong>{{ filteredBranchesData.length }}</strong>
           </span>
         </div>
 
-        <div v-if="!filteredBranchesData || filteredBranchesData.length === 0" class="bg-white p-12 rounded-2xl border border-slate-200 text-center text-xs text-slate-400 italic shadow-xs">
+        <div v-if="!filteredBranchesData || filteredBranchesData.length === 0" class="bg-white p-12 rounded-xl border border-slate-200 text-center text-xs text-slate-400 italic shadow-xs">
           Belum ada data cabang aktif yang terdaftar pada filter terpilih.
         </div>
 
         <!-- BRANCH ACCORDION CARDS WITH REVAMPED DATA TABLES -->
-        <div v-else class="space-y-4">
+        <div v-else class="space-y-3">
           <div
             v-for="b in filteredBranchesData"
             :key="b.branch_id"
-            class="bg-white rounded-2xl border border-slate-200/90 shadow-xs overflow-hidden transition-all duration-300"
+            class="bg-white rounded-xl border border-slate-200/90 shadow-xs overflow-hidden transition-all duration-300"
           >
             <!-- BRANCH GROUP HEADER BAR -->
             <div
               @click="toggleBranchExpand(b.branch_id)"
-              class="bg-gradient-to-r from-slate-900 via-slate-800 to-slate-900 p-4 text-white flex flex-col sm:flex-row sm:items-center justify-between gap-3 cursor-pointer select-none hover:bg-slate-800 transition"
+              class="bg-gradient-to-r from-slate-900 via-slate-800 to-slate-900 p-3 sm:p-3.5 text-white flex flex-col sm:flex-row sm:items-center justify-between gap-2.5 cursor-pointer select-none hover:bg-slate-800 transition"
             >
-              <div class="flex items-center gap-3">
+              <div class="flex items-center gap-2.5">
                 <button
                   type="button"
-                  class="w-7 h-7 rounded-lg bg-white/10 hover:bg-white/20 border border-white/20 flex items-center justify-center text-xs font-bold text-white transition shrink-0"
+                  class="w-6 h-6 rounded-md bg-white/10 hover:bg-white/20 border border-white/20 flex items-center justify-center text-[11px] font-bold text-white transition shrink-0"
                 >
                   {{ expandedBranches[b.branch_id] ? '▼' : '▶' }}
                 </button>
                 <div>
                   <div class="flex items-center gap-2 flex-wrap">
-                    <h3 class="text-sm font-black text-white tracking-tight">{{ b.branch_name }}</h3>
-                    <span class="font-mono text-[11px] font-bold px-2 py-0.5 rounded bg-blue-500/30 border border-blue-400/40 text-blue-200">
+                    <h3 class="text-[13px] font-bold text-white tracking-tight">{{ b.branch_name }}</h3>
+                    <span class="font-mono text-[10.5px] font-bold px-1.5 py-0.5 rounded bg-blue-500/30 border border-blue-400/40 text-blue-200">
                       {{ b.branch_id }}
                     </span>
                     <span
@@ -859,7 +859,7 @@ const filteredSummary = computed(() => {
                   </div>
                 </div>
 
-                <div class="w-24 sm:w-28 bg-slate-700/60 rounded-full h-3 border border-white/20 overflow-hidden relative">
+                <div class="w-24 sm:w-28 bg-slate-700/60 rounded-full h-2.5 border border-white/20 overflow-hidden relative">
                   <div
                     class="h-full bg-gradient-to-r from-emerald-500 to-teal-400 rounded-full transition-all duration-500"
                     :style="{ width: b.total_target_ro > 0 ? `${Math.min(100, (b.total_approved_ro / b.total_target_ro) * 100)}%` : '0%' }"
@@ -877,16 +877,16 @@ const filteredSummary = computed(() => {
               <div v-else class="overflow-x-auto">
                 <table class="w-full text-left border-collapse min-w-[720px]">
                   <thead>
-                    <tr class="bg-slate-100/80 text-slate-700 text-[11px] font-black uppercase tracking-wider border-b border-slate-200">
-                      <th class="py-3 px-4 w-60">Salesman</th>
-                      <th class="py-3 px-3 text-center w-36">Tipe Kunjungan</th>
-                      <th class="py-3 px-3 text-center w-36">Target RO {{ selectedMonthName }}</th>
-                      <th class="py-3 px-3 text-center w-32">Approved RO</th>
-                      <th class="py-3 px-4 w-64">Progres Pencapaian %</th>
-                      <th class="py-3 px-4 text-center w-36">Status Target</th>
+                    <tr class="bg-slate-100/80 text-[#475569] text-[11px] font-semibold uppercase tracking-wider border-b border-slate-200">
+                      <th class="py-2.5 px-3 w-60">Salesman</th>
+                      <th class="py-2.5 px-3 text-center w-36">Tipe Kunjungan</th>
+                      <th class="py-2.5 px-3 text-center w-36">Target RO {{ selectedMonthName }}</th>
+                      <th class="py-2.5 px-3 text-center w-32">Approved RO</th>
+                      <th class="py-2.5 px-3 w-64">Progres Pencapaian %</th>
+                      <th class="py-2.5 px-3 text-center w-36">Status Target</th>
                     </tr>
                   </thead>
-                  <tbody class="divide-y divide-slate-100 text-xs">
+                  <tbody class="divide-y divide-slate-100 text-[12.5px] leading-[17px]">
                     <tr
                       v-for="s in b.salesmen"
                       :key="s.salesman_code"
@@ -894,7 +894,7 @@ const filteredSummary = computed(() => {
                       :class="s.is_custom_target && s.is_achieved ? 'bg-emerald-50/20' : ''"
                     >
                       <!-- SALESMAN NAME & CODE -->
-                      <td class="py-3.5 px-4 font-semibold text-slate-900">
+                      <td class="py-2.5 px-3 font-semibold text-slate-900">
                         <div class="font-bold text-slate-900 text-[13px] flex items-center gap-2">
                           <span class="truncate">{{ s.salesman_name }}</span>
                         </div>
@@ -905,39 +905,39 @@ const filteredSummary = computed(() => {
                       </td>
 
                       <!-- VISIT TYPE (F2 / F4) -->
-                      <td class="py-3.5 px-3 text-center">
+                      <td class="py-2.5 px-3 text-center">
                         <span
                           v-if="s.is_custom_target && s.visit_type"
-                          class="px-2.5 py-1 text-[11px] font-black rounded-lg border inline-flex items-center gap-1 shadow-2xs"
+                          class="px-2 py-0.5 text-[10.5px] font-semibold rounded border inline-flex items-center gap-1 shadow-2xs"
                           :class="s.visit_type === 'F4' ? 'bg-indigo-50 text-indigo-800 border-indigo-200' : 'bg-purple-50 text-purple-800 border-purple-200'"
                         >
                           <span>{{ s.visit_type === 'F4' ? 'F4' : 'F2' }}</span>
-                          <span class="text-[10px] font-normal opacity-80">({{ s.visit_type === 'F4' ? 'Mingguan' : '2-Mingguan' }})</span>
+                          <span class="text-[9.5px] font-normal opacity-80">({{ s.visit_type === 'F4' ? 'Mingguan' : '2-Mingguan' }})</span>
                         </span>
                         <span v-else class="text-slate-400 font-medium text-xs">-</span>
                       </td>
 
                       <!-- TARGET RO -->
-                      <td class="py-3.5 px-3 text-center">
-                        <span v-if="s.is_custom_target && s.target_ro > 0" class="px-2.5 py-1 rounded-lg bg-slate-100 border border-slate-200 font-mono font-extrabold text-slate-800 text-[13px]">
+                      <td class="py-2.5 px-3 text-center">
+                        <span v-if="s.is_custom_target && s.target_ro > 0" class="px-2 py-0.5 rounded-md bg-slate-100 border border-slate-200 font-mono font-bold text-slate-800 text-[12px]">
                           {{ s.target_ro }} RO
                         </span>
                         <span v-else class="text-slate-400 font-medium text-xs">-</span>
                       </td>
 
                       <!-- APPROVED RO -->
-                      <td class="py-3.5 px-3 text-center">
+                      <td class="py-2.5 px-3 text-center">
                         <span
-                          class="px-3 py-1 font-mono font-black text-[13.5px] rounded-lg border shadow-2xs inline-flex items-center gap-1.5"
+                          class="px-2.5 py-0.5 font-mono font-bold text-[12.5px] rounded-md border shadow-2xs inline-flex items-center gap-1.5"
                           :class="s.is_custom_target && s.is_achieved ? 'bg-emerald-100 text-emerald-900 border-emerald-300' : 'bg-blue-50 text-blue-900 border-blue-200'"
                         >
-                          <span class="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
+                          <span class="w-1.5 h-1.5 rounded-full bg-emerald-500"></span>
                           {{ s.approved_ro }} RO
                         </span>
                       </td>
 
                       <!-- PROGRESS BAR & PERCENTAGE -->
-                      <td class="py-3.5 px-4">
+                      <td class="py-2.5 px-3">
                         <div v-if="s.is_custom_target && s.target_ro > 0" class="space-y-1">
                           <div class="flex items-center justify-between text-[11px] font-bold">
                             <span :class="s.is_achieved ? 'text-emerald-700' : 'text-slate-700'">
@@ -947,38 +947,33 @@ const filteredSummary = computed(() => {
                               {{ s.approved_ro }} / {{ s.target_ro }}
                             </span>
                           </div>
-                          <div class="w-full bg-slate-200/80 h-3 rounded-full overflow-hidden p-0.5 border border-slate-300/60 shadow-inner">
+                          <div class="w-full bg-slate-200/80 h-2 rounded-full overflow-hidden border border-slate-300/60 shadow-inner">
                             <div
-                              class="h-full rounded-full transition-all duration-700 ease-out"
-                              :class="s.is_achieved ? 'bg-gradient-to-r from-emerald-500 via-teal-400 to-emerald-600' : (s.percentage >= 50 ? 'bg-gradient-to-r from-blue-600 to-indigo-600' : 'bg-gradient-to-r from-amber-500 to-rose-500')"
+                              class="h-full rounded-full transition-all duration-500"
+                              :class="s.is_achieved ? 'bg-gradient-to-r from-emerald-500 to-teal-400' : 'bg-gradient-to-r from-blue-500 to-indigo-500'"
                               :style="{ width: `${Math.min(100, s.percentage)}%` }"
                             ></div>
                           </div>
                         </div>
-                        <div v-else class="text-center text-slate-400 font-medium text-xs">
-                          -
-                        </div>
+                        <span v-else class="text-slate-400 italic text-[11px]">Belum ada target</span>
                       </td>
 
-                      <!-- STATUS BADGE -->
-                      <td class="py-3.5 px-4 text-center">
+                      <!-- STATUS TARGET -->
+                      <td class="py-2.5 px-3 text-center">
                         <span
                           v-if="s.is_custom_target && s.is_achieved"
-                          class="px-3 py-1 text-[11px] font-black rounded-full bg-emerald-100 text-emerald-800 border border-emerald-300 shadow-2xs inline-flex items-center gap-1"
+                          class="px-2 py-0.5 text-[10.5px] font-semibold rounded-full bg-emerald-100 text-emerald-800 border border-emerald-300"
                         >
                           Achieved
                         </span>
                         <span
-                          v-else-if="s.is_custom_target && s.target_ro > 0"
-                          class="px-3 py-1 text-[11px] font-bold rounded-full bg-slate-100 text-slate-600 border border-slate-200 inline-flex items-center gap-1"
+                          v-else-if="s.is_custom_target"
+                          class="px-2 py-0.5 text-[10px] font-semibold rounded-full bg-slate-100 text-slate-700 border border-slate-200"
                         >
                           Sisa {{ Math.max(0, s.target_ro - s.approved_ro) }} RO
                         </span>
-                        <span
-                          v-else
-                          class="px-2.5 py-1 text-[11px] font-semibold rounded-full bg-slate-100 text-slate-400 border border-slate-200 inline-block"
-                        >
-                          Target Belum Set
+                        <span v-else class="text-[10px] font-normal px-2 py-0.5 rounded-full bg-slate-100 text-slate-400 border border-slate-200">
+                          -
                         </span>
                       </td>
                     </tr>

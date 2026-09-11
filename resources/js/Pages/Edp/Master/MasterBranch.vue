@@ -156,12 +156,12 @@ function toggleShowPins() {
     <div class="space-y-6">
       
       <!-- Page Header -->
-      <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-white p-5 rounded-xl border border-[#E5E7EB] shadow-xs">
+      <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 bg-white p-3.5 sm:p-4 md:p-5 rounded-xl border border-[#E5E7EB] shadow-xs">
         <div>
-          <h1 class="text-xl font-bold text-[#111827] flex items-center gap-2">
+          <h1 class="text-lg sm:text-xl md:text-[22px] font-bold text-[#111827] tracking-tight flex items-center gap-2">
             <span>Master Branch / Cabang Distributor</span>
           </h1>
-          <p class="text-xs text-[#6B7280] mt-1">
+          <p class="text-[12.5px] md:text-[14px] leading-[1.5] text-[#6B7280] mt-0.5">
             Manajemen Master Cabang Distributor, PIN Branch, Region Code, dan Entitas Principal.
           </p>
         </div>
@@ -169,13 +169,13 @@ function toggleShowPins() {
         <div v-if="canWrite" class="flex items-center gap-2">
           <button
             @click="isBulkModalOpen = true"
-            class="px-3.5 py-2 text-xs font-semibold text-emerald-700 bg-emerald-50 border border-emerald-300 rounded-lg hover:bg-emerald-100 transition shadow-2xs flex items-center gap-1.5 cursor-pointer"
+            class="px-3 py-1.5 text-[11.5px] font-semibold text-emerald-700 bg-emerald-50 border border-emerald-300 rounded-lg hover:bg-emerald-100 transition shadow-2xs flex items-center gap-1.5 cursor-pointer"
           >
             <span>Bulk Import CSV</span>
           </button>
           <button
             @click="isAddModalOpen = true"
-            class="px-4 py-2 text-xs font-semibold text-white bg-[#059669] rounded-lg hover:bg-[#047857] transition shadow-2xs flex items-center gap-1.5 cursor-pointer"
+            class="px-3 py-1.5 text-[11.5px] font-semibold text-white bg-[#059669] rounded-lg hover:bg-[#047857] transition shadow-2xs flex items-center gap-1.5 cursor-pointer"
           >
             <span>+ Tambah Cabang</span>
           </button>
@@ -183,19 +183,19 @@ function toggleShowPins() {
       </div>
 
       <!-- Filter Bar (Instant Client-Side Filtering) -->
-      <div class="bg-white p-4 rounded-xl border border-[#E5E7EB] shadow-xs space-y-3">
+      <div class="bg-white p-3 sm:p-3.5 rounded-xl border border-[#E5E7EB] shadow-xs space-y-3">
         <div class="flex items-center justify-between">
-          <span class="text-xs font-bold uppercase tracking-wider text-[#374151] flex items-center gap-2">
+          <span class="text-[11.5px] font-semibold uppercase tracking-wider text-[#374151] flex items-center gap-2">
             Filter Data Cabang
           </span>
           <div class="flex items-center gap-3">
             <button
               @click="toggleShowPins"
-              class="text-xs font-semibold text-purple-700 hover:text-purple-900 cursor-pointer flex items-center gap-1 bg-purple-50 px-2.5 py-1 rounded border border-purple-200"
+              class="text-[10.5px] font-medium text-purple-700 hover:text-purple-900 cursor-pointer flex items-center gap-1 bg-purple-50 px-2 py-0.5 rounded border border-purple-200"
             >
               <span>{{ showAllPins ? 'Sembunyikan PIN Cabang' : 'Tampilkan PIN Cabang' }}</span>
             </button>
-            <button @click="resetFilters" class="text-xs font-semibold text-blue-600 hover:underline cursor-pointer">
+            <button @click="resetFilters" class="text-[10.5px] font-medium text-rose-500 hover:text-rose-700 hover:underline cursor-pointer">
               Reset Filter
             </button>
           </div>
@@ -203,7 +203,7 @@ function toggleShowPins() {
 
         <div class="grid grid-cols-1 sm:grid-cols-3 gap-3">
           <div>
-            <label class="block text-xs font-semibold text-[#4B5563] mb-1">REGION</label>
+            <label class="block text-[11.5px] font-medium text-slate-500 mb-1">REGION</label>
             <SearchableSelect
               v-model="selectedRegion"
               :options="regionOptions"
@@ -213,7 +213,7 @@ function toggleShowPins() {
           </div>
 
           <div>
-            <label class="block text-xs font-semibold text-[#4B5563] mb-1">ENTITY PRINCIPAL</label>
+            <label class="block text-[11.5px] font-medium text-slate-500 mb-1">ENTITY PRINCIPAL</label>
             <SearchableSelect
               v-model="selectedEntity"
               :options="entityOptions"
@@ -223,12 +223,12 @@ function toggleShowPins() {
           </div>
 
           <div>
-            <label class="block text-xs font-semibold text-[#4B5563] mb-1">CARI CABANG</label>
+            <label class="block text-[11.5px] font-medium text-slate-500 mb-1">CARI CABANG</label>
             <input
               type="text"
               v-model="search"
               placeholder="ID Cabang, Nama, Region..."
-              class="w-full px-3 py-2 text-xs border border-[#D1D5DB] rounded-lg focus:ring-1 focus:ring-[#059669]"
+              class="w-full px-2.5 py-1.5 text-[12px] border border-[#D1D5DB] rounded-lg focus:ring-1 focus:ring-[#059669]"
             />
           </div>
         </div>
@@ -237,55 +237,55 @@ function toggleShowPins() {
       <!-- Table Branch -->
       <div class="bg-white rounded-xl border border-[#E5E7EB] shadow-xs overflow-hidden">
         <div class="overflow-x-auto">
-          <table class="w-full text-left text-xs">
-            <thead class="bg-[#F9FAFB] border-b border-[#E5E7EB] font-bold text-[#374151] uppercase">
+          <table class="w-full text-left">
+            <thead class="bg-[#F9FAFB] border-b border-[#E5E7EB] font-semibold text-[#475569] text-[11.5px] uppercase">
               <tr>
-                <th class="px-4 py-3">ID Cabang</th>
-                <th class="px-4 py-3">Nama Cabang</th>
-                <th class="px-4 py-3">Region</th>
-                <th class="px-4 py-3">Principal / Entity</th>
-                <th class="px-4 py-3 select-none">
+                <th class="px-3 py-3">ID Cabang</th>
+                <th class="px-3 py-3">Nama Cabang</th>
+                <th class="px-3 py-3">Region</th>
+                <th class="px-3 py-3">Principal / Entity</th>
+                <th class="px-3 py-3 select-none">
                   <div class="flex items-center gap-2 cursor-pointer group" @click="toggleShowPins" title="Klik untuk tampilkan / sembunyikan semua PIN branch">
                     <span>PIN Branch</span>
                     <span class="p-1 rounded-md bg-slate-100 group-hover:bg-slate-200 text-slate-600 transition flex items-center justify-center">
-                      <svg v-if="showAllPins" class="w-4 h-4 text-emerald-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <svg v-if="showAllPins" class="w-3.5 h-3.5 text-emerald-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/>
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"/>
                       </svg>
-                      <svg v-else class="w-4 h-4 text-slate-400 group-hover:text-slate-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <svg v-else class="w-3.5 h-3.5 text-slate-400 group-hover:text-slate-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13.875 18.825A10.05 10.05 0 0112 19c-4.478 0-8.268-2.943-9.543-7a9.97 9.97 0 011.563-3.029m5.858-5.908a10.025 10.025 0 012.122-.063c4.478 0 8.268 2.943 9.542 7a10.025 10.025 0 01-4.132 5.411m0 0L21 21M3 3l18 18"/>
                       </svg>
                     </span>
                   </div>
                 </th>
-                <th class="px-4 py-3">Status</th>
-                <th v-if="canWrite" class="px-4 py-3 text-right">Aksi</th>
+                <th class="px-3 py-3">Status</th>
+                <th v-if="canWrite" class="px-3 py-3 text-right">Aksi</th>
               </tr>
             </thead>
-            <tbody class="divide-y divide-[#E5E7EB]">
+            <tbody class="divide-y divide-[#E5E7EB] text-[12.5px] leading-[17px]">
               <tr v-if="filteredBranches.length === 0">
-                <td colspan="7" class="px-4 py-8 text-center text-[#9CA3AF] italic">
+                <td colspan="7" class="px-3 py-8 text-center text-[#9CA3AF] italic">
                   Data Cabang tidak ditemukan untuk filter ini.
                 </td>
               </tr>
 
               <tr v-for="b in filteredBranches" :key="b.id || b.branch_id" class="hover:bg-emerald-50/20 transition">
-                <td class="px-4 py-3 font-bold text-[#111827]">{{ b.branch_id }}</td>
-                <td class="px-4 py-3 text-[#374151]">{{ b.branch_name }}</td>
-                <td class="px-4 py-3 text-[#059669] font-bold">{{ b.region_code }}</td>
-                <td class="px-4 py-3 text-[#6B7280]">{{ b.principal_name || 'ASWFOODS' }} ({{ b.entity_code_principal }})</td>
-                <td class="px-4 py-3 font-mono font-bold text-gray-700">
-                  <span v-if="showAllPins" class="text-emerald-700 bg-emerald-50 px-1.5 py-0.5 rounded border border-emerald-200">
+                <td class="px-3 py-2.5 font-bold text-[#111827] text-[13px]">{{ b.branch_id }}</td>
+                <td class="px-3 py-2.5 text-[#374151]">{{ b.branch_name }}</td>
+                <td class="px-3 py-2.5 text-[#059669] font-bold">{{ b.region_code }}</td>
+                <td class="px-3 py-2.5 text-[#6B7280] text-[11.5px]">{{ b.principal_name || 'ASWFOODS' }} ({{ b.entity_code_principal }})</td>
+                <td class="px-3 py-2.5 font-mono font-bold text-gray-700">
+                  <span v-if="showAllPins" class="text-emerald-700 bg-emerald-50 px-1.5 py-0.5 rounded border border-emerald-200 text-[10.5px]">
                     {{ b.pin_branch }}
                   </span>
-                  <span v-else class="text-slate-400">
+                  <span v-else class="text-slate-400 text-[10.5px]">
                     ******
                   </span>
                 </td>
-                <td class="px-4 py-3">
+                <td class="px-3 py-2.5">
                   <span
                     :class="[
-                      'px-2.5 py-0.5 text-[10.5px] font-bold rounded-md uppercase tracking-wider',
+                      'px-2 py-0.5 text-[10.5px] font-semibold rounded-full uppercase tracking-wider',
                       (b.is_active === 1 || b.is_active === true)
                         ? 'bg-emerald-100 text-emerald-800 border border-emerald-300'
                         : 'bg-rose-100 text-rose-800 border border-rose-300'
@@ -294,9 +294,9 @@ function toggleShowPins() {
                     {{ (b.is_active === 1 || b.is_active === true) ? 'AKTIF' : 'NON-AKTIF' }}
                   </span>
                 </td>
-                <td v-if="canWrite" class="px-4 py-3 text-right space-x-2">
-                  <button @click="openEditModal(b)" class="text-xs font-semibold text-blue-600 hover:text-blue-800 hover:underline">Edit</button>
-                  <button @click="deleteBranch(b)" class="text-xs font-semibold text-red-600 hover:text-red-800 hover:underline">Hapus</button>
+                <td v-if="canWrite" class="px-3 py-2.5 text-right space-x-2">
+                  <button @click="openEditModal(b)" class="text-[11.5px] font-semibold text-blue-600 hover:text-blue-800 hover:underline">Edit</button>
+                  <button @click="deleteBranch(b)" class="text-[11.5px] font-semibold text-red-600 hover:text-red-800 hover:underline">Hapus</button>
                 </td>
               </tr>
             </tbody>

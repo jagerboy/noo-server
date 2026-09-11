@@ -324,37 +324,37 @@ function formatRole(role) {
 
     <div class="space-y-6">
       <!-- Header Page -->
-      <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-white p-5 rounded-xl border border-[#E5E7EB] shadow-xs">
+      <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 bg-white p-3.5 sm:p-4 md:p-5 rounded-xl border border-[#E5E7EB] shadow-xs">
         <div>
-          <h1 class="text-xl font-bold text-[#111827] flex items-center gap-2">
+          <h1 class="text-lg sm:text-xl md:text-[22px] font-bold text-[#111827] tracking-tight flex items-center gap-2">
             <span>Manajemen Akun & User Role Manager</span>
           </h1>
-          <p class="text-xs text-[#6B7280] mt-1">
+          <p class="text-[12.5px] md:text-[14px] leading-[1.5] text-[#6B7280] mt-0.5">
             Pengelolaan Akun Pengguna Portal Principal NOO+, Password, Peran Akses (Superadmin, Admin Principal, Operator Region) & Region Scope.
           </p>
         </div>
 
         <button
           @click="isAddModalOpen = true"
-          class="px-4 py-2 text-xs font-semibold text-white bg-blue-600 hover:bg-blue-700 rounded-lg shadow-2xs transition flex items-center gap-1.5 cursor-pointer"
+          class="px-3 py-1.5 text-[11.5px] font-semibold text-white bg-blue-600 hover:bg-blue-700 rounded-lg shadow-xs transition flex items-center gap-1.5 cursor-pointer shrink-0"
         >
           <span>+ Tambah Akun Baru</span>
         </button>
       </div>
 
       <!-- Navigation Tabs (Sesuai Referensi User Role Manager - ASW & INAFOODS Dual Brand) -->
-      <div class="flex items-center gap-2 border-b border-gray-200 bg-white px-4 pt-2 rounded-t-xl">
+      <div class="flex items-center gap-2 border-b border-gray-200 bg-white px-3 sm:px-4 pt-2 rounded-t-xl">
         <button
           @click="activeTab = 'all_users'"
           :class="[
-            'px-4 py-2.5 text-xs font-bold transition border-b-2 flex items-center gap-2 cursor-pointer',
+            'px-3 sm:px-4 py-2 text-[12px] font-bold transition border-b-2 flex items-center gap-1.5 cursor-pointer',
             activeTab === 'all_users'
-              ? 'border-[#542B85] text-[#542B85] bg-purple-50/70 rounded-t-lg font-extrabold'
+              ? 'border-[#542B85] text-[#542B85] bg-purple-50/70 rounded-t-lg'
               : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
           ]"
         >
           <span>Daftar Pengguna</span>
-          <span class="px-2 py-0.5 text-[10px] rounded-full bg-purple-100 text-[#542B85] font-extrabold border border-purple-200">
+          <span class="px-1.5 py-0.5 text-[10px] rounded-full bg-purple-100 text-[#542B85] font-bold border border-purple-200">
             {{ accounts.total || accounts.data?.length || 0 }}
           </span>
         </button>
@@ -362,9 +362,9 @@ function formatRole(role) {
         <button
           @click="activeTab = 'role_manager'"
           :class="[
-            'px-4 py-2.5 text-xs font-bold transition border-b-2 flex items-center gap-2 cursor-pointer',
+            'px-3 sm:px-4 py-2 text-[12px] font-bold transition border-b-2 flex items-center gap-1.5 cursor-pointer',
             activeTab === 'role_manager'
-              ? 'border-[#D9232A] text-[#D9232A] bg-rose-50/70 rounded-t-lg font-extrabold'
+              ? 'border-[#D9232A] text-[#D9232A] bg-rose-50/70 rounded-t-lg'
               : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
           ]"
         >
@@ -373,41 +373,41 @@ function formatRole(role) {
       </div>
 
       <!-- TAB 1: ALL USERS TABLE -->
-      <div v-if="activeTab === 'all_users'" class="space-y-4">
+      <div v-if="activeTab === 'all_users'" class="space-y-3 sm:space-y-4">
         <!-- Search Bar -->
-        <div class="bg-white p-4 rounded-xl border border-[#E5E7EB] flex items-center gap-3">
+        <div class="bg-white p-3 sm:p-3.5 rounded-xl border border-[#E5E7EB] flex items-center gap-2.5">
           <input
             type="text"
             v-model="search"
             @keyup.enter="handleSearch"
             placeholder="Cari Username, Nama Pengguna, Role, Region..."
-            class="w-full max-w-md px-3.5 py-2 text-xs bg-white border border-[#D1D5DB] rounded-lg focus:ring-2 focus:ring-[#10B981]"
+            class="w-full max-w-md px-2.5 py-1.5 text-[12px] bg-white border border-[#D1D5DB] rounded-lg focus:ring-2 focus:ring-[#10B981]"
           />
-          <button @click="handleSearch" class="px-4 py-2 text-xs font-semibold text-white bg-[#374151] rounded-lg hover:bg-gray-800 cursor-pointer">Cari</button>
+          <button @click="handleSearch" class="px-3 py-1.5 text-[11.5px] font-semibold text-white bg-[#374151] rounded-lg hover:bg-gray-800 cursor-pointer">Cari</button>
         </div>
 
         <!-- Table Accounts -->
         <div class="bg-white rounded-xl border border-[#E5E7EB] shadow-xs overflow-hidden">
           <div class="overflow-x-auto">
-            <table class="w-full text-left text-xs">
-              <thead class="bg-[#F9FAFB] border-b border-[#E5E7EB] font-bold text-[#374151] uppercase">
+            <table class="w-full text-left">
+              <thead class="bg-[#F9FAFB] border-b border-[#E5E7EB] font-semibold text-[#475569] text-[11.5px] uppercase">
                 <tr>
-                  <th class="px-4 py-3">Username</th>
-                  <th class="px-4 py-3">Nama Lengkap</th>
-                  <th class="px-4 py-3">Peran Akses (Role)</th>
-                  <th class="px-4 py-3">Region Scope / Area</th>
-                  <th class="px-4 py-3">Status</th>
-                  <th class="px-4 py-3 text-right">Aksi</th>
+                  <th class="px-3 py-3">Username</th>
+                  <th class="px-3 py-3">Nama Lengkap</th>
+                  <th class="px-3 py-3">Peran Akses (Role)</th>
+                  <th class="px-3 py-3">Region Scope / Area</th>
+                  <th class="px-3 py-3">Status</th>
+                  <th class="px-3 py-3 text-right">Aksi</th>
                 </tr>
               </thead>
-              <tbody class="divide-y divide-[#E5E7EB]">
+              <tbody class="divide-y divide-[#E5E7EB] text-[12.5px] leading-[17px]">
                 <tr v-for="acc in accounts.data" :key="acc.id" class="hover:bg-emerald-50/20 transition">
-                  <td class="px-4 py-3 font-bold text-[#111827]">{{ acc.username || acc.region_code }}</td>
-                  <td class="px-4 py-3 text-[#374151] font-semibold">{{ acc.name || acc.nama || '-' }}</td>
-                  <td class="px-4 py-3">
+                  <td class="px-3 py-2.5 font-mono font-bold text-[#111827] text-[12px]">{{ acc.username || acc.region_code }}</td>
+                  <td class="px-3 py-2.5 text-[#374151] font-bold text-[13px]">{{ acc.name || acc.nama || '-' }}</td>
+                  <td class="px-3 py-2.5">
                     <span 
                       :class="[
-                        'px-2.5 py-1 text-[10px] font-bold rounded-md uppercase tracking-wider',
+                        'px-2 py-0.5 text-[10.5px] font-semibold rounded-full uppercase tracking-wider',
                         acc.role === 'SUPERADMIN' ? 'bg-purple-100 text-purple-800 border border-purple-300' :
                         acc.role === 'ADMIN_PRINCIPAL' ? 'bg-blue-100 text-blue-800 border border-blue-300' :
                         acc.role === 'SPV_AREA' ? 'bg-amber-100 text-amber-900 border border-amber-300' :
@@ -418,14 +418,14 @@ function formatRole(role) {
                       {{ formatRole(acc.role || 'EDP_REGION') }}
                     </span>
                   </td>
-                  <td class="px-4 py-3 font-bold text-[#059669]">{{ acc.region_code || 'ALL REGIONS (GLOBAL)' }}</td>
-                  <td class="px-4 py-3">
-                    <span v-if="acc.is_active" class="px-2 py-0.5 text-[10px] font-bold text-emerald-700 bg-emerald-100 rounded-md border border-emerald-300">AKTIF</span>
-                    <span v-else class="px-2 py-0.5 text-[10px] font-bold text-red-700 bg-red-100 rounded-md border border-red-300">NON-AKTIF</span>
+                  <td class="px-3 py-2.5 font-bold text-[#059669] text-[12px]">{{ acc.region_code || 'ALL REGIONS (GLOBAL)' }}</td>
+                  <td class="px-3 py-2.5">
+                    <span v-if="acc.is_active" class="px-2 py-0.5 text-[10.5px] font-semibold text-emerald-700 bg-emerald-100 rounded-full border border-emerald-300">AKTIF</span>
+                    <span v-else class="px-2 py-0.5 text-[10.5px] font-semibold text-red-700 bg-red-100 rounded-full border border-red-300">NON-AKTIF</span>
                   </td>
-                  <td class="px-4 py-3 text-right space-x-2">
-                    <button @click="openEditModal(acc)" class="px-2.5 py-1 text-xs font-semibold text-blue-600 hover:text-blue-800 bg-blue-50 rounded border border-blue-200 cursor-pointer">Edit</button>
-                    <button @click="deleteAccount(acc)" class="px-2.5 py-1 text-xs font-semibold text-red-600 hover:text-red-800 bg-red-50 rounded border border-red-200 cursor-pointer">Hapus</button>
+                  <td class="px-3 py-2.5 text-right space-x-2">
+                    <button @click="openEditModal(acc)" class="px-2.5 py-1 text-[11px] font-semibold text-blue-600 hover:text-blue-800 bg-blue-50 rounded-lg border border-blue-200 cursor-pointer">Edit</button>
+                    <button @click="deleteAccount(acc)" class="px-2.5 py-1 text-[11px] font-semibold text-red-600 hover:text-red-800 bg-red-50 rounded-lg border border-red-200 cursor-pointer">Hapus</button>
                   </td>
                 </tr>
               </tbody>

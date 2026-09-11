@@ -231,12 +231,12 @@ const isBulkModalOpen = ref(false);
     <div class="space-y-6">
       
       <!-- Page Header -->
-      <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-white p-5 rounded-xl border border-[#E5E7EB] shadow-xs">
+      <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 bg-white p-3.5 sm:p-4 md:p-5 rounded-xl border border-[#E5E7EB] shadow-xs">
         <div>
-          <h1 class="text-xl font-bold text-[#111827] flex items-center gap-2">
+          <h1 class="text-lg sm:text-xl md:text-[22px] font-bold text-[#111827] tracking-tight flex items-center gap-2">
             <span>Master SPV Area</span>
           </h1>
-          <p class="text-xs text-[#6B7280] mt-1">
+          <p class="text-[12.5px] md:text-[14px] leading-[1.5] text-[#6B7280] mt-0.5">
             Manajemen Akun Login & Otoritas Multi-Branch SPV Area.
           </p>
         </div>
@@ -244,13 +244,13 @@ const isBulkModalOpen = ref(false);
         <div v-if="canWrite" class="flex items-center gap-2">
           <button
             @click="isBulkModalOpen = true"
-            class="px-3.5 py-2 text-xs font-semibold text-emerald-700 bg-emerald-50 border border-emerald-300 rounded-lg hover:bg-emerald-100 transition shadow-2xs flex items-center gap-1.5 cursor-pointer"
+            class="px-3 py-1.5 text-[11.5px] font-semibold text-emerald-700 bg-emerald-50 border border-emerald-300 rounded-lg hover:bg-emerald-100 transition shadow-2xs flex items-center gap-1.5 cursor-pointer"
           >
             <span>Bulk Import CSV</span>
           </button>
           <button
             @click="isAddModalOpen = true"
-            class="px-4 py-2 text-xs font-semibold text-white bg-[#059669] rounded-lg hover:bg-[#047857] transition shadow-2xs flex items-center gap-1.5 cursor-pointer"
+            class="px-3 py-1.5 text-[11.5px] font-semibold text-white bg-[#059669] rounded-lg hover:bg-[#047857] transition shadow-2xs flex items-center gap-1.5 cursor-pointer"
           >
             <span>+ Tambah SPV</span>
           </button>
@@ -258,19 +258,19 @@ const isBulkModalOpen = ref(false);
       </div>
 
       <!-- Filter Bar (Instant Client-Side Filtering) -->
-      <div class="bg-white p-4 rounded-xl border border-[#E5E7EB] shadow-xs space-y-3">
+      <div class="bg-white p-3 sm:p-3.5 rounded-xl border border-[#E5E7EB] shadow-xs space-y-3">
         <div class="flex items-center justify-between">
-          <span class="text-xs font-bold uppercase tracking-wider text-[#374151] flex items-center gap-2">
+          <span class="text-[11.5px] font-semibold uppercase tracking-wider text-[#374151] flex items-center gap-2">
             Filter Data SPV
           </span>
-          <button @click="resetFilters" class="text-xs font-semibold text-blue-600 hover:underline cursor-pointer">
+          <button @click="resetFilters" class="text-[10.5px] font-medium text-rose-500 hover:text-rose-700 hover:underline cursor-pointer">
             Reset Filter
           </button>
         </div>
 
         <div class="grid grid-cols-1 sm:grid-cols-4 gap-3">
           <div>
-            <label class="block text-xs font-semibold text-[#4B5563] mb-1">REGION</label>
+            <label class="block text-[11.5px] font-medium text-slate-500 mb-1">REGION</label>
             <SearchableSelect
               v-model="selectedRegion"
               :options="regionOptions"
@@ -280,7 +280,7 @@ const isBulkModalOpen = ref(false);
           </div>
 
           <div>
-            <label class="block text-xs font-semibold text-[#4B5563] mb-1">ENTITY</label>
+            <label class="block text-[11.5px] font-medium text-slate-500 mb-1">ENTITY</label>
             <SearchableSelect
               v-model="selectedEntity"
               :options="entityOptions"
@@ -290,7 +290,7 @@ const isBulkModalOpen = ref(false);
           </div>
 
           <div>
-            <label class="block text-xs font-semibold text-[#4B5563] mb-1">CABANG / BRANCH</label>
+            <label class="block text-[11.5px] font-medium text-slate-500 mb-1">CABANG / BRANCH</label>
             <SearchableSelect
               v-model="selectedBranch"
               :options="branchOptions"
@@ -300,12 +300,12 @@ const isBulkModalOpen = ref(false);
           </div>
 
           <div>
-            <label class="block text-xs font-semibold text-[#4B5563] mb-1">CARI SPV</label>
+            <label class="block text-[11.5px] font-medium text-slate-500 mb-1">CARI SPV</label>
             <input
               type="text"
               v-model="search"
               placeholder="Salescode, Nama, Cabang..."
-              class="w-full px-3 py-2 text-xs border border-[#D1D5DB] rounded-lg focus:ring-1 focus:ring-[#059669]"
+              class="w-full px-2.5 py-1.5 text-[12px] border border-[#D1D5DB] rounded-lg focus:ring-1 focus:ring-[#059669]"
             />
           </div>
         </div>
@@ -314,44 +314,44 @@ const isBulkModalOpen = ref(false);
       <!-- Table SPV (Grouped 1 Row per SPV) -->
       <div class="bg-white rounded-xl border border-[#E5E7EB] shadow-xs overflow-hidden">
         <div class="overflow-x-auto">
-          <table class="w-full text-left text-xs">
-            <thead class="bg-[#F9FAFB] border-b border-[#E5E7EB] font-bold text-[#374151] uppercase">
+          <table class="w-full text-left">
+            <thead class="bg-[#F9FAFB] border-b border-[#E5E7EB] font-semibold text-[#475569] text-[11.5px] uppercase">
               <tr>
-                <th class="px-4 py-3">Salescode</th>
-                <th class="px-4 py-3">Nama SPV</th>
-                <th class="px-4 py-3">Cabang Distributor (Coverage Area)</th>
-                <th class="px-4 py-3">Area</th>
-                <th class="px-4 py-3">Status</th>
-                <th v-if="canWrite" class="px-4 py-3 text-right">Aksi</th>
+                <th class="px-3 py-3">Salescode</th>
+                <th class="px-3 py-3">Nama SPV</th>
+                <th class="px-3 py-3">Cabang Distributor (Coverage Area)</th>
+                <th class="px-3 py-3">Area</th>
+                <th class="px-3 py-3">Status</th>
+                <th v-if="canWrite" class="px-3 py-3 text-right">Aksi</th>
               </tr>
             </thead>
-            <tbody class="divide-y divide-[#E5E7EB]">
+            <tbody class="divide-y divide-[#E5E7EB] text-[12.5px] leading-[17px]">
               <tr v-if="filteredSpvs.length === 0">
-                <td colspan="6" class="px-4 py-8 text-center text-[#9CA3AF] italic">
+                <td colspan="6" class="px-3 py-8 text-center text-[#9CA3AF] italic">
                   Data SPV tidak ditemukan untuk filter ini.
                 </td>
               </tr>
 
               <tr v-for="s in filteredSpvs" :key="s.salescode" class="hover:bg-emerald-50/20 transition">
-                <td class="px-4 py-3 font-mono font-bold text-[#111827] whitespace-nowrap">{{ s.salescode }}</td>
-                <td class="px-4 py-3 font-semibold text-[#374151] whitespace-nowrap">{{ s.nama }}</td>
-                <td class="px-4 py-3">
+                <td class="px-3 py-2.5 font-mono font-bold text-[#111827] text-[12px] whitespace-nowrap">{{ s.salescode }}</td>
+                <td class="px-3 py-2.5 font-bold text-[#111827] text-[13px] whitespace-nowrap">{{ s.nama }}</td>
+                <td class="px-3 py-2.5">
                   <div class="flex flex-wrap gap-1 max-w-lg">
                     <span
                       v-for="b in (s.branches || [])"
                       :key="b.branch_id"
-                      class="px-2 py-0.5 text-[10.5px] font-mono font-bold bg-blue-50 text-blue-900 border border-blue-200 rounded-md shrink-0"
+                      class="px-1.5 py-0.5 text-[10.5px] font-mono font-bold bg-blue-50 text-blue-900 border border-blue-200 rounded shrink-0"
                       :title="b.branch_name"
                     >
                       {{ b.branch_id }} <span class="font-normal font-sans text-slate-500">({{ b.branch_name }})</span>
                     </span>
                   </div>
                 </td>
-                <td class="px-4 py-3 text-[#059669] font-bold whitespace-nowrap">{{ s.area || (s.region_codes && s.region_codes.length > 0 ? s.region_codes.join(', ') : '-') }}</td>
-                <td class="px-4 py-3 whitespace-nowrap">
+                <td class="px-3 py-2.5 text-[#059669] font-bold whitespace-nowrap">{{ s.area || (s.region_codes && s.region_codes.length > 0 ? s.region_codes.join(', ') : '-') }}</td>
+                <td class="px-3 py-2.5 whitespace-nowrap">
                   <span
                     :class="[
-                      'px-2.5 py-0.5 text-[10.5px] font-bold rounded-md uppercase tracking-wider',
+                      'px-2 py-0.5 text-[10.5px] font-semibold rounded-full uppercase tracking-wider',
                       (s.is_active === 1 || s.is_active === true)
                         ? 'bg-emerald-100 text-emerald-800 border border-emerald-300'
                         : 'bg-rose-100 text-rose-800 border border-rose-300'
@@ -360,9 +360,9 @@ const isBulkModalOpen = ref(false);
                     {{ (s.is_active === 1 || s.is_active === true) ? 'AKTIF' : 'NON-AKTIF' }}
                   </span>
                 </td>
-                <td v-if="canWrite" class="px-4 py-3 text-right whitespace-nowrap space-x-2">
-                  <button @click="openEditModal(s)" class="text-xs font-semibold text-blue-600 hover:text-blue-800 hover:underline cursor-pointer">Edit</button>
-                  <button @click="deleteSpv(s)" class="text-xs font-semibold text-red-600 hover:text-red-800 hover:underline cursor-pointer">Hapus</button>
+                <td v-if="canWrite" class="px-3 py-2.5 text-right whitespace-nowrap space-x-2">
+                  <button @click="openEditModal(s)" class="text-[11.5px] font-semibold text-blue-600 hover:text-blue-800 hover:underline cursor-pointer">Edit</button>
+                  <button @click="deleteSpv(s)" class="text-[11.5px] font-semibold text-red-600 hover:text-red-800 hover:underline cursor-pointer">Hapus</button>
                 </td>
               </tr>
             </tbody>

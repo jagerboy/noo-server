@@ -41,11 +41,12 @@ const searchQuery = ref(props.filters?.search || '');
 const branchFilter = ref(props.filters?.branch_id || 'ALL');
 const spvStatusFilter = ref(props.filters?.spv_status || 'ALL'); // 'ALL' | 'PENDING' | 'APPROVED' | 'REJECTED' | 'PROCESSED'
 const edpStatusFilter = ref(props.filters?.edp_status || 'ALL'); // 'ALL' | 'PENDING' | 'APPROVED' | 'REJECTED'
-const sortSelect = ref(
-  props.filters?.sort && props.filters.sort !== 'default'
-    ? props.filters.sort
-    : 'submitted_at_desc'
-);
+const VALID_SORTS = ['submitted_at_desc', 'submitted_at_asc', 'nama_noo_asc', 'nama_noo_desc', 'salesman_name_asc'];
+function getValidSort(val) {
+  return VALID_SORTS.includes(val) ? val : 'submitted_at_desc';
+}
+
+const sortSelect = ref(getValidSort(props.filters?.sort));
 
 // Sinkronisasi state lokal saat Inertia reload filter
 watch(
@@ -56,14 +57,17 @@ watch(
       branchFilter.value = newFilters.branch_id || 'ALL';
       spvStatusFilter.value = newFilters.spv_status || 'ALL';
       edpStatusFilter.value = newFilters.edp_status || 'ALL';
-      sortSelect.value =
-        newFilters.sort && newFilters.sort !== 'default'
-          ? newFilters.sort
-          : 'submitted_at_desc';
+      sortSelect.value = getValidSort(newFilters.sort);
     }
   },
   { deep: true }
 );
+
+watch(sortSelect, (newVal) => {
+  if (!newVal || !VALID_SORTS.includes(newVal)) {
+    sortSelect.value = 'submitted_at_desc';
+  }
+});
 
 // State Modal Detail & Action
 const showDetailModal = ref(false);

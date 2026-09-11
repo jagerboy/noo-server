@@ -134,12 +134,12 @@ function deleteEdp(edp) {
     <div class="space-y-6">
       
       <!-- Page Header -->
-      <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-white p-5 rounded-xl border border-[#E5E7EB] shadow-xs">
+      <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 bg-white p-3.5 sm:p-4 md:p-5 rounded-xl border border-[#E5E7EB] shadow-xs">
         <div>
-          <h1 class="text-xl font-bold text-[#111827] flex items-center gap-2">
+          <h1 class="text-lg sm:text-xl md:text-[22px] font-bold text-[#111827] tracking-tight flex items-center gap-2">
             <span>Master User EDP / Administrator</span>
           </h1>
-          <p class="text-xs text-[#6B7280] mt-1">
+          <p class="text-[12.5px] md:text-[14px] leading-[1.5] text-[#6B7280] mt-0.5">
             Manajemen Akun User EDP Region & Otoritas Sistem NOO+.
           </p>
         </div>
@@ -147,7 +147,7 @@ function deleteEdp(edp) {
         <div v-if="canWrite">
           <button
             @click="isAddModalOpen = true"
-            class="px-4 py-2 text-xs font-semibold text-white bg-[#059669] rounded-lg hover:bg-[#047857] transition shadow-2xs flex items-center gap-1.5 cursor-pointer"
+            class="px-3 py-1.5 text-[11.5px] font-semibold text-white bg-[#059669] rounded-lg hover:bg-[#047857] transition shadow-2xs flex items-center gap-1.5 cursor-pointer"
           >
             <span>+ Tambah User EDP</span>
           </button>
@@ -155,19 +155,19 @@ function deleteEdp(edp) {
       </div>
 
       <!-- Filter Bar (Instant Client-Side Filtering) -->
-      <div class="bg-white p-4 rounded-xl border border-[#E5E7EB] shadow-xs space-y-3">
+      <div class="bg-white p-3 sm:p-3.5 rounded-xl border border-[#E5E7EB] shadow-xs space-y-3">
         <div class="flex items-center justify-between">
-          <span class="text-xs font-bold uppercase tracking-wider text-[#374151] flex items-center gap-2">
+          <span class="text-[11.5px] font-semibold uppercase tracking-wider text-[#374151] flex items-center gap-2">
             Filter Data User EDP
           </span>
-          <button @click="resetFilters" class="text-xs font-semibold text-blue-600 hover:underline cursor-pointer">
+          <button @click="resetFilters" class="text-[10.5px] font-medium text-rose-500 hover:text-rose-700 hover:underline cursor-pointer">
             Reset Filter
           </button>
         </div>
 
         <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
           <div>
-            <label class="block text-xs font-semibold text-[#4B5563] mb-1">REGION</label>
+            <label class="block text-[11.5px] font-medium text-slate-500 mb-1">REGION</label>
             <SearchableSelect
               v-model="selectedRegion"
               :options="regionOptions"
@@ -177,12 +177,12 @@ function deleteEdp(edp) {
           </div>
 
           <div>
-            <label class="block text-xs font-semibold text-[#4B5563] mb-1">CARI USER</label>
+            <label class="block text-[11.5px] font-medium text-slate-500 mb-1">CARI USER</label>
             <input
               type="text"
               v-model="search"
               placeholder="Username, Nama, Region..."
-              class="w-full px-3 py-2 text-xs border border-[#D1D5DB] rounded-lg focus:ring-1 focus:ring-[#059669]"
+              class="w-full px-2.5 py-1.5 text-[12px] border border-[#D1D5DB] rounded-lg focus:ring-1 focus:ring-[#059669]"
             />
           </div>
         </div>
@@ -191,37 +191,37 @@ function deleteEdp(edp) {
       <!-- Table EDP Users -->
       <div class="bg-white rounded-xl border border-[#E5E7EB] shadow-xs overflow-hidden">
         <div class="overflow-x-auto">
-          <table class="w-full text-left text-xs">
-            <thead class="bg-[#F9FAFB] border-b border-[#E5E7EB] font-bold text-[#374151] uppercase">
+          <table class="w-full text-left">
+            <thead class="bg-[#F9FAFB] border-b border-[#E5E7EB] font-semibold text-[#475569] text-[11.5px] uppercase">
               <tr>
-                <th class="px-4 py-3">Username</th>
-                <th class="px-4 py-3">Nama User</th>
-                <th class="px-4 py-3">Role</th>
-                <th class="px-4 py-3">Region Code</th>
-                <th class="px-4 py-3">Status</th>
-                <th v-if="canWrite" class="px-4 py-3 text-right">Aksi</th>
+                <th class="px-3 py-3">Username</th>
+                <th class="px-3 py-3">Nama User</th>
+                <th class="px-3 py-3">Role</th>
+                <th class="px-3 py-3">Region Code</th>
+                <th class="px-3 py-3">Status</th>
+                <th v-if="canWrite" class="px-3 py-3 text-right">Aksi</th>
               </tr>
             </thead>
-            <tbody class="divide-y divide-[#E5E7EB]">
+            <tbody class="divide-y divide-[#E5E7EB] text-[12.5px] leading-[17px]">
               <tr v-if="filteredEdps.length === 0">
-                <td colspan="6" class="px-4 py-8 text-center text-[#9CA3AF] italic">
+                <td colspan="6" class="px-3 py-8 text-center text-[#9CA3AF] italic">
                   Data User EDP tidak ditemukan untuk filter ini.
                 </td>
               </tr>
 
               <tr v-for="edp in filteredEdps" :key="edp.id" class="hover:bg-emerald-50/20 transition">
-                <td class="px-4 py-3 font-mono font-bold text-[#111827]">{{ edp.username }}</td>
-                <td class="px-4 py-3 font-semibold text-[#374151]">{{ edp.nama }}</td>
-                <td class="px-4 py-3 text-[#6B7280]">
-                  <span class="px-2 py-0.5 rounded text-[10px] font-bold bg-blue-100 text-blue-800">
+                <td class="px-3 py-2.5 font-mono font-bold text-[#111827] text-[12px]">{{ edp.username }}</td>
+                <td class="px-3 py-2.5 font-bold text-[#111827] text-[13px]">{{ edp.nama }}</td>
+                <td class="px-3 py-2.5 text-[#6B7280]">
+                  <span class="px-1.5 py-0.5 rounded text-[10px] font-bold bg-blue-100 text-blue-800">
                     {{ formatRole(edp.role) }}
                   </span>
                 </td>
-                <td class="px-4 py-3 text-[#059669] font-bold">{{ edp.region_code || 'GLOBAL / ALL' }}</td>
-                <td class="px-4 py-3">
+                <td class="px-3 py-2.5 text-[#059669] font-bold">{{ edp.region_code || 'GLOBAL / ALL' }}</td>
+                <td class="px-3 py-2.5">
                   <span
                     :class="[
-                      'px-2.5 py-0.5 text-[10.5px] font-bold rounded-md uppercase tracking-wider',
+                      'px-2 py-0.5 text-[10.5px] font-semibold rounded-full uppercase tracking-wider',
                       (edp.is_active === 1 || edp.is_active === true)
                         ? 'bg-emerald-100 text-emerald-800 border border-emerald-300'
                         : 'bg-rose-100 text-rose-800 border border-rose-300'
@@ -230,9 +230,9 @@ function deleteEdp(edp) {
                     {{ (edp.is_active === 1 || edp.is_active === true) ? 'AKTIF' : 'NON-AKTIF' }}
                   </span>
                 </td>
-                <td v-if="canWrite" class="px-4 py-3 text-right space-x-2">
-                  <button @click="openEditModal(edp)" class="text-xs font-semibold text-blue-600 hover:text-blue-800 hover:underline">Edit</button>
-                  <button @click="deleteEdp(edp)" class="text-xs font-semibold text-red-600 hover:text-red-800 hover:underline">Hapus</button>
+                <td v-if="canWrite" class="px-3 py-2.5 text-right space-x-2">
+                  <button @click="openEditModal(edp)" class="text-[11.5px] font-semibold text-blue-600 hover:text-blue-800 hover:underline">Edit</button>
+                  <button @click="deleteEdp(edp)" class="text-[11.5px] font-semibold text-red-600 hover:text-red-800 hover:underline">Hapus</button>
                 </td>
               </tr>
             </tbody>

@@ -588,72 +588,72 @@ function getRowStyle(item) {
     <div class="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 space-y-6">
 
       <!-- Page Header with Brand Stat Cards -->
-      <div class="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-6">
+      <div class="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4 md:gap-6">
         <div>
           <div class="flex items-center space-x-3">
-            <h1 class="text-xl md:text-[24px] font-semibold text-[#111827] tracking-tight leading-[1.4]">Inbox Submisi Outlet</h1>
-            <span class="px-3 py-1 rounded-lg text-xs font-semibold bg-[#DBEAFE] text-[#1D4ED8] border border-[#93C5FD]">
+            <h1 class="text-lg sm:text-xl md:text-[22px] font-bold text-[#111827] tracking-tight whitespace-nowrap">Inbox Submisi Outlet</h1>
+            <span class="px-2.5 py-0.5 rounded-lg text-xs font-semibold bg-[#DBEAFE] text-[#1D4ED8] border border-[#93C5FD]">
               Cabang: {{ userBranch || 'Unassigned' }}
             </span>
           </div>
-          <p class="text-[14px] leading-[1.5] font-normal text-[#6B7280] mt-1">
+          <p class="text-[12.5px] md:text-[14px] leading-[1.5] font-normal text-[#6B7280] mt-1">
             Verifikasi data pendaftaran toko baru, pengisian kode customer distributor, & penyerahan ke SPV Area.
           </p>
         </div>
 
         <!-- Metric Stat Badges -->
-        <div class="grid grid-cols-2 sm:grid-cols-4 gap-3">
-          <div class="bg-white p-3.5 rounded-xl border border-[#E5E7EB] shadow-[0_1px_3px_rgba(0,0,0,0.08)] text-center flex flex-col justify-between h-full">
-            <div class="min-h-[32px] flex items-center justify-center">
-              <span class="text-[11px] font-semibold uppercase tracking-wider text-[#B45309]">Pending Admin</span>
+        <div class="grid grid-cols-2 sm:grid-cols-4 gap-2 md:gap-3 w-full lg:w-auto shrink-0">
+          <div class="bg-white p-2.5 sm:p-3 md:p-3.5 rounded-xl border border-[#E5E7EB] shadow-[0_1px_3px_rgba(0,0,0,0.06)] text-center flex flex-col justify-between h-full min-w-[110px] md:min-w-[125px]">
+            <div class="min-h-[26px] md:min-h-[32px] flex items-center justify-center">
+              <span class="text-[10px] md:text-[11px] font-semibold uppercase tracking-wider text-[#B45309]">Pending Admin</span>
             </div>
-            <div class="text-2xl font-bold text-[#D97706] mt-1">{{ stats.pendingSe }}</div>
+            <div class="text-xl md:text-2xl font-bold text-[#D97706] mt-0.5 md:mt-1">{{ stats.pendingSe }}</div>
           </div>
-          <div class="bg-white p-3.5 rounded-xl border border-[#E5E7EB] shadow-[0_1px_3px_rgba(0,0,0,0.08)] text-center flex flex-col justify-between h-full">
-            <div class="min-h-[32px] flex items-center justify-center">
-              <span class="text-[11px] font-semibold uppercase tracking-wider text-[#1D4ED8]">Pushed to SPV</span>
+          <div class="bg-white p-2.5 sm:p-3 md:p-3.5 rounded-xl border border-[#E5E7EB] shadow-[0_1px_3px_rgba(0,0,0,0.06)] text-center flex flex-col justify-between h-full min-w-[110px] md:min-w-[125px]">
+            <div class="min-h-[26px] md:min-h-[32px] flex items-center justify-center">
+              <span class="text-[10px] md:text-[11px] font-semibold uppercase tracking-wider text-[#1D4ED8]">Pushed to SPV</span>
             </div>
-            <div class="text-2xl font-bold text-[#2563EB] mt-1">{{ stats.pushedSpv }}</div>
+            <div class="text-xl md:text-2xl font-bold text-[#2563EB] mt-0.5 md:mt-1">{{ stats.pushedSpv }}</div>
           </div>
-          <div class="bg-white p-3.5 rounded-xl border border-[#E5E7EB] shadow-[0_1px_3px_rgba(0,0,0,0.08)] text-center flex flex-col justify-between h-full">
-            <div class="min-h-[32px] flex items-center justify-center">
-              <span class="text-[11px] font-semibold uppercase tracking-wider text-[#15803D]">EDP Approved</span>
+          <div class="bg-white p-2.5 sm:p-3 md:p-3.5 rounded-xl border border-[#E5E7EB] shadow-[0_1px_3px_rgba(0,0,0,0.06)] text-center flex flex-col justify-between h-full min-w-[110px] md:min-w-[125px]">
+            <div class="min-h-[26px] md:min-h-[32px] flex items-center justify-center">
+              <span class="text-[10px] md:text-[11px] font-semibold uppercase tracking-wider text-[#15803D]">EDP Approved</span>
             </div>
-            <div class="text-2xl font-bold text-[#16A34A] mt-1">{{ stats.approved }}</div>
+            <div class="text-xl md:text-2xl font-bold text-[#16A34A] mt-0.5 md:mt-1">{{ stats.approved }}</div>
           </div>
-          <div class="bg-white p-3.5 rounded-xl border border-[#E5E7EB] shadow-[0_1px_3px_rgba(0,0,0,0.08)] text-center flex flex-col justify-between h-full">
-            <div class="min-h-[32px] flex items-center justify-center">
-              <span class="text-[11px] font-semibold uppercase tracking-wider text-[#B91C1C]">Ditolak</span>
+          <div class="bg-white p-2.5 sm:p-3 md:p-3.5 rounded-xl border border-[#E5E7EB] shadow-[0_1px_3px_rgba(0,0,0,0.06)] text-center flex flex-col justify-between h-full min-w-[110px] md:min-w-[125px]">
+            <div class="min-h-[26px] md:min-h-[32px] flex items-center justify-center">
+              <span class="text-[10px] md:text-[11px] font-semibold uppercase tracking-wider text-[#B91C1C]">Ditolak</span>
             </div>
-            <div class="text-2xl font-bold text-[#DC2626] mt-1">{{ stats.rejected }}</div>
+            <div class="text-xl md:text-2xl font-bold text-[#DC2626] mt-0.5 md:mt-1">{{ stats.rejected }}</div>
           </div>
         </div>
       </div>
 
       <!-- Filter & Search Toolbar (Red/Blue Accent for Admin Distributor) -->
-      <div class="bg-white p-4 rounded-xl border border-[#E5E7EB] shadow-[0_1px_3px_rgba(0,0,0,0.08)] flex flex-col lg:flex-row items-center justify-between gap-4">
+      <div class="bg-white p-3 sm:p-3.5 rounded-xl border border-[#E5E7EB] shadow-[0_1px_3px_rgba(0,0,0,0.06)] flex flex-col lg:flex-row items-center justify-between gap-3">
         
-        <!-- Search Input (Form Input 16px / 400) -->
+        <!-- Search Input -->
         <div class="relative w-full lg:w-80">
-          <svg class="w-4 h-4 absolute left-3.5 top-3.5 text-[#9CA3AF]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <svg class="w-4 h-4 absolute left-3 top-2.5 text-[#9CA3AF]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/>
           </svg>
           <input
             v-model="searchQuery"
             type="text"
             placeholder="Cari toko, salesman, custcode, alamat..."
-            class="w-full pl-10 pr-4 py-2 text-[15px] font-normal rounded-lg bg-white border border-[#D1D5DB] text-[#374151] placeholder-[#9CA3AF] focus:ring-2 focus:ring-[#DC2626] focus:border-[#B91C1C] transition"
+            class="w-full pl-9 pr-3 py-1.5 text-[12px] font-normal rounded-lg bg-white border border-[#D1D5DB] text-[#374151] placeholder-[#9CA3AF] focus:ring-2 focus:ring-[#DC2626] focus:border-[#B91C1C] transition"
           />
         </div>
 
         <!-- Filter Status & Sort Dropdowns Side-by-Side -->
-        <div class="flex flex-col sm:flex-row items-center gap-3 w-full lg:w-auto">
+        <div class="flex flex-col sm:flex-row items-center gap-2 sm:gap-2.5 w-full lg:w-auto">
           <!-- Filter Status Dropdown -->
-          <div class="flex items-center space-x-2 w-full sm:w-auto">
-            <label class="text-[14px] font-medium text-[#4B5563] whitespace-nowrap">Filter Status:</label>
+          <div class="flex items-center space-x-1.5 w-full sm:w-auto">
+            <label class="text-[11.5px] font-medium text-slate-500 whitespace-nowrap">Filter Status:</label>
             <select
               v-model="statusFilter"
-              class="w-full sm:w-60 text-[14px] font-medium rounded-lg bg-white border border-[#D1D5DB] text-[#1F2937] py-2 px-3 focus:ring-2 focus:ring-[#DC2626] focus:border-[#B91C1C] shadow-xs cursor-pointer"
+              class="w-full sm:w-56 text-[12px] font-medium rounded-lg bg-white border border-[#D1D5DB] text-[#1F2937] py-1.5 pl-2.5 pr-7 focus:ring-2 focus:ring-[#DC2626] focus:border-[#B91C1C] shadow-2xs cursor-pointer"
             >
               <option value="ALL">Semua Submisi</option>
               <option value="SE_SUBMITTED">1. Pending Admin</option>
@@ -666,12 +666,12 @@ function getRowStyle(item) {
             </select>
           </div>
 
-          <!-- Sort Dropdown (Memindahkan Sort dari Header Tabel) -->
-          <div class="flex items-center space-x-2 w-full sm:w-auto">
-            <label class="text-[14px] font-medium text-[#4B5563] whitespace-nowrap">Urutkan:</label>
+          <!-- Sort Dropdown -->
+          <div class="flex items-center space-x-1.5 w-full sm:w-auto">
+            <label class="text-[11.5px] font-medium text-slate-500 whitespace-nowrap">Urutkan:</label>
             <select
               v-model="sortSelect"
-              class="w-full sm:w-56 text-[14px] font-medium rounded-lg bg-white border border-[#D1D5DB] text-[#1F2937] py-2 px-3 focus:ring-2 focus:ring-[#DC2626] focus:border-[#B91C1C] shadow-xs cursor-pointer"
+              class="w-full sm:w-52 text-[12px] font-medium rounded-lg bg-white border border-[#D1D5DB] text-[#1F2937] py-1.5 pl-2.5 pr-7 focus:ring-2 focus:ring-[#DC2626] focus:border-[#B91C1C] shadow-2xs cursor-pointer"
             >
               <option value="submitted_at_desc">Terbaru (Tanggal Submisi)</option>
               <option value="submitted_at_asc">Terlama (Tanggal Submisi)</option>
@@ -685,21 +685,21 @@ function getRowStyle(item) {
       </div>
 
       <!-- TABEL PRESISI DENGAN TABLE-FIXED -->
-      <div class="bg-white rounded-xl border border-[#E5E7EB] shadow-[0_1px_3px_rgba(0,0,0,0.08)] overflow-hidden">
+      <div class="bg-white rounded-xl border border-[#E5E7EB] shadow-[0_1px_3px_rgba(0,0,0,0.06)] overflow-hidden">
         <div class="w-full overflow-x-auto">
-          <table class="w-full text-left text-[14px] leading-[20px] text-[#374151] table-fixed min-w-[900px]">
-            <thead class="bg-[#F3F4F6] text-[14px] font-semibold text-[#1F2937] border-b border-[#E5E7EB] select-none">
+          <table class="w-full text-left text-[12.5px] leading-[17px] text-[#374151] table-fixed min-w-[900px]">
+            <thead class="bg-[#F8FAFC] text-[11.5px] font-semibold text-[#475569] border-b border-[#E2E8F0] select-none">
               <tr>
-                <th class="w-[20%] px-4 py-3.5">Toko & Tipe Outlet</th>
-                <th class="w-[22%] px-4 py-3.5">Alamat & Wilayah</th>
-                <th class="w-[18%] px-4 py-3.5">Salesman & Tanggal</th>
-                <th class="w-[16%] px-4 py-3.5">Status</th>
-                <th class="w-[11%] px-4 py-3.5">Cust Code Dist.</th>
-                <th class="w-[11%] px-4 py-3.5">Cust Code Principal</th>
-                <th class="w-[12%] px-4 py-3.5 text-center">Aksi</th>
+                <th class="w-[20%] px-3 py-3">Toko & Tipe Outlet</th>
+                <th class="w-[22%] px-3 py-3">Alamat & Wilayah</th>
+                <th class="w-[18%] px-3 py-3">Salesman & Tanggal</th>
+                <th class="w-[16%] px-3 py-3">Status</th>
+                <th class="w-[11%] px-3 py-3">Cust Code Dist.</th>
+                <th class="w-[11%] px-3 py-3">Cust Code Principal</th>
+                <th class="w-[12%] px-3 py-3 text-center">Aksi</th>
               </tr>
             </thead>
-            <tbody class="divide-y divide-[#E5E7EB]">
+            <tbody class="divide-y divide-[#E2E8F0]">
               <tr v-if="sortedSubmissions.length === 0">
                 <td colspan="7" class="px-6 py-12 text-center text-[#6B7280] font-normal">
                   Tidak ada data outlet yang cocok dengan pencarian / filter.
@@ -712,69 +712,68 @@ function getRowStyle(item) {
                 :class="getRowStyle(item)"
               >
                 <!-- Toko & Tipe Outlet -->
-                <td class="px-4 py-3.5">
-                  <div class="font-bold text-[14px] text-[#111827] group-hover:text-[#1D4ED8] transition truncate" :title="item.nama_noo">
+                <td class="px-3 py-2.5">
+                  <div class="font-bold text-[13px] text-[#111827] group-hover:text-[#1D4ED8] transition truncate" :title="item.nama_noo">
                     {{ item.nama_noo }}
                   </div>
-                  <div class="flex items-center gap-1.5 mt-1 truncate">
-                    <span class="px-1.5 py-0.2 rounded text-[9px] font-semibold bg-[#DBEAFE] text-[#1D4ED8] border border-[#93C5FD] shrink-0">
+                  <div class="flex items-center gap-1.5 mt-0.5 truncate">
+                    <span class="px-1.5 py-0.2 rounded text-[10px] font-semibold bg-[#DBEAFE] text-[#1D4ED8] border border-[#93C5FD] shrink-0">
                       {{ item.type_outlet_code }}
                     </span>
-                    <span class="text-[12px] text-[#6B7280] truncate">{{ item.type_outlet_desc || 'Retail Outlet' }}</span>
+                    <span class="text-[11.5px] text-[#6B7280] truncate">{{ item.type_outlet_desc || 'Retail Outlet' }}</span>
                   </div>
                 </td>
 
                 <!-- Alamat & Wilayah -->
-                <td class="px-4 py-3.5">
-                  <div class="truncate text-[#374151] text-[14px] font-normal" :title="item.alamat_noo">
+                <td class="px-3 py-2.5">
+                  <div class="truncate text-[#374151] text-[12px] font-medium" :title="item.alamat_noo">
                     {{ item.alamat_noo }}
                   </div>
-                  <div class="text-[12px] text-[#6B7280] mt-0.5 truncate">
+                  <div class="text-[11px] text-[#6B7280] mt-0.5 truncate">
                     📍 {{ item.kec_noo }}, {{ item.kab_kota_noo }}
                   </div>
                 </td>
 
                 <!-- Salesman & Tanggal -->
-                <td class="px-4 py-3.5 truncate">
-                  <div class="font-medium text-[#1F2937] text-[14px] truncate">{{ item.salesman_name }}</div>
-                  <div class="text-[12px] text-[#6B7280] mt-0.5">
+                <td class="px-3 py-2.5 truncate">
+                  <div class="font-semibold text-[#1F2937] text-[12.5px] truncate">{{ item.salesman_name }}</div>
+                  <div class="text-[11px] text-[#6B7280] mt-0.5">
                     {{ formatDate(item.submitted_at || item.created_at) }}
                   </div>
                 </td>
 
                 <!-- Status -->
-                <td class="px-4 py-3.5">
-                  <span class="inline-block px-2.5 py-0.5 rounded-full text-[12px] font-semibold border" :class="getStatusBadgeStyle(item.status)">
+                <td class="px-3 py-2.5">
+                  <span class="inline-block px-2 py-0.5 rounded-full text-[10.5px] font-semibold border" :class="getStatusBadgeStyle(item.status)">
                     {{ formatStatusLabel(item.status) }}
                   </span>
                 </td>
 
                 <!-- Cust Code Distributor -->
-                <td class="px-4 py-3.5 truncate">
-                  <span v-if="item.custcode_distributor" class="font-mono text-[12px] font-semibold text-[#1D4ED8] bg-[#DBEAFE] px-2 py-0.5 rounded border border-[#93C5FD] truncate block">
+                <td class="px-3 py-2.5 truncate">
+                  <span v-if="item.custcode_distributor" class="font-mono text-[10.5px] font-bold text-[#1D4ED8] bg-[#DBEAFE] px-1.5 py-0.5 rounded border border-[#93C5FD] truncate block">
                     {{ item.custcode_distributor }}
                   </span>
-                  <span v-else class="text-[12px] italic text-[#9CA3AF]">Belum diisi</span>
+                  <span v-else class="text-[11px] italic text-[#9CA3AF]">Belum diisi</span>
                 </td>
 
                 <!-- Cust Code Principal -->
-                <td class="px-4 py-3.5">
-                  <span v-if="item.code_noo_principal" class="font-mono text-[12px] font-semibold text-[#15803D] bg-[#DCFCE7] px-2 py-0.5 rounded border border-[#86EFAC] block whitespace-normal break-words">
+                <td class="px-3 py-2.5">
+                  <span v-if="item.code_noo_principal" class="font-mono text-[10.5px] font-bold text-[#15803D] bg-[#DCFCE7] px-1.5 py-0.5 rounded border border-[#86EFAC] block whitespace-normal break-words">
                     {{ item.code_noo_principal }}
                   </span>
-                  <span v-else class="text-[12px] italic text-[#9CA3AF] block whitespace-normal break-words">Belum tergenerate</span>
+                  <span v-else class="text-[11px] italic text-[#9CA3AF] block whitespace-normal break-words">Belum tergenerate</span>
                 </td>
 
                 <!-- Action Button -->
-                <td class="px-4 py-3.5 text-center">
-                  <BaseButton
-                    variant="primary"
-                    size="sm"
-                    class="w-full font-sans"
+                <td class="px-3 py-2.5 text-center">
+                  <button
+                    type="button"
+                    class="inline-flex items-center justify-center px-2.5 py-1 text-[11px] font-semibold text-white bg-blue-600 hover:bg-blue-700 active:bg-blue-800 rounded-lg shadow-2xs transition cursor-pointer shrink-0 whitespace-nowrap"
                     @click="openDetailModal(item)"
                   >
                     Kelola Toko
-                  </BaseButton>
+                  </button>
                 </td>
               </tr>
             </tbody>
