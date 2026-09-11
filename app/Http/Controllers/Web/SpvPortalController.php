@@ -146,11 +146,23 @@ class SpvPortalController extends Controller
             $query->where('type_outlet_code', $request->input('sub_group'));
         }
 
-        // Filter Status SPV (Belum diproses vs Sudah diproses)
+        // Filter Status SPV (SPV Pending, SPV Approved, SPV Rejected, atau Sudah diproses)
         if ($request->filled('spv_status') && $request->input('spv_status') !== 'ALL') {
             $spvSt = $request->input('spv_status');
             if ($spvSt === 'PENDING') {
                 $query->whereIn('status', ['PUSHED_TO_SPV', 'ADMIN_APPROVED', NooStatusEnum::PUSHED_TO_SPV->value]);
+            } elseif ($spvSt === 'APPROVED') {
+                $query->whereIn('status', [
+                    'APPROVED_SPV', 'APPROVED_BY_SPV', 'PUSHED_TO_EDP',
+                    'APPROVED_EDP', 'EDP_APPROVED',
+                    NooStatusEnum::APPROVED_SPV->value,
+                    NooStatusEnum::APPROVED_EDP->value,
+                ]);
+            } elseif ($spvSt === 'REJECTED') {
+                $query->whereIn('status', [
+                    'REJECTED_SPV', 'SPV_REJECTED',
+                    NooStatusEnum::REJECTED_SPV->value,
+                ]);
             } elseif ($spvSt === 'PROCESSED') {
                 $query->whereIn('status', [
                     'APPROVED_SPV', 'APPROVED_BY_SPV', 'PUSHED_TO_EDP',

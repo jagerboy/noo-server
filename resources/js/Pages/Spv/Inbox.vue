@@ -5,7 +5,7 @@
  * Menampilkan daftar submisi toko dari Admin Distributor, pengisian rute H1-H7 & M1-M4,
  * persetujuan SPV (Approve & Pushed ke EDP), dan penolakan SPV.
  */
-import { ref, computed, onMounted, onUnmounted } from 'vue';
+import { ref, computed, watch, onMounted, onUnmounted } from 'vue';
 import { useForm, Head, router } from '@inertiajs/vue3';
 import SpvLayout from '@/Layouts/SpvLayout.vue';
 import Pagination from '@/Components/Pagination.vue';
@@ -39,9 +39,31 @@ const props = defineProps({
 // State Pencarian & Multi-Filter
 const searchQuery = ref(props.filters?.search || '');
 const branchFilter = ref(props.filters?.branch_id || 'ALL');
-const spvStatusFilter = ref(props.filters?.spv_status || 'ALL'); // 'ALL' | 'PENDING' | 'PROCESSED'
+const spvStatusFilter = ref(props.filters?.spv_status || 'ALL'); // 'ALL' | 'PENDING' | 'APPROVED' | 'REJECTED' | 'PROCESSED'
 const edpStatusFilter = ref(props.filters?.edp_status || 'ALL'); // 'ALL' | 'PENDING' | 'APPROVED' | 'REJECTED'
-const sortSelect = ref(props.filters?.sort || 'submitted_at_desc');
+const sortSelect = ref(
+  props.filters?.sort && props.filters.sort !== 'default'
+    ? props.filters.sort
+    : 'submitted_at_desc'
+);
+
+// Sinkronisasi state lokal saat Inertia reload filter
+watch(
+  () => props.filters,
+  (newFilters) => {
+    if (newFilters) {
+      searchQuery.value = newFilters.search || '';
+      branchFilter.value = newFilters.branch_id || 'ALL';
+      spvStatusFilter.value = newFilters.spv_status || 'ALL';
+      edpStatusFilter.value = newFilters.edp_status || 'ALL';
+      sortSelect.value =
+        newFilters.sort && newFilters.sort !== 'default'
+          ? newFilters.sort
+          : 'submitted_at_desc';
+    }
+  },
+  { deep: true }
+);
 
 // State Modal Detail & Action
 const showDetailModal = ref(false);
@@ -90,6 +112,13 @@ function triggerServerFilter(immediate = true) {
     if (spvStatusFilter.value && spvStatusFilter.value !== 'ALL') params.spv_status = spvStatusFilter.value;
     if (edpStatusFilter.value && edpStatusFilter.value !== 'ALL') params.edp_status = edpStatusFilter.value;
     if (sortSelect.value && sortSelect.value !== 'default') params.sort = sortSelect.value;
+    
+    // Pertahankan per_page aktif dari pagination saat filter diterapkan
+    const currentPerPage = props.filters?.per_page || props.submissions?.per_page;
+    if (currentPerPage) {
+      params.per_page = (Number(currentPerPage) >= 1000 || Number(currentPerPage) === -1) ? -1 : currentPerPage;
+    }
+
     params.page = 1;
 
     router.get(route('spv.inbox'), params, {
@@ -112,7 +141,7 @@ const hasActiveFilter = computed(() => {
     branchFilter.value !== 'ALL' ||
     spvStatusFilter.value !== 'ALL' ||
     edpStatusFilter.value !== 'ALL' ||
-    (sortSelect.value !== 'submitted_at_desc' && sortSelect.value !== 'default')
+    (sortSelect.value !== 'submitted_at_desc' && sortSelect.value !== 'default' && Boolean(sortSelect.value))
   );
 });
 
@@ -122,7 +151,21 @@ function resetAllFilters() {
   spvStatusFilter.value = 'ALL';
   edpStatusFilter.value = 'ALL';
   sortSelect.value = 'submitted_at_desc';
-  triggerServerFilter(true);
+
+  const params = {
+    sort: 'submitted_at_desc',
+    page: 1,
+  };
+  const currentPerPage = props.filters?.per_page || props.submissions?.per_page;
+  if (currentPerPage) {
+    params.per_page = (Number(currentPerPage) >= 1000 || Number(currentPerPage) === -1) ? -1 : currentPerPage;
+  }
+
+  router.get(route('spv.inbox'), params, {
+    preserveState: true,
+    preserveScroll: true,
+    replace: true,
+  });
 }
 
 function filterByMetric(statType) {
@@ -134,23 +177,23 @@ function filterByMetric(statType) {
       edpStatusFilter.value = 'ALL';
     }
   } else if (statType === 'approvedSpv') {
-    if (spvStatusFilter.value === 'PROCESSED' && edpStatusFilter.value === 'PENDING') {
+    if (spvStatusFilter.value === 'APPROVED' && edpStatusFilter.value === 'PENDING') {
       spvStatusFilter.value = 'ALL';
       edpStatusFilter.value = 'ALL';
     } else {
-      spvStatusFilter.value = 'PROCESSED';
+      spvStatusFilter.value = 'APPROVED';
       edpStatusFilter.value = 'PENDING';
     }
   } else if (statType === 'approvedEdp') {
-    if (spvStatusFilter.value === 'PROCESSED' && edpStatusFilter.value === 'APPROVED') {
+    if (spvStatusFilter.value === 'APPROVED' && edpStatusFilter.value === 'APPROVED') {
       spvStatusFilter.value = 'ALL';
       edpStatusFilter.value = 'ALL';
     } else {
-      spvStatusFilter.value = 'PROCESSED';
+      spvStatusFilter.value = 'APPROVED';
       edpStatusFilter.value = 'APPROVED';
     }
   } else if (statType === 'rejected') {
-    if (edpStatusFilter.value === 'REJECTED') {
+    if (edpStatusFilter.value === 'REJECTED' || spvStatusFilter.value === 'REJECTED') {
       spvStatusFilter.value = 'ALL';
       edpStatusFilter.value = 'ALL';
     } else {
@@ -185,6 +228,13 @@ const filteredSubmissions = computed(() => {
   // Filter Status Review Area (SPV)
   if (spvStatusFilter.value === 'PENDING') {
     list = list.filter((item) => ['PUSHED_TO_SPV', 'ADMIN_APPROVED'].includes(item.status));
+  } else if (spvStatusFilter.value === 'APPROVED') {
+    list = list.filter((item) => [
+      'APPROVED_SPV', 'APPROVED_BY_SPV', 'PUSHED_TO_EDP',
+      'APPROVED_EDP', 'EDP_APPROVED'
+    ].includes(item.status));
+  } else if (spvStatusFilter.value === 'REJECTED') {
+    list = list.filter((item) => ['REJECTED_SPV', 'SPV_REJECTED'].includes(item.status));
   } else if (spvStatusFilter.value === 'PROCESSED') {
     list = list.filter((item) => [
       'APPROVED_SPV', 'APPROVED_BY_SPV', 'PUSHED_TO_EDP',
@@ -518,11 +568,11 @@ function formatStatusLabel(status) {
       return 'Pending Admin';
     case 'PUSHED_TO_SPV':
     case 'ADMIN_APPROVED':
-      return 'Menunggu Review';
+      return 'SPV Pending';
     case 'APPROVED_SPV':
     case 'APPROVED_BY_SPV':
     case 'PUSHED_TO_EDP':
-      return 'Disetujui Area';
+      return 'SPV Approved';
     case 'APPROVED_EDP':
     case 'EDP_APPROVED':
       return 'Approved Principal';
@@ -531,7 +581,7 @@ function formatStatusLabel(status) {
       return 'Ditolak Admin';
     case 'SPV_REJECTED':
     case 'REJECTED_SPV':
-      return 'Ditolak Area';
+      return 'SPV Rejected';
     case 'EDP_REJECTED':
     case 'REJECTED_EDP':
       return 'Ditolak Principal';
@@ -793,28 +843,28 @@ function getCardAccentClass(item) {
             @click="filterByMetric('pendingSpv')"
             class="p-2.5 sm:p-3 md:p-3.5 rounded-xl border shadow-[0_1px_3px_rgba(0,0,0,0.06)] text-center flex flex-col justify-between h-full min-w-[110px] md:min-w-[125px] cursor-pointer transition select-none hover:shadow-sm"
             :class="spvStatusFilter === 'PENDING' ? 'bg-blue-50/50 border-[#2563EB] ring-2 ring-[#2563EB]/20' : 'bg-white border-[#E5E7EB] hover:border-blue-300'"
-            title="Klik untuk filter data yang belum diproses review"
+            title="Klik untuk filter data yang belum diproses review SPV"
           >
             <div class="min-h-[26px] md:min-h-[32px] flex items-center justify-center">
-              <span class="text-[10px] md:text-[11px] font-semibold uppercase tracking-wider text-[#1D4ED8]">Pending Review</span>
+              <span class="text-[10px] md:text-[11px] font-semibold uppercase tracking-wider text-[#1D4ED8]">SPV Pending</span>
             </div>
             <div class="text-xl md:text-2xl font-bold text-[#2563EB] mt-0.5 md:mt-1">{{ stats.pendingSpv }}</div>
           </div>
           <div
             @click="filterByMetric('approvedSpv')"
             class="p-2.5 sm:p-3 md:p-3.5 rounded-xl border shadow-[0_1px_3px_rgba(0,0,0,0.06)] text-center flex flex-col justify-between h-full min-w-[110px] md:min-w-[125px] cursor-pointer transition select-none hover:shadow-sm"
-            :class="spvStatusFilter === 'PROCESSED' && edpStatusFilter === 'PENDING' ? 'bg-purple-50/50 border-[#9333EA] ring-2 ring-[#9333EA]/20' : 'bg-white border-[#E5E7EB] hover:border-purple-300'"
-            title="Klik untuk filter data yang disetujui area & menunggu Principal"
+            :class="(spvStatusFilter === 'APPROVED' || spvStatusFilter === 'PROCESSED') && edpStatusFilter === 'PENDING' ? 'bg-purple-50/50 border-[#9333EA] ring-2 ring-[#9333EA]/20' : 'bg-white border-[#E5E7EB] hover:border-purple-300'"
+            title="Klik untuk filter data yang disetujui SPV & menunggu Principal"
           >
             <div class="min-h-[26px] md:min-h-[32px] flex items-center justify-center">
-              <span class="text-[10px] md:text-[11px] font-semibold uppercase tracking-wider text-[#7E22CE]">Disetujui Area</span>
+              <span class="text-[10px] md:text-[11px] font-semibold uppercase tracking-wider text-[#7E22CE]">SPV Approved</span>
             </div>
             <div class="text-xl md:text-2xl font-bold text-[#9333EA] mt-0.5 md:mt-1">{{ stats.approvedSpv }}</div>
           </div>
           <div
             @click="filterByMetric('approvedEdp')"
             class="p-2.5 sm:p-3 md:p-3.5 rounded-xl border shadow-[0_1px_3px_rgba(0,0,0,0.06)] text-center flex flex-col justify-between h-full min-w-[110px] md:min-w-[125px] cursor-pointer transition select-none hover:shadow-sm"
-            :class="spvStatusFilter === 'PROCESSED' && edpStatusFilter === 'APPROVED' ? 'bg-emerald-50/50 border-[#16A34A] ring-2 ring-[#16A34A]/20' : 'bg-white border-[#E5E7EB] hover:border-emerald-300'"
+            :class="edpStatusFilter === 'APPROVED' ? 'bg-emerald-50/50 border-[#16A34A] ring-2 ring-[#16A34A]/20' : 'bg-white border-[#E5E7EB] hover:border-emerald-300'"
             title="Klik untuk filter data yang telah disetujui Principal"
           >
             <div class="min-h-[26px] md:min-h-[32px] flex items-center justify-center">
@@ -825,7 +875,7 @@ function getCardAccentClass(item) {
           <div
             @click="filterByMetric('rejected')"
             class="p-2.5 sm:p-3 md:p-3.5 rounded-xl border shadow-[0_1px_3px_rgba(0,0,0,0.06)] text-center flex flex-col justify-between h-full min-w-[110px] md:min-w-[125px] cursor-pointer transition select-none hover:shadow-sm"
-            :class="edpStatusFilter === 'REJECTED' ? 'bg-rose-50/50 border-[#DC2626] ring-2 ring-[#DC2626]/20' : 'bg-white border-[#E5E7EB] hover:border-rose-300'"
+            :class="edpStatusFilter === 'REJECTED' || spvStatusFilter === 'REJECTED' ? 'bg-rose-50/50 border-[#DC2626] ring-2 ring-[#DC2626]/20' : 'bg-white border-[#E5E7EB] hover:border-rose-300'"
             title="Klik untuk filter data yang ditolak"
           >
             <div class="min-h-[26px] md:min-h-[32px] flex items-center justify-center">
@@ -860,7 +910,7 @@ function getCardAccentClass(item) {
             <select
               v-model="branchFilter"
               @change="onFilterChange"
-              class="appearance-none pl-2.5 pr-7 py-1.5 text-[12px] font-medium rounded-lg bg-white border border-[#D1D5DB] text-[#1F2937] focus:ring-2 focus:ring-blue-600 focus:border-blue-600 shadow-2xs cursor-pointer max-w-[155px] truncate"
+              class="pl-2.5 pr-7 py-1.5 text-[12px] font-medium rounded-lg bg-white border border-[#D1D5DB] text-[#1F2937] focus:ring-2 focus:ring-blue-600 focus:border-blue-600 shadow-2xs cursor-pointer max-w-[155px] truncate"
             >
               <option value="ALL">Semua Cabang</option>
               <option
@@ -871,9 +921,6 @@ function getCardAccentClass(item) {
                 {{ typeof b === 'object' ? `${b.branch_id} - ${b.branch_name || b.branch_id}` : b }}
               </option>
             </select>
-            <svg class="pointer-events-none absolute right-2 w-3 h-3 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
-            </svg>
           </div>
 
           <!-- 2. Dropdown Status SPV (Review Area) -->
@@ -882,15 +929,13 @@ function getCardAccentClass(item) {
             <select
               v-model="spvStatusFilter"
               @change="onFilterChange"
-              class="appearance-none pl-2.5 pr-7 py-1.5 text-[12px] font-medium rounded-lg bg-white border border-[#D1D5DB] text-[#1F2937] focus:ring-2 focus:ring-blue-600 focus:border-blue-600 shadow-2xs cursor-pointer max-w-[145px]"
+              class="pl-2.5 pr-7 py-1.5 text-[12px] font-medium rounded-lg bg-white border border-[#D1D5DB] text-[#1F2937] focus:ring-2 focus:ring-blue-600 focus:border-blue-600 shadow-2xs cursor-pointer max-w-[145px]"
             >
               <option value="ALL">Semua Review</option>
-              <option value="PENDING">Menunggu Review</option>
-              <option value="PROCESSED">Sudah Diproses</option>
+              <option value="PENDING">SPV Pending</option>
+              <option value="APPROVED">SPV Approved</option>
+              <option value="REJECTED">SPV Rejected</option>
             </select>
-            <svg class="pointer-events-none absolute right-2 w-3 h-3 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
-            </svg>
           </div>
 
           <!-- 3. Dropdown Status EDP (Principal) -->
@@ -899,16 +944,13 @@ function getCardAccentClass(item) {
             <select
               v-model="edpStatusFilter"
               @change="onFilterChange"
-              class="appearance-none pl-2.5 pr-7 py-1.5 text-[12px] font-medium rounded-lg bg-white border border-[#D1D5DB] text-[#1F2937] focus:ring-2 focus:ring-blue-600 focus:border-blue-600 shadow-2xs cursor-pointer max-w-[145px]"
+              class="pl-2.5 pr-7 py-1.5 text-[12px] font-medium rounded-lg bg-white border border-[#D1D5DB] text-[#1F2937] focus:ring-2 focus:ring-blue-600 focus:border-blue-600 shadow-2xs cursor-pointer max-w-[145px]"
             >
               <option value="ALL">Semua Principal</option>
               <option value="PENDING">Pending Principal</option>
               <option value="APPROVED">Approved Principal</option>
               <option value="REJECTED">Ditolak Principal</option>
             </select>
-            <svg class="pointer-events-none absolute right-2 w-3 h-3 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
-            </svg>
           </div>
 
           <!-- 4. Dropdown Urutkan -->
@@ -917,7 +959,7 @@ function getCardAccentClass(item) {
             <select
               v-model="sortSelect"
               @change="onFilterChange"
-              class="appearance-none pl-2.5 pr-7 py-1.5 text-[12px] font-medium rounded-lg bg-white border border-[#D1D5DB] text-[#1F2937] focus:ring-2 focus:ring-blue-600 focus:border-blue-600 shadow-2xs cursor-pointer max-w-[155px]"
+              class="pl-2.5 pr-7 py-1.5 text-[12px] font-medium rounded-lg bg-white border border-[#D1D5DB] text-[#1F2937] focus:ring-2 focus:ring-blue-600 focus:border-blue-600 shadow-2xs cursor-pointer max-w-[155px]"
             >
               <option value="submitted_at_desc">Terbaru (Submisi)</option>
               <option value="submitted_at_asc">Terlama (Submisi)</option>
@@ -925,21 +967,18 @@ function getCardAccentClass(item) {
               <option value="nama_noo_desc">Nama Toko (Z - A)</option>
               <option value="salesman_name_asc">Salesman (A - Z)</option>
             </select>
-            <svg class="pointer-events-none absolute right-2 w-3 h-3 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
-            </svg>
           </div>
         </div>
 
-        <!-- Button Reset dibuat kecil di pojok kanan bawah container -->
-        <div v-if="hasActiveFilter" class="flex justify-end pt-1.5">
+        <!-- Button Reset dibuat kecil & rapi di pojok kanan bawah container -->
+        <div v-if="hasActiveFilter" class="flex justify-end pt-1">
           <button
             type="button"
             @click="resetAllFilters"
-            class="inline-flex items-center gap-1 text-[11px] font-semibold text-rose-600 hover:text-rose-700 bg-rose-50 hover:bg-rose-100 border border-rose-200 px-2.5 py-0.5 rounded transition cursor-pointer"
+            class="inline-flex items-center gap-1 text-[10.5px] font-medium text-rose-500 hover:text-rose-700 hover:underline transition cursor-pointer"
             title="Reset semua filter ke kondisi awal"
           >
-            <span>✕</span> Reset Filter
+            <span class="text-[9px]">✕</span> Reset Filter
           </button>
         </div>
       </div>
