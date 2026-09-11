@@ -77,6 +77,9 @@ Route::get('/init-db-columns', function () {
 
 
 Route::get('/debug-photos', function () {
+    if (!Auth::check() || Auth::user()->role !== 'SUPERADMIN') {
+        abort(404);
+    }
     $dir = storage_path('app/public/noo_photos/DAPLG002/2026-03-06');
     if (!is_dir($dir)) {
         $parent = storage_path('app/public/noo_photos/DAPLG002');
@@ -90,37 +93,54 @@ Route::get('/debug-photos', function () {
         'dir' => $dir,
         'files' => array_values(array_diff(scandir($dir), ['.', '..']))
     ]);
-});
+})->middleware('auth');
 
 Route::get('/', function () {
     return redirect('/principal');
 });
 
-// Dynamic Photo Stream Server Route (Guaranteed bypass of static public/storage folder checks with Security Guards)
+// Dynamic Photo Stream Server Route (Hardened against Local File Disclosure & Directory Traversal)
 Route::get('/media-photo/{path}', function ($path) {
     $cleanPath = ltrim(urldecode($path), '/');
     if (str_starts_with($cleanPath, 'public/')) $cleanPath = substr($cleanPath, 7);
     if (str_starts_with($cleanPath, 'storage/')) $cleanPath = substr($cleanPath, 8);
     if (str_starts_with($cleanPath, 'media-photo/')) $cleanPath = substr($cleanPath, 12);
 
-    // Proteksi Keamanan: Cegah serangan Directory Traversal
-    if (str_contains($cleanPath, '..') || str_contains($cleanPath, '\\')) {
+    // Proteksi Keamanan: Cegah serangan Directory Traversal, file tersembunyi (dotfiles), dan karakter terlarang
+    if (str_contains($cleanPath, '..') || str_contains($cleanPath, '\\') || str_starts_with(basename($cleanPath), '.')) {
         abort(403, 'Akses tidak diizinkan.');
     }
 
+    // Validasi ekstensi: Hanya berkas gambar yang sah yang diperbolehkan diakses
+    $ext = strtolower(pathinfo($cleanPath, PATHINFO_EXTENSION));
+    $allowedExtensions = ['jpg', 'jpeg', 'png', 'webp', 'gif'];
+    if (!in_array($ext, $allowedExtensions, true)) {
+        abort(404, 'Format berkas tidak diizinkan.');
+    }
+
+    // Hanya cari di dalam direktori penyimpanan publik yang sah (base_path dihilangkan demi keamanan)
     $candidatePaths = [
         storage_path('app/public/' . $cleanPath),
-        storage_path('app/' . $cleanPath),
         public_path('storage/' . $cleanPath),
+        public_path('images/' . $cleanPath),
         public_path($cleanPath),
-        base_path($cleanPath),
     ];
+
+    $allowedRoots = array_filter([
+        realpath(storage_path('app/public')),
+        realpath(public_path()),
+    ]);
 
     $fullPath = null;
     foreach ($candidatePaths as $candidate) {
-        if (file_exists($candidate)) {
-            $fullPath = $candidate;
-            break;
+        $real = realpath($candidate);
+        if ($real && file_exists($real)) {
+            foreach ($allowedRoots as $root) {
+                if (str_starts_with($real, $root)) {
+                    $fullPath = $real;
+                    break 2;
+                }
+            }
         }
     }
 
@@ -133,17 +153,21 @@ Route::get('/media-photo/{path}', function ($path) {
         $altExtensions = ['jpg', 'jpeg', 'png', 'webp', 'JPG', 'JPEG', 'PNG', 'WEBP'];
         foreach ($altExtensions as $altExt) {
             $altClean = ($dirname && $dirname !== '.' ? $dirname . '/' : '') . $filename . '.' . $altExt;
-            foreach ([storage_path('app/public/' . $altClean), storage_path('app/' . $altClean), public_path('storage/' . $altClean)] as $candidate) {
-                if (file_exists($candidate)) {
-                    $fullPath = $candidate;
-                    break 2;
+            foreach ([storage_path('app/public/' . $altClean), public_path('storage/' . $altClean)] as $candidate) {
+                $real = realpath($candidate);
+                if ($real && file_exists($real)) {
+                    foreach ($allowedRoots as $root) {
+                        if (str_starts_with($real, $root)) {
+                            $fullPath = $real;
+                            break 3;
+                        }
+                    }
                 }
             }
         }
     }
 
     if (!$fullPath) {
-        \Illuminate\Support\Facades\Log::warning("Media photo not found: {$cleanPath} (requested: {$path})");
         abort(404);
     }
 

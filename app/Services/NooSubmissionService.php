@@ -255,10 +255,21 @@ class NooSubmissionService
 
         // Decode string base64 menjadi file binary
         $cleanBase64 = preg_replace('#^data:image/\w+;base64,#i', '', $base64Content);
-        $imageBytes = base64_decode($cleanBase64);
+        $imageBytes = base64_decode($cleanBase64, true);
 
-        if (!$imageBytes) {
-            throw new Exception("Gagal decode isi foto Base64.");
+        if (!$imageBytes || strlen($imageBytes) < 12) {
+            throw new Exception("Gagal decode isi foto Base64 atau data korup.");
+        }
+
+        // Verifikasi Integritas Binary & MIME Type (Cegah eksploitasi file upload)
+        $imageInfo = @getimagesizefromstring($imageBytes);
+        if ($imageInfo === false || empty($imageInfo['mime'])) {
+            throw new Exception("Berkas yang diunggah bukan format gambar yang valid.");
+        }
+
+        $allowedMimes = ['image/jpeg', 'image/png', 'image/webp', 'image/gif'];
+        if (!in_array($imageInfo['mime'], $allowedMimes, true)) {
+            throw new Exception("Tipe MIME gambar tidak diizinkan: {$imageInfo['mime']}");
         }
 
         // Tentukan path penyimpanan lokal di server (disk public storage)
