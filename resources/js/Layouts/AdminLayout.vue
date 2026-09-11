@@ -34,7 +34,7 @@ const showingNavigationDropdown = ref(false);
                 <h1 class="text-base font-bold tracking-wide text-white flex items-center gap-1.5">
                   PORTAL ADMIN DISTRIBUTOR
                   <span class="text-[10px] font-extrabold px-2 py-0.5 rounded-full bg-white/20 text-white border border-white/30 uppercase tracking-tight shadow-xs">
-                    {{ page.props.auth?.user?.principal_name || 'INAFOODS' }}
+                    {{ page.props.auth?.user?.principal_name || 'ASWFOODS' }}
                   </span>
                 </h1>
               </div>

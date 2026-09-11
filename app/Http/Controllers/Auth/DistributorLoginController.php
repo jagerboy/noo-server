@@ -223,12 +223,19 @@ class DistributorLoginController extends Controller
         }
 
         // Simpan Sesi Terisolasi khusus Admin Distributor
+        $principalName = $branch->principal_name ?? null;
+        if (empty($principalName) && !empty($branch->region_code)) {
+            $principalName = str_contains(strtoupper($branch->region_code), 'INA') ? 'INAFOODS' : 'ASWFOODS';
+        }
+
         session(['distributor_user' => (object)[
             'branch_id' => $branchId,
             'name' => $branch->branch_name,
             'role' => 'ADMIN_DISTRIBUTOR',
             'region_code' => $regionCode,
             'entity_code_principal' => $entityCode,
+            'principal_code' => $branch->principal_code ?? (str_contains(strtoupper($regionCode), 'INA') ? 'I' : 'A'),
+            'principal_name' => $principalName ?: 'ASWFOODS',
         ]]);
 
         $request->session()->regenerate();

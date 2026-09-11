@@ -76,7 +76,35 @@ class HandleInertiaRequests extends Middleware
                 ]);
             }
         } elseif ($request->is('admin*') || $request->is('distributor*')) {
-            $authUser = session('distributor_user') ?? $request->user();
+            $distUser = session('distributor_user') ?? $request->user();
+            if ($distUser) {
+                $branchId = $distUser->branch_id ?? null;
+                $principalName = $distUser->principal_name ?? null;
+
+                if (!$principalName && $branchId) {
+                    $branch = DB::table('master_branches')
+                        ->where('branch_id', $branchId)
+                        ->select('principal_name', 'region_code')
+                        ->first();
+
+                    if ($branch) {
+                        $principalName = $branch->principal_name;
+                        if (empty($principalName) && !empty($branch->region_code)) {
+                            $principalName = str_contains(strtoupper($branch->region_code), 'INA') ? 'INAFOODS' : 'ASWFOODS';
+                        }
+                    }
+                }
+
+                if (!$principalName && !empty($distUser->region_code)) {
+                    $principalName = str_contains(strtoupper($distUser->region_code), 'INA') ? 'INAFOODS' : 'ASWFOODS';
+                }
+
+                $authUser = (object) array_merge((array) $distUser, [
+                    'principal_name' => $principalName ?: 'ASWFOODS',
+                ]);
+            } else {
+                $authUser = null;
+            }
         } else {
             $authUser = $request->user();
         }
