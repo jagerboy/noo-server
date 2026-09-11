@@ -224,7 +224,7 @@ class SpvPortalController extends Controller
         if (!empty($myBranches)) {
             $branchesData = DB::table('master_branches')
                 ->whereIn('branch_id', $myBranches)
-                ->select('branch_id', 'branch_name')
+                ->select('branch_id', 'branch_name', 'principal_name')
                 ->orderBy('branch_id')
                 ->get()
                 ->toArray();

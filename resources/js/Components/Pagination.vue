@@ -65,15 +65,12 @@ function changePerPage() {
           <select
             v-model="selectedPerPage"
             @change="changePerPage"
-            class="appearance-none pl-2.5 pr-7 py-1 text-[11px] font-semibold bg-[#F8FAFC] border border-[#CBD5E1] rounded-[6px] focus:ring-1 focus:ring-[#2563EB] focus:border-[#2563EB] cursor-pointer text-[#1E293B] shadow-2xs"
+            class="pl-2.5 pr-7 py-1 text-[11px] font-semibold bg-[#F8FAFC] border border-[#CBD5E1] rounded-[6px] focus:ring-1 focus:ring-[#2563EB] focus:border-[#2563EB] cursor-pointer text-[#1E293B] shadow-2xs"
           >
             <option v-for="opt in perPageOptions" :key="opt.value" :value="opt.value">
               {{ opt.label }}
             </option>
           </select>
-          <svg class="pointer-events-none absolute right-2 w-3.5 h-3.5 text-[#64748B]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
-          </svg>
         </div>
       </div>
     </div>

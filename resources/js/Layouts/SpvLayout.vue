@@ -33,8 +33,8 @@ const showingNavigationDropdown = ref(false);
               <div class="flex items-center space-x-2">
                 <h1 class="text-base font-bold tracking-wide text-white flex items-center gap-1.5">
                   PORTAL SUPERVISOR
-                  <span class="text-[10px] font-extrabold px-2 py-0.5 rounded-full bg-[#F59E0B] text-slate-900 border border-amber-300 uppercase tracking-tight shadow-xs flex items-center gap-1">
-                    <span>👑</span> DISTRIBUSI AREA
+                  <span class="text-[10px] font-extrabold px-2.5 py-0.5 rounded-full bg-[#F59E0B] text-slate-900 border border-amber-300 uppercase tracking-tight shadow-xs flex items-center gap-1">
+                    {{ page.props.auth?.user?.principal_name || 'INAFOODS' }}
                   </span>
                 </h1>
               </div>

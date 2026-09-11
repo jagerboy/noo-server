@@ -76,12 +76,16 @@ class SpvLoginController extends Controller
             ]);
         }
 
+        $branchInfo = DB::table('master_branches')->where('branch_id', $spvFirst->branch_id)->first();
+        $principalName = $branchInfo->principal_name ?? 'INAFOODS';
+
         // Simpan Sesi Terisolasi khusus SPV Area
         session(['spv_user' => (object)[
             'salesman_code' => $username,
             'name' => $spvFirst->nama,
             'nama' => $spvFirst->nama,
             'branch_id' => $spvFirst->branch_id,
+            'principal_name' => $principalName,
             'role' => 'SPV_AREA',
         ]]);
 
