@@ -26,8 +26,8 @@ const showingNavigationDropdown = ref(false);
           
           <!-- Left Brand & Title -->
           <div class="flex items-center space-x-3">
-            <div class="bg-white px-2.5 py-1 rounded-xl shadow-xs flex items-center shrink-0">
-              <img src="/logo-noo-plus-v2.png" alt="Logo NOO+" class="h-8 w-auto object-contain" />
+            <div class="bg-white px-2.5 py-1 rounded-xl shadow-[0_2px_8px_rgba(0,0,0,0.18),0_1px_2px_rgba(0,0,0,0.1)] border border-white/80 flex items-center shrink-0">
+              <img src="/logo-noo-plus-v2.png" alt="Logo NOO+" class="h-8 w-auto object-contain drop-shadow-[0_1px_1.5px_rgba(0,0,0,0.12)]" />
             </div>
             <div>
               <div class="flex items-center space-x-2">

@@ -635,6 +635,9 @@ function stopAutoSlide() {
                   <div class="bg-[#1E2B7B] text-white px-2.5 py-1.5 flex items-center justify-between">
                     <div class="flex items-center gap-1.5">
                       <span class="text-xs font-bold leading-none">‹</span>
+                      <div class="w-4 h-4 rounded bg-white p-0.5 flex items-center justify-center shrink-0 shadow-2xs">
+                        <img src="/favicon-v2.png" alt="Favicon NOO+" class="w-3.5 h-3.5 object-contain" />
+                      </div>
                       <div>
                         <div class="text-[9.5px] font-extrabold tracking-tight leading-none flex items-center gap-1">
                           <span>NOO+ v2.0</span>

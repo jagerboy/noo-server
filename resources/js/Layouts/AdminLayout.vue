@@ -26,8 +26,8 @@ const showingNavigationDropdown = ref(false);
           
           <!-- Left Brand & Title -->
           <div class="flex items-center space-x-3">
-            <div class="bg-white px-2.5 py-1 rounded-xl shadow-xs flex items-center shrink-0">
-              <img src="/logo-noo-plus-v2.png" alt="Logo NOO+" class="h-8 w-auto object-contain" />
+            <div class="bg-white px-2.5 py-1 rounded-xl shadow-[0_2px_8px_rgba(0,0,0,0.18),0_1px_2px_rgba(0,0,0,0.1)] border border-white/80 flex items-center shrink-0">
+              <img src="/logo-noo-plus-v2.png" alt="Logo NOO+" class="h-8 w-auto object-contain drop-shadow-[0_1px_1.5px_rgba(0,0,0,0.12)]" />
             </div>
             <div>
               <div class="flex items-center space-x-2">
@@ -49,9 +49,9 @@ const showingNavigationDropdown = ref(false);
                 <template #trigger>
                   <button
                     type="button"
-                    class="inline-flex items-center rounded-lg bg-[#D9232A] px-3.5 py-2 text-xs font-semibold text-white hover:bg-[#B91C1C] focus:outline-none transition shadow-sm border border-red-400/30"
+                    class="inline-flex items-center rounded-lg bg-[#1E2B7B] px-3.5 py-2 text-xs font-semibold text-white hover:bg-[#162057] focus:outline-none transition shadow-sm border border-blue-400/30"
                   >
-                    <div class="w-6 h-6 rounded-md bg-[#1E2B7B] text-[#F59E0B] flex items-center justify-center font-black me-2 shrink-0 border border-[#F59E0B]/40">
+                    <div class="w-6 h-6 rounded-md bg-[#0F172A] text-[#F59E0B] flex items-center justify-center font-black me-2 shrink-0 border border-[#F59E0B]/40">
                       {{ page.props.auth.user.name.charAt(0) }}
                     </div>
                     <span class="font-bold text-xs whitespace-nowrap">{{ page.props.auth.user.name }}</span>
