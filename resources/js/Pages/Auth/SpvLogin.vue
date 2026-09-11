@@ -96,7 +96,7 @@ function submitLogin() {
           <!-- Header Brand dengan Logo NOO+ & Identitas Korporat -->
           <div class="flex items-center gap-2.5 md:gap-3 mb-4 md:mb-5">
             <img
-              src="/logo-noo-plus.png"
+              src="/logo-noo-plus-v2.png"
               alt="Logo NOO+"
               class="h-8 sm:h-9 md:h-10 w-auto object-contain rounded-lg shrink-0 drop-shadow-xs"
             />

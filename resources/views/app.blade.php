@@ -8,10 +8,10 @@
         <title inertia>{{ config('app.name', 'Laravel') }}</title>
 
         <!-- Favicon & App Icons -->
-        <link rel="icon" type="image/x-icon" href="/favicon.ico">
-        <link rel="icon" type="image/png" sizes="64x64" href="/favicon.png">
-        <link rel="icon" type="image/png" href="/logo-noo-plus.png">
-        <link rel="apple-touch-icon" href="/favicon.png">
+        <link rel="icon" type="image/x-icon" href="/favicon-v2.ico">
+        <link rel="icon" type="image/png" sizes="64x64" href="/favicon-v2.png">
+        <link rel="icon" type="image/png" href="/logo-noo-plus-v2.png">
+        <link rel="apple-touch-icon" href="/favicon-v2.png">
 
         <!-- Fonts (Inter & Plus Jakarta Sans) -->
         <link rel="preconnect" href="https://fonts.googleapis.com">

@@ -109,7 +109,7 @@ function toggleMasterMenu() {
 
             <Link :href="route('edp.dashboard')" class="flex items-center gap-3 group">
               <div class="bg-white px-2.5 py-1 rounded-xl shadow-xs flex items-center shrink-0 transition group-hover:shadow-md">
-                <img src="/logo-noo-plus.png" alt="Logo NOO+" class="h-8 w-auto object-contain transition group-hover:scale-102" />
+                <img src="/logo-noo-plus-v2.png" alt="Logo NOO+" class="h-8 w-auto object-contain transition group-hover:scale-102" />
               </div>
               <div class="flex flex-col">
                 <span class="text-[15px] font-heading font-bold text-white tracking-wide leading-tight flex items-center gap-2">

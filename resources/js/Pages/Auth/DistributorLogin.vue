@@ -290,7 +290,7 @@ function stopAutoSlide() {
           <div class="flex items-center justify-between gap-2 mb-1.5 sm:mb-2">
             <div class="flex items-center gap-2">
               <img
-                src="/logo-noo-plus.png"
+                src="/logo-noo-plus-v2.png"
                 alt="Logo NOO+"
                 class="h-8 sm:h-8.5 w-auto object-contain rounded shrink-0 drop-shadow-xs"
               />

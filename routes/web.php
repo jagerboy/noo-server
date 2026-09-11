@@ -19,8 +19,28 @@ use App\Http\Controllers\Auth\DistributorLoginController;
 use App\Http\Controllers\Auth\SpvLoginController;
 use App\Http\Controllers\Auth\EdpLoginController;
 
+Route::get('/logo-noo-plus-v2.png', function () {
+    $dest = public_path('images/logo-noo-plus-v2.png');
+    if (!file_exists($dest)) {
+        $dest = public_path('logo-noo-plus-v2.png');
+    }
+    if (file_exists($dest)) {
+        return response()->file($dest, [
+            'Content-Type' => 'image/png',
+            'Cache-Control' => 'no-cache, must-revalidate',
+        ]);
+    }
+    abort(404);
+});
+
 Route::get('/logo-noo-plus.png', function () {
-    $dest = public_path('images/logo-noo-plus.png');
+    $dest = public_path('images/logo-noo-plus-v2.png');
+    if (!file_exists($dest)) {
+        $dest = public_path('logo-noo-plus-v2.png');
+    }
+    if (!file_exists($dest)) {
+        $dest = public_path('images/logo-noo-plus.png');
+    }
     if (!file_exists($dest)) {
         $dest = public_path('logo-noo-plus.png');
     }
