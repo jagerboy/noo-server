@@ -52,6 +52,7 @@ class SecurityHeadersMiddleware
             "font-src 'self' https://fonts.gstatic.com data:",
             "img-src 'self' data: blob: https: https://noo.coreappl.id",
             "connect-src 'self' https: https://noo.coreappl.id wss:",
+            "frame-src 'self' https://www.google.com https://maps.google.com",
             "frame-ancestors 'self'",
             "upgrade-insecure-requests",
         ];
