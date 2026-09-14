@@ -105,10 +105,10 @@ class EdpDashboardController extends Controller
         $m = (clone $query)->selectRaw("
             COUNT(*) as total_submitted_se,
             COUNT(CASE WHEN status = 'SE_SUBMITTED' THEN 1 END) as pending_admin,
-            COUNT(CASE WHEN status IN ('PUSHED_TO_SPV', 'APPROVED_SPV', 'PUSHED_TO_EDP', 'APPROVED_EDP', 'INJECTED') THEN 1 END) as approved_admin,
+            COUNT(CASE WHEN status IN ('PUSHED_TO_SPV', 'APPROVED_SPV', 'PUSHED_TO_EDP', 'APPROVED_EDP', 'INJECTED', 'EDP_APPROVED', 'SPV_REJECTED', 'REJECTED_SPV', 'EDP_REJECTED', 'REJECTED_EDP') THEN 1 END) as approved_admin,
             COUNT(CASE WHEN status IN ('ADMIN_REJECTED', 'REJECTED_ADMIN') THEN 1 END) as rejected_admin,
             COUNT(CASE WHEN status = 'PUSHED_TO_SPV' THEN 1 END) as pending_spv,
-            COUNT(CASE WHEN status IN ('APPROVED_SPV', 'PUSHED_TO_EDP', 'APPROVED_EDP', 'INJECTED') THEN 1 END) as approved_spv,
+            COUNT(CASE WHEN status IN ('APPROVED_SPV', 'PUSHED_TO_EDP', 'APPROVED_EDP', 'INJECTED', 'EDP_APPROVED', 'EDP_REJECTED', 'REJECTED_EDP') THEN 1 END) as approved_spv,
             COUNT(CASE WHEN status IN ('SPV_REJECTED', 'REJECTED_SPV') THEN 1 END) as rejected_spv,
             COUNT(CASE WHEN status IN ('APPROVED_SPV', 'PUSHED_TO_EDP') THEN 1 END) as pending_principal,
             COUNT(CASE WHEN status IN ('APPROVED_EDP', 'INJECTED', 'EDP_APPROVED') THEN 1 END) as approved_principal,
