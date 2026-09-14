@@ -78,6 +78,20 @@ class AdminDistributorController extends Controller
             $st = $request->input('status');
             if ($st === 'REJECTED') {
                 $query->whereIn('status', ['ADMIN_REJECTED', 'SPV_REJECTED', 'EDP_REJECTED', 'REJECTED_ADMIN', 'REJECTED_SPV', 'REJECTED_EDP']);
+            } elseif (in_array($st, ['EDP_APPROVED', 'APPROVED_EDP'])) {
+                $query->whereIn('status', ['APPROVED_EDP', 'EDP_APPROVED', 'INJECTED']);
+            } elseif (in_array($st, ['EDP_REJECTED', 'REJECTED_EDP'])) {
+                $query->whereIn('status', ['EDP_REJECTED', 'REJECTED_EDP']);
+            } elseif (in_array($st, ['APPROVED_BY_SPV', 'APPROVED_SPV', 'PUSHED_TO_EDP'])) {
+                $query->whereIn('status', ['APPROVED_SPV', 'APPROVED_BY_SPV', 'PUSHED_TO_EDP']);
+            } elseif (in_array($st, ['SPV_REJECTED', 'REJECTED_SPV'])) {
+                $query->whereIn('status', ['SPV_REJECTED', 'REJECTED_SPV']);
+            } elseif (in_array($st, ['ADMIN_REJECTED', 'REJECTED_ADMIN'])) {
+                $query->whereIn('status', ['ADMIN_REJECTED', 'REJECTED_ADMIN']);
+            } elseif (in_array($st, ['PUSHED_TO_SPV', 'ADMIN_APPROVED'])) {
+                $query->whereIn('status', ['PUSHED_TO_SPV', 'ADMIN_APPROVED']);
+            } elseif (in_array($st, ['SE_SUBMITTED', 'SUBMITTED'])) {
+                $query->whereIn('status', ['SE_SUBMITTED', 'SUBMITTED']);
             } else {
                 $query->where('status', $st);
             }

@@ -160,6 +160,20 @@ const filteredSubmissions = computed(() => {
         ? true
         : statusFilter.value === 'REJECTED'
         ? ['ADMIN_REJECTED', 'SPV_REJECTED', 'EDP_REJECTED', 'REJECTED_ADMIN', 'REJECTED_SPV', 'REJECTED_EDP'].includes(item.status)
+        : ['EDP_APPROVED', 'APPROVED_EDP'].includes(statusFilter.value)
+        ? ['APPROVED_EDP', 'EDP_APPROVED', 'INJECTED'].includes(item.status)
+        : ['EDP_REJECTED', 'REJECTED_EDP'].includes(statusFilter.value)
+        ? ['EDP_REJECTED', 'REJECTED_EDP'].includes(item.status)
+        : ['APPROVED_BY_SPV', 'APPROVED_SPV'].includes(statusFilter.value)
+        ? ['APPROVED_SPV', 'APPROVED_BY_SPV', 'PUSHED_TO_EDP'].includes(item.status)
+        : ['SPV_REJECTED', 'REJECTED_SPV'].includes(statusFilter.value)
+        ? ['SPV_REJECTED', 'REJECTED_SPV'].includes(item.status)
+        : ['ADMIN_REJECTED', 'REJECTED_ADMIN'].includes(statusFilter.value)
+        ? ['ADMIN_REJECTED', 'REJECTED_ADMIN'].includes(item.status)
+        : ['PUSHED_TO_SPV', 'ADMIN_APPROVED'].includes(statusFilter.value)
+        ? ['PUSHED_TO_SPV', 'ADMIN_APPROVED'].includes(item.status)
+        : ['SE_SUBMITTED', 'SUBMITTED'].includes(statusFilter.value)
+        ? ['SE_SUBMITTED', 'SUBMITTED'].includes(item.status)
         : item.status === statusFilter.value;
 
     return matchesSearch && matchesStatus;
