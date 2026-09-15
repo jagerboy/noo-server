@@ -159,25 +159,31 @@ class EdpMasterController extends Controller
             'region_code' => 'required|string|unique:master_regions,region_code',
             'region_name' => 'required|string',
             'principal_code' => 'required|string',
-            'principal_name' => 'required|string',
+            'principal_name' => 'nullable|string',
             'is_active' => 'nullable|boolean',
         ]);
 
         $this->syncSequence('master_regions');
 
+        $regCodeUpper = strtoupper(trim($request->region_code));
+        $pCodeUpper = strtoupper(trim($request->principal_code));
+        $isAsw = in_array($pCodeUpper, ['A', 'ASW']) || str_starts_with($regCodeUpper, 'ASW');
+        $principalCode = $isAsw ? 'A' : 'I';
+        $principalName = $isAsw ? 'ASWFOODS' : 'INAFOOD';
+
         DB::table('master_regions')->insert([
-            'region_code' => strtoupper(trim($request->region_code)),
+            'region_code' => $regCodeUpper,
             'region_name' => trim($request->region_name),
-            'principal_code' => strtoupper(trim($request->principal_code)),
-            'principal_name' => trim($request->principal_name),
+            'principal_code' => $principalCode,
+            'principal_name' => $principalName,
             'is_active' => $request->has('is_active') ? (bool) $request->is_active : true,
             'created_at' => now(),
             'updated_at' => now(),
         ]);
 
-        $this->logAction('CREATE', 'MASTER_REGION', "Menambahkan Master Region: {$request->region_code} - {$request->region_name}");
+        $this->logAction('CREATE', 'MASTER_REGION', "Menambahkan Master Region: {$regCodeUpper} - {$request->region_name}");
 
-        return back()->with('success', "Master Region '{$request->region_code}' berhasil ditambahkan.");
+        return back()->with('success', "Master Region '{$regCodeUpper}' berhasil ditambahkan.");
     }
 
     public function updateRegion(Request $request, $id): RedirectResponse
@@ -189,14 +195,21 @@ class EdpMasterController extends Controller
         $request->validate([
             'region_name' => 'required|string',
             'principal_code' => 'required|string',
-            'principal_name' => 'required|string',
+            'principal_name' => 'nullable|string',
             'is_active' => 'nullable|boolean',
         ]);
 
+        $reg = DB::table('master_regions')->where('id', $id)->first();
+        $regCodeUpper = strtoupper($reg ? $reg->region_code : '');
+        $pCodeUpper = strtoupper(trim($request->principal_code));
+        $isAsw = in_array($pCodeUpper, ['A', 'ASW']) || str_starts_with($regCodeUpper, 'ASW');
+        $principalCode = $isAsw ? 'A' : 'I';
+        $principalName = $isAsw ? 'ASWFOODS' : 'INAFOOD';
+
         DB::table('master_regions')->where('id', $id)->update([
             'region_name' => trim($request->region_name),
-            'principal_code' => strtoupper(trim($request->principal_code)),
-            'principal_name' => trim($request->principal_name),
+            'principal_code' => $principalCode,
+            'principal_name' => $principalName,
             'is_active' => $request->has('is_active') ? (bool) $request->is_active : true,
             'updated_at' => now(),
         ]);
@@ -261,31 +274,37 @@ class EdpMasterController extends Controller
             'region_code' => 'required|string',
             'entity_code_principal' => 'required|string|unique:master_entities,entity_code_principal',
             'entity_name_principal' => 'required|string',
-            'principal_code' => 'required|string',
-            'principal_name' => 'required|string',
+            'principal_code' => 'nullable|string',
+            'principal_name' => 'nullable|string',
             'is_active' => 'nullable|boolean',
         ]);
 
         $this->syncSequence('master_entities');
 
-        $region = DB::table('master_regions')->where('region_code', $request->region_code)->first();
+        $regCodeUpper = strtoupper(trim($request->region_code));
+        $entCodeUpper = strtoupper(trim($request->entity_code_principal));
+        $isAsw = str_starts_with($regCodeUpper, 'ASW') || str_starts_with($entCodeUpper, 'ASW');
+        $principalCode = $isAsw ? 'A' : 'I';
+        $principalName = $isAsw ? 'ASWFOODS' : 'INAFOOD';
+
+        $region = DB::table('master_regions')->where('region_code', $regCodeUpper)->first();
         $regionName = $region ? $region->region_name : ($request->region_name ?? null);
 
         DB::table('master_entities')->insert([
-            'region_code' => strtoupper(trim($request->region_code)),
+            'region_code' => $regCodeUpper,
             'region_name' => $regionName,
-            'entity_code_principal' => strtoupper(trim($request->entity_code_principal)),
+            'entity_code_principal' => $entCodeUpper,
             'entity_name_principal' => trim($request->entity_name_principal),
-            'principal_code' => strtoupper(trim($request->principal_code)),
-            'principal_name' => trim($request->principal_name),
+            'principal_code' => $principalCode,
+            'principal_name' => $principalName,
             'is_active' => $request->has('is_active') ? (bool) $request->is_active : true,
             'created_at' => now(),
             'updated_at' => now(),
         ]);
 
-        $this->logAction('CREATE', 'MASTER_ENTITY', "Menambahkan Master Entity: {$request->entity_code_principal} - {$request->entity_name_principal}");
+        $this->logAction('CREATE', 'MASTER_ENTITY', "Menambahkan Master Entity: {$entCodeUpper} - {$request->entity_name_principal}");
 
-        return back()->with('success', "Master Entity '{$request->entity_code_principal}' berhasil ditambahkan.");
+        return back()->with('success', "Master Entity '{$entCodeUpper}' berhasil ditambahkan.");
     }
 
     public function updateEntity(Request $request, $id): RedirectResponse
@@ -297,20 +316,25 @@ class EdpMasterController extends Controller
         $request->validate([
             'region_code' => 'required|string',
             'entity_name_principal' => 'required|string',
-            'principal_code' => 'required|string',
-            'principal_name' => 'required|string',
+            'principal_code' => 'nullable|string',
+            'principal_name' => 'nullable|string',
             'is_active' => 'nullable|boolean',
         ]);
 
-        $region = DB::table('master_regions')->where('region_code', $request->region_code)->first();
+        $regCodeUpper = strtoupper(trim($request->region_code));
+        $isAsw = str_starts_with($regCodeUpper, 'ASW');
+        $principalCode = $isAsw ? 'A' : 'I';
+        $principalName = $isAsw ? 'ASWFOODS' : 'INAFOOD';
+
+        $region = DB::table('master_regions')->where('region_code', $regCodeUpper)->first();
         $regionName = $region ? $region->region_name : ($request->region_name ?? null);
 
         DB::table('master_entities')->where('id', $id)->update([
-            'region_code' => strtoupper(trim($request->region_code)),
+            'region_code' => $regCodeUpper,
             'region_name' => $regionName,
             'entity_name_principal' => trim($request->entity_name_principal),
-            'principal_code' => strtoupper(trim($request->principal_code)),
-            'principal_name' => trim($request->principal_name),
+            'principal_code' => $principalCode,
+            'principal_name' => $principalName,
             'is_active' => $request->has('is_active') ? (bool) $request->is_active : true,
             'updated_at' => now(),
         ]);
@@ -389,9 +413,12 @@ class EdpMasterController extends Controller
 
         $regionCodeUpper = strtoupper(trim($request->region_code));
         $entityCodeUpper = strtoupper(trim($request->entity_code_principal));
+        
+        // IF: Jika region ASW (ASWSUM, ASWJWA, ASWPUL) -> principal_code = A, principal_name = ASWFOODS
+        // Jika region INA (INAJWA, INAPUL, INASUM) -> principal_code = I, principal_name = INAFOOD
         $isAsw = str_starts_with($regionCodeUpper, 'ASW') || str_starts_with($entityCodeUpper, 'ASW');
-        $principalName = $request->principal_name ?: ($isAsw ? 'ASWFOODS' : 'INAFOODS');
-        $principalCode = $request->principal_code ?: ($isAsw ? 'ASW' : 'INA');
+        $principalName = $isAsw ? 'ASWFOODS' : 'INAFOOD';
+        $principalCode = $isAsw ? 'A' : 'I';
 
         DB::table('master_branches')->insert([
             'region_code' => $regionCodeUpper,
@@ -449,9 +476,12 @@ class EdpMasterController extends Controller
 
         $regionCodeUpper = strtoupper(trim($request->region_code));
         $entityCodeUpper = strtoupper(trim($request->entity_code_principal));
+        
+        // IF: Jika region ASW (ASWSUM, ASWJWA, ASWPUL) -> principal_code = A, principal_name = ASWFOODS
+        // Jika region INA (INAJWA, INAPUL, INASUM) -> principal_code = I, principal_name = INAFOOD
         $isAsw = str_starts_with($regionCodeUpper, 'ASW') || str_starts_with($entityCodeUpper, 'ASW');
-        $principalName = $request->principal_name ?: ($isAsw ? 'ASWFOODS' : 'INAFOODS');
-        $principalCode = $request->principal_code ?: ($isAsw ? 'ASW' : 'INA');
+        $principalName = $isAsw ? 'ASWFOODS' : 'INAFOOD';
+        $principalCode = $isAsw ? 'A' : 'I';
 
         $updateData = [
             'region_code' => $regionCodeUpper,

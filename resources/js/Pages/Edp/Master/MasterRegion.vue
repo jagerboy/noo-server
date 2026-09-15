@@ -44,16 +44,16 @@ const filteredRegions = computed(() => {
 const addForm = useForm({
   region_code: '',
   region_name: '',
-  principal_code: 'ASW',
+  principal_code: 'A',
   principal_name: 'ASWFOODS',
   is_active: true,
 });
 
 function onPrincipalCodeChange(mode = 'add') {
   if (mode === 'add') {
-    addForm.principal_name = addForm.principal_code === 'ASW' ? 'ASWFOODS' : 'INAFOODS';
+    addForm.principal_name = (addForm.principal_code === 'A' || addForm.principal_code === 'ASW') ? 'ASWFOODS' : 'INAFOOD';
   } else {
-    editForm.principal_name = editForm.principal_code === 'ASW' ? 'ASWFOODS' : 'INAFOODS';
+    editForm.principal_name = (editForm.principal_code === 'A' || editForm.principal_code === 'ASW') ? 'ASWFOODS' : 'INAFOOD';
   }
 }
 
@@ -68,7 +68,7 @@ function submitAddRegion() {
 
 const editForm = useForm({
   region_name: '',
-  principal_code: 'ASW',
+  principal_code: 'A',
   principal_name: 'ASWFOODS',
   is_active: true,
 });
@@ -76,8 +76,9 @@ const editForm = useForm({
 function openEditModal(r) {
   editingRegion.value = r;
   editForm.region_name = r.region_name;
-  editForm.principal_code = r.principal_code || 'ASW';
-  editForm.principal_name = r.principal_name || (r.principal_code === 'ASW' ? 'ASWFOODS' : 'INAFOODS');
+  const isAsw = r.principal_code === 'A' || r.principal_code === 'ASW' || String(r.region_code).toUpperCase().startsWith('ASW');
+  editForm.principal_code = isAsw ? 'A' : 'I';
+  editForm.principal_name = isAsw ? 'ASWFOODS' : 'INAFOOD';
   editForm.is_active = Boolean(r.is_active);
 }
 
@@ -112,7 +113,7 @@ function deleteRegion(r) {
             </h1>
           </div>
           <p class="text-[12.5px] md:text-[14px] leading-[1.5] text-[#6B7280] mt-0.5">
-            Manajemen Master Kode dan Nama Region Wilayah Nasional (ASWFOODS & INAFOODS).
+            Manajemen Master Kode dan Nama Region Wilayah Nasional (ASWFOODS & INAFOOD).
           </p>
         </div>
 
@@ -166,8 +167,7 @@ function deleteRegion(r) {
                 <td class="px-4 py-3 font-mono font-bold text-[#059669] text-[13px]">{{ r.region_code }}</td>
                 <td class="px-4 py-3 font-semibold text-[#111827]">{{ r.region_name }}</td>
                 <td class="px-4 py-3 text-slate-600">
-                  <span class="font-medium text-slate-800">{{ r.principal_name }}</span>
-                  <span class="text-slate-400 text-xs"> ({{ r.principal_code }})</span>
+                  <span class="font-medium text-slate-800">{{ r.principal_name || (r.principal_code === 'A' || String(r.region_code).toUpperCase().startsWith('ASW') ? 'ASWFOODS' : 'INAFOOD') }}</span>
                 </td>
                 <td class="px-4 py-3">
                   <span
@@ -227,8 +227,8 @@ function deleteRegion(r) {
               @change="onPrincipalCodeChange('add')"
               class="w-full p-2 border rounded-lg bg-white cursor-pointer"
             >
-              <option value="ASW">ASW (ASWFOODS)</option>
-              <option value="INA">INA (INAFOODS)</option>
+              <option value="A">ASWFOODS</option>
+              <option value="I">INAFOOD</option>
             </select>
           </div>
           <div class="flex items-center gap-2 pt-1">
@@ -273,8 +273,8 @@ function deleteRegion(r) {
               @change="onPrincipalCodeChange('edit')"
               class="w-full p-2 border rounded-lg bg-white cursor-pointer"
             >
-              <option value="ASW">ASW (ASWFOODS)</option>
-              <option value="INA">INA (INAFOODS)</option>
+              <option value="A">ASWFOODS</option>
+              <option value="I">INAFOOD</option>
             </select>
           </div>
           <div class="flex items-center gap-2 pt-1">

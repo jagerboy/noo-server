@@ -19,94 +19,98 @@ const props = defineProps({
 
 // Master Predefined List Region
 const MASTER_REGIONS = [
-  { region_code: 'ASWJWA1', region_name: 'ASW JAWA 1', principal_name: 'ASWFOODS', principal_code: 'ASW' },
-  { region_code: 'ASWJWA2', region_name: 'ASW JAWA 2', principal_name: 'ASWFOODS', principal_code: 'ASW' },
-  { region_code: 'ASWPUL1', region_name: 'ASW PULAU 1', principal_name: 'ASWFOODS', principal_code: 'ASW' },
-  { region_code: 'ASWSUM1', region_name: 'ASW SUMATERA 1', principal_name: 'ASWFOODS', principal_code: 'ASW' },
-  { region_code: 'ASWSUM2', region_name: 'ASW SUMATERA 2', principal_name: 'ASWFOODS', principal_code: 'ASW' },
-  { region_code: 'ASWSUM3', region_name: 'ASW SUMATERA 3', principal_name: 'ASWFOODS', principal_code: 'ASW' },
-  { region_code: 'INAJWA1', region_name: 'INA JAWA 1', principal_name: 'INAFOODS', principal_code: 'INA' },
-  { region_code: 'INAJWA2', region_name: 'INA JAWA 2', principal_name: 'INAFOODS', principal_code: 'INA' },
-  { region_code: 'INAPUL1', region_name: 'INA PULAU 1', principal_name: 'INAFOODS', principal_code: 'INA' },
-  { region_code: 'INASUM1', region_name: 'INA SUMATERA 1', principal_name: 'INAFOODS', principal_code: 'INA' },
-  { region_code: 'INASUM2', region_name: 'INA SUMATERA 2', principal_name: 'INAFOODS', principal_code: 'INA' },
+  { region_code: 'ASWJWA1', region_name: 'ASW JAWA 1', principal_name: 'ASWFOODS', principal_code: 'A' },
+  { region_code: 'ASWJWA2', region_name: 'ASW JAWA 2', principal_name: 'ASWFOODS', principal_code: 'A' },
+  { region_code: 'ASWPUL1', region_name: 'ASW PULAU 1', principal_name: 'ASWFOODS', principal_code: 'A' },
+  { region_code: 'ASWSUM1', region_name: 'ASW SUMATERA 1', principal_name: 'ASWFOODS', principal_code: 'A' },
+  { region_code: 'ASWSUM2', region_name: 'ASW SUMATERA 2', principal_name: 'ASWFOODS', principal_code: 'A' },
+  { region_code: 'ASWSUM3', region_name: 'ASW SUMATERA 3', principal_name: 'ASWFOODS', principal_code: 'A' },
+  { region_code: 'INAJWA1', region_name: 'INA JAWA 1', principal_name: 'INAFOOD', principal_code: 'I' },
+  { region_code: 'INAJWA2', region_name: 'INA JAWA 2', principal_name: 'INAFOOD', principal_code: 'I' },
+  { region_code: 'INAPUL1', region_name: 'INA PULAU 1', principal_name: 'INAFOOD', principal_code: 'I' },
+  { region_code: 'INASUM1', region_name: 'INA SUMATERA 1', principal_name: 'INAFOOD', principal_code: 'I' },
+  { region_code: 'INASUM2', region_name: 'INA SUMATERA 2', principal_name: 'INAFOOD', principal_code: 'I' },
 ];
 
 // Master Predefined List Entity (Cascading by Region)
 const MASTER_ENTITIES = [
   // ASWJWA1
-  { region_code: 'ASWJWA1', region_name: 'ASW JAWA 1', entity_code_principal: 'ASW01', entity_name_principal: 'ASW JABODETABEK', principal_name: 'ASWFOODS', principal_code: 'ASW' },
-  { region_code: 'ASWJWA1', region_name: 'ASW JAWA 1', entity_code_principal: 'ASW02', entity_name_principal: 'ASW JAWA TIMUR 1', principal_name: 'ASWFOODS', principal_code: 'ASW' },
-  { region_code: 'ASWJWA1', region_name: 'ASW JAWA 1', entity_code_principal: 'ASW03', entity_name_principal: 'ASW JAWA TIMUR 2', principal_name: 'ASWFOODS', principal_code: 'ASW' },
+  { region_code: 'ASWJWA1', region_name: 'ASW JAWA 1', entity_code_principal: 'ASW01', entity_name_principal: 'ASW JABODETABEK', principal_name: 'ASWFOODS', principal_code: 'A' },
+  { region_code: 'ASWJWA1', region_name: 'ASW JAWA 1', entity_code_principal: 'ASW02', entity_name_principal: 'ASW JAWA TIMUR 1', principal_name: 'ASWFOODS', principal_code: 'A' },
+  { region_code: 'ASWJWA1', region_name: 'ASW JAWA 1', entity_code_principal: 'ASW03', entity_name_principal: 'ASW JAWA TIMUR 2', principal_name: 'ASWFOODS', principal_code: 'A' },
 
   // ASWJWA2
-  { region_code: 'ASWJWA2', region_name: 'ASW JAWA 2', entity_code_principal: 'ASW04', entity_name_principal: 'ASW JAWA BARAT', principal_name: 'ASWFOODS', principal_code: 'ASW' },
-  { region_code: 'ASWJWA2', region_name: 'ASW JAWA 2', entity_code_principal: 'ASW05', entity_name_principal: 'ASW JAWA TENGAH 1', principal_name: 'ASWFOODS', principal_code: 'ASW' },
-  { region_code: 'ASWJWA2', region_name: 'ASW JAWA 2', entity_code_principal: 'ASW06', entity_name_principal: 'ASW JAWA TENGAH 2', principal_name: 'ASWFOODS', principal_code: 'ASW' },
+  { region_code: 'ASWJWA2', region_name: 'ASW JAWA 2', entity_code_principal: 'ASW04', entity_name_principal: 'ASW JAWA BARAT', principal_name: 'ASWFOODS', principal_code: 'A' },
+  { region_code: 'ASWJWA2', region_name: 'ASW JAWA 2', entity_code_principal: 'ASW05', entity_name_principal: 'ASW JAWA TENGAH 1', principal_name: 'ASWFOODS', principal_code: 'A' },
+  { region_code: 'ASWJWA2', region_name: 'ASW JAWA 2', entity_code_principal: 'ASW06', entity_name_principal: 'ASW JAWA TENGAH 2', principal_name: 'ASWFOODS', principal_code: 'A' },
 
   // ASWPUL1
-  { region_code: 'ASWPUL1', region_name: 'ASW PULAU 1', entity_code_principal: 'ASW07', entity_name_principal: 'ASW KALIMANTAN', principal_name: 'ASWFOODS', principal_code: 'ASW' },
-  { region_code: 'ASWPUL1', region_name: 'ASW PULAU 1', entity_code_principal: 'ASW08', entity_name_principal: 'ASW SULAWESI 1', principal_name: 'ASWFOODS', principal_code: 'ASW' },
-  { region_code: 'ASWPUL1', region_name: 'ASW PULAU 1', entity_code_principal: 'ASW09', entity_name_principal: 'ASW SULAWESI 2', principal_name: 'ASWFOODS', principal_code: 'ASW' },
-  { region_code: 'ASWPUL1', region_name: 'ASW PULAU 1', entity_code_principal: 'ASW10', entity_name_principal: 'ASW INDONESIA TIMUR', principal_name: 'ASWFOODS', principal_code: 'ASW' },
+  { region_code: 'ASWPUL1', region_name: 'ASW PULAU 1', entity_code_principal: 'ASW07', entity_name_principal: 'ASW KALIMANTAN', principal_name: 'ASWFOODS', principal_code: 'A' },
+  { region_code: 'ASWPUL1', region_name: 'ASW PULAU 1', entity_code_principal: 'ASW08', entity_name_principal: 'ASW SULAWESI 1', principal_name: 'ASWFOODS', principal_code: 'A' },
+  { region_code: 'ASWPUL1', region_name: 'ASW PULAU 1', entity_code_principal: 'ASW09', entity_name_principal: 'ASW SULAWESI 2', principal_name: 'ASWFOODS', principal_code: 'A' },
+  { region_code: 'ASWPUL1', region_name: 'ASW PULAU 1', entity_code_principal: 'ASW10', entity_name_principal: 'ASW INDONESIA TIMUR', principal_name: 'ASWFOODS', principal_code: 'A' },
 
   // ASWSUM1
-  { region_code: 'ASWSUM1', region_name: 'ASW SUMATERA 1', entity_code_principal: 'ASW11', entity_name_principal: 'ASW NAD 1', principal_name: 'ASWFOODS', principal_code: 'ASW' },
-  { region_code: 'ASWSUM1', region_name: 'ASW SUMATERA 1', entity_code_principal: 'ASW12', entity_name_principal: 'ASW NAD 2', principal_name: 'ASWFOODS', principal_code: 'ASW' },
-  { region_code: 'ASWSUM1', region_name: 'ASW SUMATERA 1', entity_code_principal: 'ASW13', entity_name_principal: 'ASW SUMUT 1', principal_name: 'ASWFOODS', principal_code: 'ASW' },
-  { region_code: 'ASWSUM1', region_name: 'ASW SUMATERA 1', entity_code_principal: 'ASW14', entity_name_principal: 'ASW SUMUT 2', principal_name: 'ASWFOODS', principal_code: 'ASW' },
-  { region_code: 'ASWSUM1', region_name: 'ASW SUMATERA 1', entity_code_principal: 'ASW15', entity_name_principal: 'ASW SUMUT 3', principal_name: 'ASWFOODS', principal_code: 'ASW' },
+  { region_code: 'ASWSUM1', region_name: 'ASW SUMATERA 1', entity_code_principal: 'ASW11', entity_name_principal: 'ASW NAD 1', principal_name: 'ASWFOODS', principal_code: 'A' },
+  { region_code: 'ASWSUM1', region_name: 'ASW SUMATERA 1', entity_code_principal: 'ASW12', entity_name_principal: 'ASW NAD 2', principal_name: 'ASWFOODS', principal_code: 'A' },
+  { region_code: 'ASWSUM1', region_name: 'ASW SUMATERA 1', entity_code_principal: 'ASW13', entity_name_principal: 'ASW SUMUT 1', principal_name: 'ASWFOODS', principal_code: 'A' },
+  { region_code: 'ASWSUM1', region_name: 'ASW SUMATERA 1', entity_code_principal: 'ASW14', entity_name_principal: 'ASW SUMUT 2', principal_name: 'ASWFOODS', principal_code: 'A' },
+  { region_code: 'ASWSUM1', region_name: 'ASW SUMATERA 1', entity_code_principal: 'ASW15', entity_name_principal: 'ASW SUMUT 3', principal_name: 'ASWFOODS', principal_code: 'A' },
 
   // ASWSUM2
-  { region_code: 'ASWSUM2', region_name: 'ASW SUMATERA 2', entity_code_principal: 'ASW16', entity_name_principal: 'ASW JAMBI', principal_name: 'ASWFOODS', principal_code: 'ASW' },
-  { region_code: 'ASWSUM2', region_name: 'ASW SUMATERA 2', entity_code_principal: 'ASW17', entity_name_principal: 'ASW RIAU 1', principal_name: 'ASWFOODS', principal_code: 'ASW' },
-  { region_code: 'ASWSUM2', region_name: 'ASW SUMATERA 2', entity_code_principal: 'ASW18', entity_name_principal: 'ASW RIAU 2', principal_name: 'ASWFOODS', principal_code: 'ASW' },
-  { region_code: 'ASWSUM2', region_name: 'ASW SUMATERA 2', entity_code_principal: 'ASW19', entity_name_principal: 'ASW SUMBAR', principal_name: 'ASWFOODS', principal_code: 'ASW' },
+  { region_code: 'ASWSUM2', region_name: 'ASW SUMATERA 2', entity_code_principal: 'ASW16', entity_name_principal: 'ASW JAMBI', principal_name: 'ASWFOODS', principal_code: 'A' },
+  { region_code: 'ASWSUM2', region_name: 'ASW SUMATERA 2', entity_code_principal: 'ASW17', entity_name_principal: 'ASW RIAU 1', principal_name: 'ASWFOODS', principal_code: 'A' },
+  { region_code: 'ASWSUM2', region_name: 'ASW SUMATERA 2', entity_code_principal: 'ASW18', entity_name_principal: 'ASW RIAU 2', principal_name: 'ASWFOODS', principal_code: 'A' },
+  { region_code: 'ASWSUM2', region_name: 'ASW SUMATERA 2', entity_code_principal: 'ASW19', entity_name_principal: 'ASW SUMBAR', principal_name: 'ASWFOODS', principal_code: 'A' },
 
   // ASWSUM3
-  { region_code: 'ASWSUM3', region_name: 'ASW SUMATERA 3', entity_code_principal: 'ASW20', entity_name_principal: 'ASW BENGKULU', principal_name: 'ASWFOODS', principal_code: 'ASW' },
-  { region_code: 'ASWSUM3', region_name: 'ASW SUMATERA 3', entity_code_principal: 'ASW21', entity_name_principal: 'ASW KEPULAUAN RIAU', principal_name: 'ASWFOODS', principal_code: 'ASW' },
-  { region_code: 'ASWSUM3', region_name: 'ASW SUMATERA 3', entity_code_principal: 'ASW22', entity_name_principal: 'ASW LAMBABEL', principal_name: 'ASWFOODS', principal_code: 'ASW' },
-  { region_code: 'ASWSUM3', region_name: 'ASW SUMATERA 3', entity_code_principal: 'ASW23', entity_name_principal: 'ASW SUMSEL', principal_name: 'ASWFOODS', principal_code: 'ASW' },
+  { region_code: 'ASWSUM3', region_name: 'ASW SUMATERA 3', entity_code_principal: 'ASW20', entity_name_principal: 'ASW BENGKULU', principal_name: 'ASWFOODS', principal_code: 'A' },
+  { region_code: 'ASWSUM3', region_name: 'ASW SUMATERA 3', entity_code_principal: 'ASW21', entity_name_principal: 'ASW KEPULAUAN RIAU', principal_name: 'ASWFOODS', principal_code: 'A' },
+  { region_code: 'ASWSUM3', region_name: 'ASW SUMATERA 3', entity_code_principal: 'ASW22', entity_name_principal: 'ASW LAMBABEL', principal_name: 'ASWFOODS', principal_code: 'A' },
+  { region_code: 'ASWSUM3', region_name: 'ASW SUMATERA 3', entity_code_principal: 'ASW23', entity_name_principal: 'ASW SUMSEL', principal_name: 'ASWFOODS', principal_code: 'A' },
 
   // INAJWA1
-  { region_code: 'INAJWA1', region_name: 'INA JAWA 1', entity_code_principal: 'INA01', entity_name_principal: 'INA JABODETABEK', principal_name: 'INAFOODS', principal_code: 'INA' },
-  { region_code: 'INAJWA1', region_name: 'INA JAWA 1', entity_code_principal: 'INA02', entity_name_principal: 'INA JAWA TIMUR 1', principal_name: 'INAFOODS', principal_code: 'INA' },
-  { region_code: 'INAJWA1', region_name: 'INA JAWA 1', entity_code_principal: 'INA03', entity_name_principal: 'INA JAWA TIMUR 2', principal_name: 'INAFOODS', principal_code: 'INA' },
+  { region_code: 'INAJWA1', region_name: 'INA JAWA 1', entity_code_principal: 'INA01', entity_name_principal: 'INA JABODETABEK', principal_name: 'INAFOOD', principal_code: 'I' },
+  { region_code: 'INAJWA1', region_name: 'INA JAWA 1', entity_code_principal: 'INA02', entity_name_principal: 'INA JAWA TIMUR 1', principal_name: 'INAFOOD', principal_code: 'I' },
+  { region_code: 'INAJWA1', region_name: 'INA JAWA 1', entity_code_principal: 'INA03', entity_name_principal: 'INA JAWA TIMUR 2', principal_name: 'INAFOOD', principal_code: 'I' },
 
   // INAJWA2
-  { region_code: 'INAJWA2', region_name: 'INA JAWA 2', entity_code_principal: 'INA04', entity_name_principal: 'INA JAWA BARAT', principal_name: 'INAFOODS', principal_code: 'INA' },
-  { region_code: 'INAJWA2', region_name: 'INA JAWA 2', entity_code_principal: 'INA05', entity_name_principal: 'INA JAWA TENGAH 1', principal_name: 'INAFOODS', principal_code: 'INA' },
-  { region_code: 'INAJWA2', region_name: 'INA JAWA 2', entity_code_principal: 'INA06', entity_name_principal: 'INA JAWA TENGAH 2', principal_name: 'INAFOODS', principal_code: 'INA' },
+  { region_code: 'INAJWA2', region_name: 'INA JAWA 2', entity_code_principal: 'INA04', entity_name_principal: 'INA JAWA BARAT', principal_name: 'INAFOOD', principal_code: 'I' },
+  { region_code: 'INAJWA2', region_name: 'INA JAWA 2', entity_code_principal: 'INA05', entity_name_principal: 'INA JAWA TENGAH 1', principal_name: 'INAFOOD', principal_code: 'I' },
+  { region_code: 'INAJWA2', region_name: 'INA JAWA 2', entity_code_principal: 'INA06', entity_name_principal: 'INA JAWA TENGAH 2', principal_name: 'INAFOOD', principal_code: 'I' },
 
   // INAPUL1
-  { region_code: 'INAPUL1', region_name: 'INA PULAU 1', entity_code_principal: 'INA07', entity_name_principal: 'INA KALIMANTAN', principal_name: 'INAFOODS', principal_code: 'INA' },
-  { region_code: 'INAPUL1', region_name: 'INA PULAU 1', entity_code_principal: 'INA08', entity_name_principal: 'INA SULAWESI', principal_name: 'INAFOODS', principal_code: 'INA' },
+  { region_code: 'INAPUL1', region_name: 'INA PULAU 1', entity_code_principal: 'INA07', entity_name_principal: 'INA KALIMANTAN', principal_name: 'INAFOOD', principal_code: 'I' },
+  { region_code: 'INAPUL1', region_name: 'INA PULAU 1', entity_code_principal: 'INA08', entity_name_principal: 'INA SULAWESI', principal_name: 'INAFOOD', principal_code: 'I' },
 
   // INASUM1
-  { region_code: 'INASUM1', region_name: 'INA SUMATERA 1', entity_code_principal: 'INA09', entity_name_principal: 'INA NAD', principal_name: 'INAFOODS', principal_code: 'INA' },
-  { region_code: 'INASUM1', region_name: 'INA SUMATERA 1', entity_code_principal: 'INA10', entity_name_principal: 'INA RIAU', principal_name: 'INAFOODS', principal_code: 'INA' },
-  { region_code: 'INASUM1', region_name: 'INA SUMATERA 1', entity_code_principal: 'INA11', entity_name_principal: 'INA SUMUT', principal_name: 'INAFOODS', principal_code: 'INA' },
-  { region_code: 'INASUM1', region_name: 'INA SUMATERA 1', entity_code_principal: 'INA011', entity_name_principal: 'INA SUMBAR', principal_name: 'INAFOODS', principal_code: 'INA' },
-  { region_code: 'INASUM1', region_name: 'INA SUMATERA 1', entity_code_principal: 'INA16', entity_name_principal: 'INA KEPRI', principal_name: 'INAFOODS', principal_code: 'INA' },
+  { region_code: 'INASUM1', region_name: 'INA SUMATERA 1', entity_code_principal: 'INA09', entity_name_principal: 'INA NAD', principal_name: 'INAFOOD', principal_code: 'I' },
+  { region_code: 'INASUM1', region_name: 'INA SUMATERA 1', entity_code_principal: 'INA10', entity_name_principal: 'INA RIAU', principal_name: 'INAFOOD', principal_code: 'I' },
+  { region_code: 'INASUM1', region_name: 'INA SUMATERA 1', entity_code_principal: 'INA11', entity_name_principal: 'INA SUMUT', principal_name: 'INAFOOD', principal_code: 'I' },
+  { region_code: 'INASUM1', region_name: 'INA SUMATERA 1', entity_code_principal: 'INA011', entity_name_principal: 'INA SUMBAR', principal_name: 'INAFOOD', principal_code: 'I' },
+  { region_code: 'INASUM1', region_name: 'INA SUMATERA 1', entity_code_principal: 'INA16', entity_name_principal: 'INA KEPRI', principal_name: 'INAFOOD', principal_code: 'I' },
 
   // INASUM2
-  { region_code: 'INASUM2', region_name: 'INA SUMATERA 2', entity_code_principal: 'INA12', entity_name_principal: 'INA BENGKULU', principal_name: 'INAFOODS', principal_code: 'INA' },
-  { region_code: 'INASUM2', region_name: 'INA SUMATERA 2', entity_code_principal: 'INA13', entity_name_principal: 'INA JAMBI', principal_name: 'INAFOODS', principal_code: 'INA' },
-  { region_code: 'INASUM2', region_name: 'INA SUMATERA 2', entity_code_principal: 'INA14', entity_name_principal: 'INA LAMPUNG', principal_name: 'INAFOODS', principal_code: 'INA' },
-  { region_code: 'INASUM2', region_name: 'INA SUMATERA 2', entity_code_principal: 'INA015', entity_name_principal: 'INA SUMSEL', principal_name: 'INAFOODS', principal_code: 'INA' },
+  { region_code: 'INASUM2', region_name: 'INA SUMATERA 2', entity_code_principal: 'INA12', entity_name_principal: 'INA BENGKULU', principal_name: 'INAFOOD', principal_code: 'I' },
+  { region_code: 'INASUM2', region_name: 'INA SUMATERA 2', entity_code_principal: 'INA13', entity_name_principal: 'INA JAMBI', principal_name: 'INAFOOD', principal_code: 'I' },
+  { region_code: 'INASUM2', region_name: 'INA SUMATERA 2', entity_code_principal: 'INA14', entity_name_principal: 'INA LAMPUNG', principal_name: 'INAFOOD', principal_code: 'I' },
+  { region_code: 'INASUM2', region_name: 'INA SUMATERA 2', entity_code_principal: 'INA015', entity_name_principal: 'INA SUMSEL', principal_name: 'INAFOOD', principal_code: 'I' },
 ];
 
 // Dynamic computed from Database props (fallback to MASTER_REGIONS / MASTER_ENTITIES)
 const allRegions = computed(() => {
   const dbRegions = props.filterOptions?.regions;
   if (Array.isArray(dbRegions) && dbRegions.length > 0) {
-    return dbRegions.map((r) => ({
-      region_code: typeof r === 'object' ? r.region_code : r,
-      region_name: typeof r === 'object' ? (r.region_name || r.region_code) : String(r),
-      principal_name: typeof r === 'object' ? (r.principal_name || (String(r.region_code).startsWith('ASW') ? 'ASWFOODS' : 'INAFOODS')) : 'ASWFOODS',
-      principal_code: typeof r === 'object' ? (r.principal_code || (String(r.region_code).startsWith('ASW') ? 'ASW' : 'INA')) : 'ASW',
-    }));
+    return dbRegions.map((r) => {
+      const code = typeof r === 'object' ? r.region_code : r;
+      const isAsw = String(code).toUpperCase().startsWith('ASW');
+      return {
+        region_code: code,
+        region_name: typeof r === 'object' ? (r.region_name || r.region_code) : String(r),
+        principal_name: isAsw ? 'ASWFOODS' : 'INAFOOD',
+        principal_code: isAsw ? 'A' : 'I',
+      };
+    });
   }
   return MASTER_REGIONS;
 });
@@ -114,14 +118,17 @@ const allRegions = computed(() => {
 const allEntities = computed(() => {
   const dbEntities = props.filterOptions?.entities;
   if (Array.isArray(dbEntities) && dbEntities.length > 0) {
-    return dbEntities.map((e) => ({
-      region_code: typeof e === 'object' ? e.region_code : '',
-      region_name: typeof e === 'object' ? e.region_name : '',
-      entity_code_principal: typeof e === 'object' ? e.entity_code_principal : e,
-      entity_name_principal: typeof e === 'object' ? (e.entity_name_principal || e.entity_code_principal) : String(e),
-      principal_name: typeof e === 'object' ? (e.principal_name || (String(e.region_code || e.entity_code_principal).startsWith('ASW') ? 'ASWFOODS' : 'INAFOODS')) : 'ASWFOODS',
-      principal_code: typeof e === 'object' ? (e.principal_code || (String(e.region_code || e.entity_code_principal).startsWith('ASW') ? 'ASW' : 'INA')) : 'ASW',
-    }));
+    return dbEntities.map((e) => {
+      const isAsw = String(e.region_code || e.entity_code_principal || '').toUpperCase().startsWith('ASW');
+      return {
+        region_code: typeof e === 'object' ? e.region_code : '',
+        region_name: typeof e === 'object' ? e.region_name : '',
+        entity_code_principal: typeof e === 'object' ? e.entity_code_principal : e,
+        entity_name_principal: typeof e === 'object' ? (e.entity_name_principal || e.entity_code_principal) : String(e),
+        principal_name: isAsw ? 'ASWFOODS' : 'INAFOOD',
+        principal_code: isAsw ? 'A' : 'I',
+      };
+    });
   }
   return MASTER_ENTITIES;
 });
@@ -155,8 +162,8 @@ const entityOptions = computed(() => {
 // Watcher Reset Entity jika Region berubah di filter bar
 watch(selectedRegion, (newReg) => {
   if (newReg && selectedEntity.value) {
-    const valid = entityOptions.value.some((e) => e.value === selectedEntity.value);
-    if (!valid) {
+    const isValid = entityOptions.value.some((item) => item.value === selectedEntity.value);
+    if (!isValid) {
       selectedEntity.value = '';
     }
   }
@@ -198,7 +205,7 @@ const addForm = useForm({
   region_code: '',
   region_name: '',
   principal_name: 'ASWFOODS',
-  principal_code: 'ASW',
+  principal_code: 'A',
   entity_code_principal: '',
   entity_name_principal: '',
   branch_id: '',
@@ -229,9 +236,18 @@ function onAddRegionChange(regCode) {
   const foundReg = allRegions.value.find((r) => r.region_code === regCode);
   if (foundReg) {
     addForm.region_name = foundReg.region_name;
-    addForm.principal_name = foundReg.principal_name;
-    addForm.principal_code = foundReg.principal_code;
   }
+
+  // IF Penentuan Principal & Principal Code
+  const regUpper = String(regCode || '').toUpperCase();
+  if (regUpper.startsWith('ASW')) {
+    addForm.principal_code = 'A';
+    addForm.principal_name = 'ASWFOODS';
+  } else if (regUpper.startsWith('INA')) {
+    addForm.principal_code = 'I';
+    addForm.principal_name = 'INAFOOD';
+  }
+
   // Reset Entity jika entity yang dipilih tidak berada di region baru
   if (addForm.entity_code_principal) {
     const valid = allEntities.value.some(
@@ -251,8 +267,14 @@ function onAddEntityChange(entCode) {
     if (!addForm.region_code) {
       addForm.region_code = foundEnt.region_code;
       addForm.region_name = foundEnt.region_name;
-      addForm.principal_name = foundEnt.principal_name;
-      addForm.principal_code = foundEnt.principal_code;
+    }
+    const regUpper = String(addForm.region_code || foundEnt.region_code || entCode || '').toUpperCase();
+    if (regUpper.startsWith('ASW')) {
+      addForm.principal_code = 'A';
+      addForm.principal_name = 'ASWFOODS';
+    } else if (regUpper.startsWith('INA')) {
+      addForm.principal_code = 'I';
+      addForm.principal_name = 'INAFOOD';
     }
   }
 }
@@ -270,8 +292,8 @@ function submitAddBranch() {
 const editForm = useForm({
   region_code: '',
   region_name: '',
-  principal_name: '',
-  principal_code: '',
+  principal_name: 'ASWFOODS',
+  principal_code: 'A',
   entity_code_principal: '',
   entity_name_principal: '',
   branch_name: '',
@@ -294,9 +316,18 @@ function onEditRegionChange(regCode) {
   const foundReg = allRegions.value.find((r) => r.region_code === regCode);
   if (foundReg) {
     editForm.region_name = foundReg.region_name;
-    editForm.principal_name = foundReg.principal_name;
-    editForm.principal_code = foundReg.principal_code;
   }
+
+  // IF Penentuan Principal & Principal Code
+  const regUpper = String(regCode || '').toUpperCase();
+  if (regUpper.startsWith('ASW')) {
+    editForm.principal_code = 'A';
+    editForm.principal_name = 'ASWFOODS';
+  } else if (regUpper.startsWith('INA')) {
+    editForm.principal_code = 'I';
+    editForm.principal_name = 'INAFOOD';
+  }
+
   if (editForm.entity_code_principal) {
     const valid = allEntities.value.some(
       (e) => e.region_code === regCode && e.entity_code_principal === editForm.entity_code_principal
@@ -315,8 +346,14 @@ function onEditEntityChange(entCode) {
     if (!editForm.region_code) {
       editForm.region_code = foundEnt.region_code;
       editForm.region_name = foundEnt.region_name;
-      editForm.principal_name = foundEnt.principal_name;
-      editForm.principal_code = foundEnt.principal_code;
+    }
+    const regUpper = String(editForm.region_code || foundEnt.region_code || entCode || '').toUpperCase();
+    if (regUpper.startsWith('ASW')) {
+      editForm.principal_code = 'A';
+      editForm.principal_name = 'ASWFOODS';
+    } else if (regUpper.startsWith('INA')) {
+      editForm.principal_code = 'I';
+      editForm.principal_name = 'INAFOOD';
     }
   }
 }
@@ -326,8 +363,11 @@ function openEditModal(b) {
   editForm.region_code = b.region_code || '';
   const reg = allRegions.value.find((r) => r.region_code === b.region_code);
   editForm.region_name = b.region_name || (reg ? reg.region_name : '');
-  editForm.principal_name = b.principal_name || (reg ? reg.principal_name : (b.region_code?.startsWith('ASW') ? 'ASWFOODS' : 'INAFOODS'));
-  editForm.principal_code = b.principal_code || (reg ? reg.principal_code : (b.region_code?.startsWith('ASW') ? 'ASW' : 'INA'));
+  
+  const isAsw = String(b.region_code || b.entity_code_principal || '').toUpperCase().startsWith('ASW');
+  editForm.principal_code = isAsw ? 'A' : 'I';
+  editForm.principal_name = isAsw ? 'ASWFOODS' : 'INAFOOD';
+
   editForm.entity_code_principal = b.entity_code_principal || '';
   const ent = allEntities.value.find((e) => e.entity_code_principal === b.entity_code_principal);
   editForm.entity_name_principal = b.entity_name_principal || (ent ? ent.entity_name_principal : '');
