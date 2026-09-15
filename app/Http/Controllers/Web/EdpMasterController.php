@@ -52,15 +52,31 @@ class EdpMasterController extends Controller
         $userRole = $user->role ?? 'EDP_REGION';
         $regionCode = $user->region_code ?? null;
 
-        $regionsQuery = DB::table('master_branches')
-            ->select('region_code', 'region_name')
-            ->distinct()
-            ->whereNotNull('region_code');
+        // Query Master Regions dari Database
+        $hasRegionsTable = Schema::hasTable('master_regions') && DB::table('master_regions')->exists();
+        if ($hasRegionsTable) {
+            $regionsQuery = DB::table('master_regions')
+                ->select('region_code', 'region_name', 'principal_code', 'principal_name')
+                ->where('is_active', true);
+        } else {
+            $regionsQuery = DB::table('master_branches')
+                ->select('region_code', 'region_name')
+                ->distinct()
+                ->whereNotNull('region_code');
+        }
 
-        $entitiesQuery = DB::table('master_branches')
-            ->select('entity_code_principal', 'entity_name_principal', 'region_code')
-            ->distinct()
-            ->whereNotNull('entity_code_principal');
+        // Query Master Entities dari Database
+        $hasEntitiesTable = Schema::hasTable('master_entities') && DB::table('master_entities')->exists();
+        if ($hasEntitiesTable) {
+            $entitiesQuery = DB::table('master_entities')
+                ->select('region_code', 'region_name', 'entity_code_principal', 'entity_name_principal', 'principal_code', 'principal_name')
+                ->where('is_active', true);
+        } else {
+            $entitiesQuery = DB::table('master_branches')
+                ->select('entity_code_principal', 'entity_name_principal', 'region_code')
+                ->distinct()
+                ->whereNotNull('entity_code_principal');
+        }
 
         $branchesQuery = DB::table('master_branches')
             ->select('region_code', 'entity_code_principal', 'branch_id', 'branch_name', 'is_active')
@@ -146,34 +162,39 @@ class EdpMasterController extends Controller
 
         $request->validate([
             'region_code' => 'required|string',
-            'principal_name' => 'required|string',
             'entity_code_principal' => 'required|string',
             'branch_id' => 'required|string|unique:master_branches,branch_id',
             'branch_name' => 'required|string',
             'pin_branch' => 'required|string',
-            'is_active' => 'required|boolean',
+            'is_active' => 'nullable|boolean',
         ]);
 
         $this->syncSequence('master_branches');
 
+        $regionCodeUpper = strtoupper(trim($request->region_code));
+        $entityCodeUpper = strtoupper(trim($request->entity_code_principal));
+        $isAsw = str_starts_with($regionCodeUpper, 'ASW') || str_starts_with($entityCodeUpper, 'ASW');
+        $principalName = $request->principal_name ?: ($isAsw ? 'ASWFOODS' : 'INAFOODS');
+        $principalCode = $request->principal_code ?: ($isAsw ? 'ASW' : 'INA');
+
         DB::table('master_branches')->insert([
-            'region_code' => strtoupper($request->region_code),
-            'principal_name' => $request->principal_name,
-            'principal_code' => strtoupper($request->principal_code ?: ($request->entity_code_principal ?: 'A')),
-            'entity_code_principal' => strtoupper($request->entity_code_principal),
-            'entity_name_principal' => $request->entity_name_principal,
-            'area_code' => strtoupper($request->region_code),
-            'branch_id' => strtoupper($request->branch_id),
-            'branch_name' => $request->branch_name,
-            'pin_branch' => $request->pin_branch,
-            'is_active' => true,
+            'region_code' => $regionCodeUpper,
+            'region_name' => $request->region_name ?: null,
+            'principal_name' => $principalName,
+            'principal_code' => $principalCode,
+            'entity_code_principal' => $entityCodeUpper,
+            'entity_name_principal' => $request->entity_name_principal ?: null,
+            'area_code' => $regionCodeUpper,
+            'branch_id' => strtoupper(trim($request->branch_id)),
+            'branch_name' => trim($request->branch_name),
+            'pin_branch' => trim($request->pin_branch),
+            'is_active' => $request->has('is_active') ? (bool) $request->is_active : true,
             'created_at' => now(),
             'updated_at' => now(),
         ]);
 
         // Otomatis buatkan Record Counter Sequence untuk Cabang Baru ini
-        $branchIdUpper = strtoupper($request->branch_id);
-        $principalCodeUpper = strtoupper($request->principal_code ?: ($request->entity_code_principal ?: 'A'));
+        $branchIdUpper = strtoupper(trim($request->branch_id));
         $prefix = strlen($branchIdUpper) >= 5
             ? substr($branchIdUpper, 2, 3)
             : (strlen($branchIdUpper) >= 3 ? substr($branchIdUpper, 0, 3) : $branchIdUpper);
@@ -181,8 +202,8 @@ class EdpMasterController extends Controller
         DB::table('counter_sequences')->updateOrInsert(
             ['branch_id' => $branchIdUpper],
             [
-                'principal_code' => $principalCodeUpper,
-                'area_code' => strtoupper($request->region_code),
+                'principal_code' => $principalCode,
+                'area_code' => $regionCodeUpper,
                 'prefix' => strtoupper($prefix),
                 'last_seq' => 0,
                 'last_updated_at' => now(),
@@ -204,24 +225,33 @@ class EdpMasterController extends Controller
 
         $request->validate([
             'region_code' => 'required|string',
-            'principal_name' => 'required|string',
             'entity_code_principal' => 'required|string',
             'branch_name' => 'required|string',
             'pin_branch' => 'nullable|string',
-            'is_active' => 'required|boolean',
+            'is_active' => 'nullable|boolean',
         ]);
 
+        $regionCodeUpper = strtoupper(trim($request->region_code));
+        $entityCodeUpper = strtoupper(trim($request->entity_code_principal));
+        $isAsw = str_starts_with($regionCodeUpper, 'ASW') || str_starts_with($entityCodeUpper, 'ASW');
+        $principalName = $request->principal_name ?: ($isAsw ? 'ASWFOODS' : 'INAFOODS');
+        $principalCode = $request->principal_code ?: ($isAsw ? 'ASW' : 'INA');
+
         $updateData = [
-            'region_code' => strtoupper($request->region_code),
-            'principal_name' => $request->principal_name,
-            'entity_code_principal' => strtoupper($request->entity_code_principal),
-            'branch_name' => $request->branch_name,
-            'is_active' => $request->is_active,
+            'region_code' => $regionCodeUpper,
+            'region_name' => $request->region_name ?: null,
+            'principal_name' => $principalName,
+            'principal_code' => $principalCode,
+            'entity_code_principal' => $entityCodeUpper,
+            'entity_name_principal' => $request->entity_name_principal ?: null,
+            'area_code' => $regionCodeUpper,
+            'branch_name' => trim($request->branch_name),
+            'is_active' => $request->has('is_active') ? (bool) $request->is_active : true,
             'updated_at' => now(),
         ];
 
         if ($request->filled('pin_branch') && $request->pin_branch !== '******') {
-            $updateData['pin_branch'] = $request->pin_branch;
+            $updateData['pin_branch'] = trim($request->pin_branch);
         }
 
         DB::table('master_branches')->where('id', $id)->update($updateData);

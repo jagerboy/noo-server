@@ -15,6 +15,9 @@ class DatabaseSeeder extends Seeder
      */
     public function run(): void
     {
-        $this->call(NooTestingSeeder::class);
+        $this->call([
+            MasterRegionEntitySeeder::class,
+            NooTestingSeeder::class,
+        ]);
     }
 }
