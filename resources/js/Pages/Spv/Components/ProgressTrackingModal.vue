@@ -322,49 +322,49 @@ onUnmounted(() => {
     <!-- BACKDROP MODAL UTAMA -->
     <div
       v-if="show"
-      class="fixed inset-0 min-h-screen min-w-full w-full h-full z-[99990] bg-slate-900/60 backdrop-blur-xs flex items-center justify-center p-2 sm:p-3 overflow-hidden"
+      class="fixed inset-0 min-h-screen min-w-full w-full h-full z-[99990] bg-slate-900/60 backdrop-blur-xs flex items-center justify-center p-2 sm:p-3 md:p-4 overflow-hidden select-none"
       @click.self="emit('close')"
     >
-      <!-- CONTAINER MODAL: Lebar & Tinggi Maksimal Agar Tabel Langsung Dominan Terlihat -->
+      <!-- CONTAINER MODAL: Lebar & Tinggi Maksimal Agar Tabel Langsung Dominan Terlihat di Tablet & Desktop -->
       <div
-        class="bg-white rounded-2xl w-[96vw] max-w-[1480px] h-[93vh] flex flex-col shadow-2xl border border-slate-200 overflow-hidden text-slate-700 my-auto"
+        class="bg-white rounded-2xl w-[98vw] max-w-[1500px] h-[94vh] sm:h-[92vh] flex flex-col shadow-2xl border border-slate-200 overflow-hidden text-slate-700 my-auto"
       >
         <!-- HEADER MODAL (Ringkas & Efisien) -->
-        <div class="px-5 py-2.5 bg-slate-900 text-white flex items-center justify-between shrink-0">
-          <div class="flex items-center space-x-3 flex-wrap">
+        <div class="px-4 sm:px-6 py-3 bg-slate-900 text-white flex items-center justify-between shrink-0">
+          <div class="flex items-center space-x-2.5 sm:space-x-3 flex-wrap">
             <h2 class="text-base sm:text-lg font-bold tracking-tight text-white flex items-center gap-2">
               <span>Progress Tracking Submisi NOO</span>
             </h2>
-            <span class="px-2 py-0.5 rounded text-[11px] font-semibold bg-indigo-500/20 text-indigo-200 border border-indigo-400/30">
+            <span class="px-2 py-0.5 rounded text-[11px] font-bold bg-indigo-500/20 text-indigo-200 border border-indigo-400/30">
               Wilayah SPV Area
             </span>
-            <span class="text-xs text-slate-400 hidden md:inline">
+            <span class="text-xs text-slate-400 hidden lg:inline">
               • Pantau progres pengajuan, status, dan tindakan yang dibutuhkan.
             </span>
           </div>
           <button
             type="button"
             @click="emit('close')"
-            class="text-slate-400 hover:text-white p-1 rounded-lg hover:bg-slate-800 transition text-base font-bold"
+            class="text-slate-400 hover:text-white p-1.5 rounded-lg hover:bg-slate-800 transition text-lg font-bold cursor-pointer"
             title="Tutup Modal (Esc)"
           >
             ✕
           </button>
         </div>
 
-        <!-- TOP TOOLBAR: STATUS QUICK-FILTERS & KONTROL FILTER (Kompak, Hanya ~75px) -->
-        <div class="px-4 py-2 bg-white border-b border-slate-200 shrink-0 space-y-2">
-          <!-- BARIS 1: Quick Metric Status Pills -->
-          <div class="flex items-center gap-1.5 overflow-x-auto pb-0.5 select-none">
+        <!-- TOP TOOLBAR: STATUS QUICK-FILTERS & KONTROL FILTER (Kompak, Responsif Tablet & Desktop) -->
+        <div class="px-3.5 sm:px-5 py-2.5 bg-white border-b border-slate-200 shrink-0 space-y-2.5">
+          <!-- BARIS 1: Quick Metric Status Pills (Scrollable / Wrap di Tablet & Desktop) -->
+          <div class="flex items-center gap-1.5 sm:gap-2 overflow-x-auto pb-0.5 select-none no-scrollbar">
             <!-- Total -->
             <button
               type="button"
               @click="selectQuickStatus('ALL')"
-              class="px-2.5 py-1 rounded-lg border text-xs font-semibold transition shrink-0 cursor-pointer flex items-center gap-1.5"
+              class="px-3 py-1.5 rounded-xl border text-xs font-bold transition shrink-0 cursor-pointer flex items-center gap-2 min-h-[34px]"
               :class="filterStatus === 'ALL' ? 'bg-slate-800 text-white border-slate-800 shadow-2xs' : 'bg-slate-50 text-slate-700 border-slate-200 hover:bg-slate-100'"
             >
               <span>Total Pengajuan</span>
-              <span class="px-1.5 py-0.2 rounded font-bold" :class="filterStatus === 'ALL' ? 'bg-white/20 text-white' : 'bg-slate-200 text-slate-800'">
+              <span class="px-1.5 py-0.2 rounded font-black text-[11px]" :class="filterStatus === 'ALL' ? 'bg-white/20 text-white' : 'bg-slate-200 text-slate-800'">
                 {{ metrics.total }}
               </span>
             </button>
@@ -373,11 +373,11 @@ onUnmounted(() => {
             <button
               type="button"
               @click="selectQuickStatus('PENDING_ADMIN')"
-              class="px-2.5 py-1 rounded-lg border text-xs font-semibold transition shrink-0 cursor-pointer flex items-center gap-1.5"
+              class="px-3 py-1.5 rounded-xl border text-xs font-bold transition shrink-0 cursor-pointer flex items-center gap-2 min-h-[34px]"
               :class="filterStatus === 'PENDING_ADMIN' ? 'bg-amber-600 text-white border-amber-600 shadow-2xs' : 'bg-amber-50/80 text-amber-800 border-amber-200 hover:bg-amber-100'"
             >
               <span>1. Pending Admin</span>
-              <span class="px-1.5 py-0.2 rounded font-bold" :class="filterStatus === 'PENDING_ADMIN' ? 'bg-white/20 text-white' : 'bg-amber-200 text-amber-900'">
+              <span class="px-1.5 py-0.2 rounded font-black text-[11px]" :class="filterStatus === 'PENDING_ADMIN' ? 'bg-white/20 text-white' : 'bg-amber-200 text-amber-900'">
                 {{ metrics.pendingAdmin }}
               </span>
             </button>
@@ -386,11 +386,11 @@ onUnmounted(() => {
             <button
               type="button"
               @click="selectQuickStatus('PENDING_SPV')"
-              class="px-2.5 py-1 rounded-lg border text-xs font-semibold transition shrink-0 cursor-pointer flex items-center gap-1.5"
+              class="px-3 py-1.5 rounded-xl border text-xs font-bold transition shrink-0 cursor-pointer flex items-center gap-2 min-h-[34px]"
               :class="filterStatus === 'PENDING_SPV' ? 'bg-blue-600 text-white border-blue-600 shadow-2xs' : 'bg-blue-50/80 text-blue-800 border-blue-200 hover:bg-blue-100'"
             >
               <span>2. Pending SPV Area</span>
-              <span class="px-1.5 py-0.2 rounded font-bold" :class="filterStatus === 'PENDING_SPV' ? 'bg-white/20 text-white' : 'bg-blue-200 text-blue-900'">
+              <span class="px-1.5 py-0.2 rounded font-black text-[11px]" :class="filterStatus === 'PENDING_SPV' ? 'bg-white/20 text-white' : 'bg-blue-200 text-blue-900'">
                 {{ metrics.pendingSpv }}
               </span>
             </button>
@@ -399,11 +399,11 @@ onUnmounted(() => {
             <button
               type="button"
               @click="selectQuickStatus('PENDING_EDP')"
-              class="px-2.5 py-1 rounded-lg border text-xs font-semibold transition shrink-0 cursor-pointer flex items-center gap-1.5"
+              class="px-3 py-1.5 rounded-xl border text-xs font-bold transition shrink-0 cursor-pointer flex items-center gap-2 min-h-[34px]"
               :class="filterStatus === 'PENDING_EDP' ? 'bg-purple-600 text-white border-purple-600 shadow-2xs' : 'bg-purple-50/80 text-purple-800 border-purple-200 hover:bg-purple-100'"
             >
               <span>3. Pending EDP</span>
-              <span class="px-1.5 py-0.2 rounded font-bold" :class="filterStatus === 'PENDING_EDP' ? 'bg-white/20 text-white' : 'bg-purple-200 text-purple-900'">
+              <span class="px-1.5 py-0.2 rounded font-black text-[11px]" :class="filterStatus === 'PENDING_EDP' ? 'bg-white/20 text-white' : 'bg-purple-200 text-purple-900'">
                 {{ metrics.pendingEdp }}
               </span>
             </button>
@@ -412,11 +412,11 @@ onUnmounted(() => {
             <button
               type="button"
               @click="selectQuickStatus('COMPLETED')"
-              class="px-2.5 py-1 rounded-lg border text-xs font-semibold transition shrink-0 cursor-pointer flex items-center gap-1.5"
+              class="px-3 py-1.5 rounded-xl border text-xs font-bold transition shrink-0 cursor-pointer flex items-center gap-2 min-h-[34px]"
               :class="filterStatus === 'COMPLETED' ? 'bg-emerald-600 text-white border-emerald-600 shadow-2xs' : 'bg-emerald-50/80 text-emerald-800 border-emerald-200 hover:bg-emerald-100'"
             >
               <span>Selesai / Approved</span>
-              <span class="px-1.5 py-0.2 rounded font-bold" :class="filterStatus === 'COMPLETED' ? 'bg-white/20 text-white' : 'bg-emerald-200 text-emerald-900'">
+              <span class="px-1.5 py-0.2 rounded font-black text-[11px]" :class="filterStatus === 'COMPLETED' ? 'bg-white/20 text-white' : 'bg-emerald-200 text-emerald-900'">
                 {{ metrics.completed }}
               </span>
             </button>
@@ -425,25 +425,25 @@ onUnmounted(() => {
             <button
               type="button"
               @click="selectQuickStatus('REJECTED')"
-              class="px-2.5 py-1 rounded-lg border text-xs font-semibold transition shrink-0 cursor-pointer flex items-center gap-1.5"
+              class="px-3 py-1.5 rounded-xl border text-xs font-bold transition shrink-0 cursor-pointer flex items-center gap-2 min-h-[34px]"
               :class="filterStatus === 'REJECTED' ? 'bg-rose-600 text-white border-rose-600 shadow-2xs' : 'bg-rose-50/80 text-rose-800 border-rose-200 hover:bg-rose-100'"
             >
               <span>Ditolak / Rejected</span>
-              <span class="px-1.5 py-0.2 rounded font-bold" :class="filterStatus === 'REJECTED' ? 'bg-white/20 text-white' : 'bg-rose-200 text-rose-900'">
+              <span class="px-1.5 py-0.2 rounded font-black text-[11px]" :class="filterStatus === 'REJECTED' ? 'bg-white/20 text-white' : 'bg-rose-200 text-rose-900'">
                 {{ metrics.rejected }}
               </span>
             </button>
           </div>
 
-          <!-- BARIS 2: Kontrol Filter Kompak (Dropdown Tidak Menimpa Icon, Truncate Aman & Rapi) -->
-          <div class="flex flex-wrap items-center gap-2.5">
+          <!-- BARIS 2: Kontrol Filter Kompak & Fleksibel (Responsif Tablet Samsung & Desktop) -->
+          <div class="flex flex-wrap items-center gap-2 sm:gap-2.5">
             <!-- Filter Distributor -->
             <div class="flex items-center gap-1.5">
-              <label class="text-[11.5px] font-semibold text-slate-500 whitespace-nowrap">Distributor:</label>
+              <label class="text-[11.5px] font-bold text-slate-500 whitespace-nowrap">Distributor:</label>
               <select
                 v-model="filterBranch"
                 @change="handleFilterChange"
-                class="text-xs font-medium rounded-lg border border-slate-300 bg-white pl-2.5 pr-8 py-1.5 text-slate-800 focus:ring-1 focus:ring-indigo-500 focus:border-indigo-500 min-w-[170px] max-w-[250px] truncate"
+                class="text-xs font-medium rounded-lg border border-slate-300 bg-white pl-2.5 pr-8 py-1.5 text-slate-800 focus:ring-1 focus:ring-indigo-500 focus:border-indigo-500 min-w-[150px] max-w-[220px] truncate shadow-2xs"
               >
                 <option value="ALL">Semua Distributor</option>
                 <option v-for="b in myBranches" :key="b.branch_id" :value="b.branch_id">
@@ -454,11 +454,11 @@ onUnmounted(() => {
 
             <!-- Filter Bulan -->
             <div class="flex items-center gap-1.5">
-              <label class="text-[11.5px] font-semibold text-slate-500 whitespace-nowrap">Bulan:</label>
+              <label class="text-[11.5px] font-bold text-slate-500 whitespace-nowrap">Bulan:</label>
               <select
                 v-model="filterMonth"
                 @change="handleFilterChange"
-                class="text-xs font-medium rounded-lg border border-slate-300 bg-white pl-2.5 pr-8 py-1.5 text-slate-800 focus:ring-1 focus:ring-indigo-500 focus:border-indigo-500 min-w-[130px] max-w-[160px] truncate"
+                class="text-xs font-medium rounded-lg border border-slate-300 bg-white pl-2.5 pr-8 py-1.5 text-slate-800 focus:ring-1 focus:ring-indigo-500 focus:border-indigo-500 min-w-[125px] max-w-[150px] truncate shadow-2xs"
               >
                 <option v-for="m in monthOptions" :key="m.value" :value="m.value">
                   {{ m.label }}
@@ -468,11 +468,11 @@ onUnmounted(() => {
 
             <!-- Filter Tahun -->
             <div class="flex items-center gap-1.5">
-              <label class="text-[11.5px] font-semibold text-slate-500 whitespace-nowrap">Tahun:</label>
+              <label class="text-[11.5px] font-bold text-slate-500 whitespace-nowrap">Tahun:</label>
               <select
                 v-model="filterYear"
                 @change="handleFilterChange"
-                class="text-xs font-medium rounded-lg border border-slate-300 bg-white pl-2.5 pr-7 py-1.5 text-slate-800 focus:ring-1 focus:ring-indigo-500 focus:border-indigo-500 min-w-[85px]"
+                class="text-xs font-medium rounded-lg border border-slate-300 bg-white pl-2.5 pr-7 py-1.5 text-slate-800 focus:ring-1 focus:ring-indigo-500 focus:border-indigo-500 min-w-[85px] shadow-2xs"
               >
                 <option value="ALL">Semua</option>
                 <option v-for="y in availableYears" :key="y" :value="String(y)">
@@ -483,11 +483,11 @@ onUnmounted(() => {
 
             <!-- Filter Status -->
             <div class="flex items-center gap-1.5">
-              <label class="text-[11.5px] font-semibold text-slate-500 whitespace-nowrap">Status:</label>
+              <label class="text-[11.5px] font-bold text-slate-500 whitespace-nowrap">Status:</label>
               <select
                 v-model="filterStatus"
                 @change="handleFilterChange"
-                class="text-xs font-medium rounded-lg border border-slate-300 bg-white pl-2.5 pr-8 py-1.5 text-slate-800 focus:ring-1 focus:ring-indigo-500 focus:border-indigo-500 min-w-[190px] max-w-[260px] truncate"
+                class="text-xs font-medium rounded-lg border border-slate-300 bg-white pl-2.5 pr-8 py-1.5 text-slate-800 focus:ring-1 focus:ring-indigo-500 focus:border-indigo-500 min-w-[170px] max-w-[240px] truncate shadow-2xs"
               >
                 <option v-for="s in statusOptions" :key="s.value" :value="s.value">
                   {{ s.label }}
@@ -502,7 +502,7 @@ onUnmounted(() => {
                 v-model="searchQuery"
                 @input="handleSearchInput"
                 placeholder="Cari toko, custcode, salesman..."
-                class="w-full text-xs font-medium rounded-lg border border-slate-300 bg-white pl-2.5 pr-6 py-1.5 text-slate-800 placeholder-slate-400 focus:ring-1 focus:ring-indigo-500 focus:border-indigo-500"
+                class="w-full text-xs font-medium rounded-lg border border-slate-300 bg-white pl-2.5 pr-6 py-1.5 text-slate-800 placeholder-slate-400 focus:ring-1 focus:ring-indigo-500 focus:border-indigo-500 shadow-2xs"
               />
               <button
                 v-if="searchQuery"
@@ -517,14 +517,14 @@ onUnmounted(() => {
             <button
               type="button"
               @click="resetFilter"
-              class="px-2.5 py-1.5 text-xs font-semibold rounded-lg text-slate-600 hover:text-slate-900 bg-slate-100 hover:bg-slate-200 transition cursor-pointer"
+              class="px-3 py-1.5 text-xs font-bold rounded-lg text-slate-600 hover:text-slate-900 bg-slate-100 hover:bg-slate-200 transition cursor-pointer shadow-2xs"
             >
               Reset
             </button>
 
             <!-- Total Temuan -->
             <span class="text-xs text-slate-500 ml-auto whitespace-nowrap hidden sm:inline">
-              Ditemukan: <strong class="text-slate-900">{{ submissionsData.total }}</strong> toko
+              Ditemukan: <strong class="text-slate-900 font-bold">{{ submissionsData.total }}</strong> toko
             </span>
           </div>
         </div>

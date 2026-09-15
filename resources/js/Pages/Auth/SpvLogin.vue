@@ -81,44 +81,46 @@ function submitLogin() {
 <template>
   <Head title="Sign In - Portal SPV Area NOO+" />
 
-  <!-- Background Kanvas Halaman yang Lembut & Kontras Elegan (Ramah Desktop & Tablet) -->
-  <div class="flex items-center justify-center min-h-screen bg-gradient-to-br from-[#E2E8F0] via-[#E8EDF5] to-[#DCE4EF] p-3 sm:p-4 md:p-6 lg:p-8 font-sans selection:bg-purple-100 select-none overflow-y-auto">
+  <!-- Background Kanvas Halaman: Lembut & Kontras Elegan (Ramah Desktop, Laptop & Tablet Samsung) -->
+  <div class="flex items-center justify-center min-h-screen bg-gradient-to-br from-[#E2E8F0] via-[#E8EDF5] to-[#DCE4EF] p-3 sm:p-5 md:p-6 lg:p-8 font-sans selection:bg-purple-100 select-none overflow-y-auto">
     
-    <!-- Main Card Container Split Elegan: Responsif Tablet (md: 768px+) & Desktop (lg: 1024px+) -->
+    <!-- Main Card Container: Responsif Tablet Samsung (768px - 1280px) & Desktop (1024px+) -->
     <div
-      class="w-full max-w-md md:max-w-3xl lg:max-w-[940px] bg-white shadow-[0_20px_60px_-15px_rgba(15,23,42,0.12)] rounded-2xl md:rounded-[28px] lg:rounded-[32px] overflow-hidden grid grid-cols-1 md:grid-cols-12 border border-slate-300/80 my-auto transition-all duration-200"
+      class="w-full max-w-md md:max-w-3xl lg:max-w-[960px] bg-white shadow-[0_20px_60px_-15px_rgba(15,23,42,0.14)] rounded-2xl md:rounded-[28px] lg:rounded-[32px] overflow-hidden grid grid-cols-1 md:grid-cols-12 border border-slate-300/80 my-auto transition-all duration-200"
       :class="{ 'animate-shake ring-2 ring-rose-400/30 border-rose-300': isShaking }"
     >
       
-      <!-- PANEL KIRI: LOGO NOO+, BRAND HEADER, FORM KREDENSIAL SPV (6 COLS DI TABLET & DESKTOP) -->
-      <div class="md:col-span-6 lg:col-span-6 p-5 sm:p-6 md:p-6 lg:p-8 flex flex-col justify-between bg-white">
+      <!-- PANEL KIRI: LOGO NOO+, BRAND HEADER, FORM KREDENSIAL SPV -->
+      <div class="md:col-span-6 lg:col-span-6 p-5 sm:p-7 md:p-7 lg:p-9 flex flex-col justify-between bg-white">
         <div>
           <!-- Header Brand dengan Logo NOO+ & Identitas Korporat -->
-          <div class="flex items-center gap-2.5 md:gap-3 mb-4 md:mb-5">
-            <img
-              src="/logo-noo-plus-v2.png"
-              alt="Logo NOO+"
-              class="h-8 sm:h-9 md:h-10 w-auto object-contain rounded-lg shrink-0 drop-shadow-xs"
-            />
+          <div class="flex items-center gap-2.5 sm:gap-3 mb-4 sm:mb-5">
+            <div class="bg-white p-1 rounded-xl shadow-xs border border-slate-100 shrink-0">
+              <img
+                src="/logo-noo-plus-v2.png"
+                alt="Logo NOO+"
+                class="h-8 sm:h-9 md:h-10 w-auto object-contain shrink-0 drop-shadow-xs"
+              />
+            </div>
             <div>
-              <div class="flex items-center gap-1.5">
+              <div class="flex items-center gap-1.5 flex-wrap">
                 <h1 class="text-sm sm:text-base md:text-[17px] font-bold text-slate-900 tracking-tight leading-none">
                   Portal SPV Area
                 </h1>
-                <span class="px-1.5 py-0.5 text-[9px] md:text-[9.5px] font-extrabold uppercase rounded bg-purple-100 text-[#542B85]">
+                <span class="px-1.5 py-0.5 text-[9px] md:text-[9.5px] font-extrabold uppercase rounded bg-purple-100 text-[#542B85] border border-purple-200">
                   SPV
                 </span>
               </div>
               <p class="text-[11px] md:text-[11.5px] text-slate-500 font-medium mt-1 flex items-center gap-1">
-                <span>ASWFOODS</span> &bull; <span>INAFOODS</span>
+                <span>ASWFOODS</span> &bull; <span>INAFOOD</span>
               </p>
             </div>
           </div>
 
           <!-- Section Sub-Header Judul Login -->
-          <div class="mb-4 md:mb-5">
+          <div class="mb-4 sm:mb-5">
             <h2 class="text-xl sm:text-2xl font-bold text-slate-900 tracking-tight">Sign In</h2>
-            <p class="text-[12px] md:text-[12.5px] text-slate-500 mt-0.5 md:mt-1">
+            <p class="text-[12px] sm:text-[12.5px] text-slate-500 mt-1 leading-relaxed">
               Masuk menggunakan Salescode dan Password sesuai akun Eskamobile Anda
             </p>
           </div>
@@ -134,25 +136,25 @@ function submitLogin() {
           >
             <div
               v-if="form.errors.username || form.errors.password"
-              class="flex items-center gap-2 p-2.5 md:p-3 mb-3.5 md:mb-4 rounded-xl bg-rose-50/95 border border-rose-200 text-rose-800 shadow-xs"
+              class="flex items-center gap-2.5 p-3 mb-4 rounded-xl bg-rose-50/95 border border-rose-200 text-rose-800 shadow-xs"
               role="alert"
             >
               <div class="p-1 bg-rose-100 text-rose-600 rounded-lg shrink-0">
-                <svg class="w-3.5 h-3.5 md:w-4 md:h-4" viewBox="0 0 20 20" fill="currentColor">
+                <svg class="w-4 h-4" viewBox="0 0 20 20" fill="currentColor">
                   <path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z" clip-rule="evenodd" />
                 </svg>
               </div>
-              <p class="text-[11.5px] md:text-[12px] font-semibold text-rose-800 leading-snug">
+              <p class="text-[11.5px] sm:text-[12px] font-semibold text-rose-800 leading-snug">
                 {{ form.errors.username || form.errors.password || 'Salescode atau Password yang Anda masukkan salah.' }}
               </p>
             </div>
           </transition>
 
           <!-- Form Input Kredensial -->
-          <form @submit.prevent="submitLogin" class="space-y-3.5 md:space-y-4">
+          <form @submit.prevent="submitLogin" class="space-y-4">
             <!-- 1. SALESCODE -->
             <div>
-              <label class="block text-[10.5px] md:text-[11px] font-bold text-slate-600 uppercase tracking-wider mb-1">
+              <label class="block text-[11px] font-bold text-slate-600 uppercase tracking-wider mb-1.5">
                 Salescode
               </label>
               <div class="relative">
@@ -162,10 +164,10 @@ function submitLogin() {
                   @input="form.clearErrors('username')"
                   placeholder="Masukkan Salescode"
                   required
-                  class="w-full pl-3.5 pr-10 py-2 md:py-2.5 text-[13px] md:text-[13.5px] font-semibold uppercase rounded-xl border transition leading-tight shadow-2xs placeholder:normal-case placeholder:font-normal placeholder:text-slate-400"
+                  class="w-full pl-3.5 pr-10 py-2.5 sm:py-3 text-[13px] sm:text-[14px] font-semibold uppercase rounded-xl border transition leading-tight shadow-2xs placeholder:normal-case placeholder:font-normal placeholder:text-slate-400"
                   :class="form.errors.username ? 'border-rose-400 bg-rose-50/20 text-rose-900 focus:bg-white focus:outline-none focus:border-rose-500 focus:ring-2 focus:ring-rose-500/20' : 'border-slate-200 bg-slate-50/50 text-slate-800 focus:bg-white focus:outline-none focus:border-[#542B85] focus:ring-2 focus:ring-[#542B85]/15'"
                 />
-                <div class="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none">
+                <div class="absolute right-3.5 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none">
                   <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
                   </svg>
@@ -173,9 +175,9 @@ function submitLogin() {
               </div>
             </div>
 
-            <!-- 2. PASSWORD DENGAN INLINE EYE TOGGLE -->
+            <!-- 2. PASSWORD DENGAN INLINE EYE TOGGLE (Touch friendly untuk tablet) -->
             <div>
-              <label class="block text-[10.5px] md:text-[11px] font-bold text-slate-600 uppercase tracking-wider mb-1">
+              <label class="block text-[11px] font-bold text-slate-600 uppercase tracking-wider mb-1.5">
                 Password
               </label>
               <div class="relative">
@@ -186,14 +188,14 @@ function submitLogin() {
                   @input="form.clearErrors('password', 'username')"
                   placeholder="Masukkan Password"
                   required
-                  class="w-full pl-3.5 pr-10 py-2 md:py-2.5 text-[13px] md:text-[13.5px] font-semibold rounded-xl border transition leading-tight shadow-2xs placeholder:font-normal placeholder:text-slate-400"
+                  class="w-full pl-3.5 pr-11 py-2.5 sm:py-3 text-[13px] sm:text-[14px] font-semibold rounded-xl border transition leading-tight shadow-2xs placeholder:font-normal placeholder:text-slate-400"
                   :class="(form.errors.password || form.errors.username) ? 'border-rose-400 bg-rose-50/20 text-rose-900 focus:bg-white focus:outline-none focus:border-rose-500 focus:ring-2 focus:ring-rose-500/20' : 'border-slate-200 bg-slate-50/50 text-slate-800 focus:bg-white focus:outline-none focus:border-[#542B85] focus:ring-2 focus:ring-[#542B85]/15'"
                 />
-                <!-- Tombol Toggle Show / Hide Password Berupa Eye Icon Elegan -->
+                <!-- Tombol Toggle Show / Hide Password Berupa Eye Icon Elegan dengan Touch Area Nyaman -->
                 <button
                   type="button"
                   @click="showPassword = !showPassword"
-                  class="absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 transition p-1 cursor-pointer"
+                  class="absolute right-2 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 transition p-2 rounded-lg hover:bg-slate-100 cursor-pointer"
                   title="Lihat Password"
                 >
                   <svg v-if="!showPassword" xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -207,9 +209,9 @@ function submitLogin() {
               </div>
             </div>
 
-            <!-- OPSI INGAT SALESCODE -->
+            <!-- OPSI INGAT SALESCODE (Touch Area Ramah Tablet) -->
             <div class="flex items-center justify-between pt-0.5">
-              <label class="flex items-center gap-2 cursor-pointer select-none text-[11.5px] md:text-[12px] text-slate-600 hover:text-slate-800 transition">
+              <label class="flex items-center gap-2.5 cursor-pointer select-none text-[12px] text-slate-600 hover:text-slate-800 transition py-1">
                 <input
                   type="checkbox"
                   v-model="rememberMe"
@@ -219,11 +221,11 @@ function submitLogin() {
               </label>
             </div>
 
-            <!-- LOGIN BUTTON KORPORAT DUAL-BRAND GRADIENT -->
+            <!-- LOGIN BUTTON KORPORAT DUAL-BRAND GRADIENT (Touch Target 48px) -->
             <button
               type="submit"
               :disabled="form.processing || !form.username || !form.password"
-              class="w-full py-2.5 mt-1.5 md:mt-2 text-[13.5px] md:text-[14px] font-bold text-white transition-all bg-gradient-to-r from-[#542B85] via-[#3B1F60] to-[#1E2B7B] hover:brightness-110 active:scale-[0.99] rounded-xl shadow-md shadow-[#542B85]/20 border border-purple-400/20 disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer flex items-center justify-center gap-2"
+              class="w-full py-3 sm:py-3.5 mt-2 text-[14px] font-bold text-white transition-all bg-gradient-to-r from-[#542B85] via-[#3B1F60] to-[#1E2B7B] hover:brightness-110 active:scale-[0.99] rounded-xl shadow-md shadow-[#542B85]/20 border border-purple-400/20 disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer flex items-center justify-center gap-2 min-h-[46px]"
             >
               <svg
                 v-if="form.processing"
@@ -242,19 +244,19 @@ function submitLogin() {
         </div>
 
         <!-- FOOTER COPYRIGHT IDENTITAS NOO+ -->
-        <div class="mt-5 md:mt-6 pt-2.5 md:pt-3 border-t border-slate-100 text-center text-[10.5px] md:text-[11px] text-slate-500">
+        <div class="mt-6 pt-3 border-t border-slate-100 text-center text-[11px] text-slate-500">
           Copyright &copy; 2026 <strong class="text-slate-700">Portal SPV Area NOO+</strong>
         </div>
       </div>
 
-      <!-- PANEL KANAN: FOTO PABRIK ASW FOODS REVISI DITINGGIKAN & TEXT BLUR FADE RINGKAS (6 COLS DI TABLET & DESKTOP) -->
-      <div class="hidden md:flex md:col-span-6 lg:col-span-6 relative overflow-hidden bg-slate-900 select-none min-h-[480px] md:min-h-[510px] lg:min-h-[540px]">
+      <!-- PANEL KANAN: FOTO PABRIK ASW FOODS REVISI (DITAMPILKAN DI TABLET LANDSCAPE & DESKTOP) -->
+      <div class="hidden md:flex md:col-span-6 lg:col-span-6 relative overflow-hidden bg-slate-900 select-none min-h-[480px] sm:min-h-[510px] md:min-h-[530px] lg:min-h-[560px]">
         
-        <!-- Background Foto Pabrik ASW Foods Revisi (Dinaikkan agar bangunan pabrik & atap lengkung kuning tampak jelas dan tidak tertutup teks) -->
+        <!-- Background Foto Pabrik ASW Foods Revisi -->
         <img
           src="/Photo-Pabrik-ASW-Foods-Revisi.jpg"
           alt="Pabrik ASW Foods"
-          class="absolute inset-0 w-full h-full object-cover object-[center_70%] sm:object-[center_72%] transform -translate-y-8 md:-translate-y-10 scale-[1.18] md:scale-[1.20] hover:scale-[1.25] transition-transform duration-700 ease-out"
+          class="absolute inset-0 w-full h-full object-cover object-[center_70%] transform -translate-y-6 md:-translate-y-8 scale-[1.15] md:scale-[1.18] hover:scale-[1.22] transition-transform duration-700 ease-out"
         />
 
         <!-- Subtle Top Vignette -->
@@ -262,27 +264,27 @@ function submitLogin() {
 
         <!-- Badge Floating Atas -->
         <div class="absolute top-4 sm:top-5 md:top-6 left-4 sm:left-5 md:left-6 z-20">
-          <div class="inline-flex items-center gap-1.5 md:gap-2 px-2.5 md:px-3 py-1 md:py-1.5 rounded-full bg-black/45 backdrop-blur-md border border-white/25 text-[9.5px] md:text-[10.5px] font-bold tracking-wider text-white uppercase shadow-lg">
-            <span class="w-1.5 h-1.5 md:w-2 md:h-2 rounded-full bg-emerald-400 animate-pulse"></span>
+          <div class="inline-flex items-center gap-1.5 md:gap-2 px-3 py-1.5 rounded-full bg-black/50 backdrop-blur-md border border-white/25 text-[10px] md:text-[10.5px] font-bold tracking-wider text-white uppercase shadow-lg">
+            <span class="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span>
             <span>PORTAL SUPERVISOR AREA</span>
           </div>
         </div>
 
-        <!-- Text Overlay Bawah dengan Efek Blur Fade Ringkas (Hanya menutup bayangan jalan di dasar, bangunan pabrik tetap 100% bebas terlihat) -->
-        <div class="absolute inset-x-0 bottom-0 z-20 pt-10 md:pt-12 pb-4 md:pb-5 px-5 md:px-6 bg-gradient-to-t from-black/95 via-black/75 to-transparent backdrop-blur-[2px] flex flex-col justify-end text-white">
-          <div class="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-md bg-amber-500/25 border border-amber-400/40 text-[9.5px] md:text-[10px] font-bold text-amber-300 uppercase tracking-wide mb-1.5 w-fit">
-            <span>ASWFOODS &bull; INAFOODS</span>
+        <!-- Text Overlay Bawah dengan Efek Blur Fade Ringkas -->
+        <div class="absolute inset-x-0 bottom-0 z-20 pt-10 md:pt-12 pb-4 md:pb-6 px-5 md:px-7 bg-gradient-to-t from-black/95 via-black/75 to-transparent backdrop-blur-[2px] flex flex-col justify-end text-white">
+          <div class="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-md bg-amber-500/25 border border-amber-400/40 text-[10px] font-bold text-amber-300 uppercase tracking-wide mb-1.5 w-fit">
+            <span>ASWFOODS &bull; INAFOOD</span>
           </div>
 
           <h2 class="text-base sm:text-lg md:text-xl font-extrabold text-white tracking-tight leading-snug drop-shadow-md">
             NOO+ (New Open Outlet) - SPV Area
           </h2>
 
-          <p class="text-[11.5px] md:text-[12px] text-white/90 leading-snug mt-1 font-normal drop-shadow-sm line-clamp-2 sm:line-clamp-none">
+          <p class="text-[12px] text-white/90 leading-snug mt-1 font-normal drop-shadow-sm">
             Pusat verifikasi dan otorisasi Outlet Baru (NOO+), validasi koordinat GPS toko, dan penataan rute kunjungan salesman area terpadu.
           </p>
 
-          <div class="mt-2.5 pt-2 border-t border-white/20 flex items-center justify-between text-[10px] md:text-[10.5px] text-white/70 font-medium">
+          <div class="mt-2.5 pt-2 border-t border-white/20 flex items-center justify-between text-[10.5px] text-white/70 font-medium">
             <span>Sistem Monitoring Lapangan</span>
             <span class="text-amber-300 font-semibold">NOO+ Realtime Engine</span>
           </div>

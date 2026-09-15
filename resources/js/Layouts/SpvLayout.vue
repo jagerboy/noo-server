@@ -34,7 +34,7 @@ const showingNavigationDropdown = ref(false);
                 <h1 class="text-base font-bold tracking-wide text-white flex items-center gap-1.5">
                   PORTAL SUPERVISOR
                   <span class="text-[10px] font-extrabold px-2.5 py-0.5 rounded-full bg-[#F59E0B] text-slate-900 border border-amber-300 uppercase tracking-tight shadow-xs flex items-center gap-1">
-                    {{ page.props.auth?.user?.principal_name || 'INAFOODS' }}
+                    {{ page.props.auth?.user?.principal_name || 'INAFOOD' }}
                   </span>
                 </h1>
               </div>
@@ -49,7 +49,7 @@ const showingNavigationDropdown = ref(false);
                 <template #trigger>
                   <button
                     type="button"
-                    class="inline-flex items-center rounded-lg bg-[#542B85] px-3.5 py-2 text-xs font-semibold text-white hover:bg-[#3B0764] focus:outline-none transition shadow-sm border border-purple-400/30"
+                    class="inline-flex items-center rounded-lg bg-[#542B85] px-3.5 py-2 text-xs font-semibold text-white hover:bg-[#3B0764] focus:outline-none transition shadow-sm border border-purple-400/30 cursor-pointer min-h-[36px]"
                   >
                     <span class="font-bold text-xs whitespace-nowrap">{{ page.props.auth.user ? page.props.auth.user.name : 'Supervisor Area' }}</span>
 
@@ -106,8 +106,8 @@ const showingNavigationDropdown = ref(false);
       </div>
     </nav>
 
-    <!-- Main Content Area -->
-    <main class="py-8">
+    <!-- Main Content Area: Responsive spacing for tablet & desktop -->
+    <main class="py-4 sm:py-6 md:py-8">
       <slot />
     </main>
 
