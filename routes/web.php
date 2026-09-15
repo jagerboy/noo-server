@@ -337,6 +337,18 @@ Route::middleware('auth')->group(function () {
         Route::post('/reset-admin-input', [EdpProgressController::class, 'resetAdminInput'])->name('reset_admin_input');
         Route::post('/reset-spv-input', [EdpProgressController::class, 'resetSpvInput'])->name('reset_spv_input');
 
+        // Master Region CRUD (Khusus SUPERADMIN)
+        Route::get('/master-region', [EdpMasterController::class, 'masterRegion'])->name('master_region');
+        Route::post('/master-region', [EdpMasterController::class, 'storeRegion'])->name('master_region.store');
+        Route::put('/master-region/{id}', [EdpMasterController::class, 'updateRegion'])->name('master_region.update');
+        Route::delete('/master-region/{id}', [EdpMasterController::class, 'destroyRegion'])->name('master_region.destroy');
+
+        // Master Entity CRUD (Khusus SUPERADMIN)
+        Route::get('/master-entity', [EdpMasterController::class, 'masterEntity'])->name('master_entity');
+        Route::post('/master-entity', [EdpMasterController::class, 'storeEntity'])->name('master_entity.store');
+        Route::put('/master-entity/{id}', [EdpMasterController::class, 'updateEntity'])->name('master_entity.update');
+        Route::delete('/master-entity/{id}', [EdpMasterController::class, 'destroyEntity'])->name('master_entity.destroy');
+
         // Master Branch CRUD
         Route::get('/master-branch', [EdpMasterController::class, 'masterBranch'])->name('master_branch');
         Route::post('/master-branch', [EdpMasterController::class, 'storeBranch'])->name('master_branch.store');

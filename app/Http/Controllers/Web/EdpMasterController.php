@@ -120,6 +120,227 @@ class EdpMasterController extends Controller
         ];
     }
 
+    private function checkSuperadmin(): bool
+    {
+        $user = Auth::user();
+        return ($user->role ?? '') === 'SUPERADMIN';
+    }
+
+    // 0.A MASTER REGION (Khusus SUPERADMIN)
+    public function masterRegion(Request $request): Response
+    {
+        if (!$this->checkSuperadmin()) {
+            abort(403, 'Akses Ditolak. Menu Master Region khusus untuk Superadmin.');
+        }
+
+        $query = DB::table('master_regions');
+
+        if ($request->filled('search')) {
+            $s = trim($request->search);
+            $query->where(function ($q) use ($s) {
+                $q->where('region_code', 'LIKE', "%{$s}%")
+                  ->orWhere('region_name', 'LIKE', "%{$s}%")
+                  ->orWhere('principal_name', 'LIKE', "%{$s}%");
+            });
+        }
+
+        $regions = $query->orderBy('region_code', 'asc')->get();
+
+        return Inertia::render('Edp/Master/MasterRegion', [
+            'regions' => $regions,
+            'filters' => $request->only(['search']),
+        ]);
+    }
+
+    public function storeRegion(Request $request): RedirectResponse
+    {
+        if (!$this->checkSuperadmin()) {
+            return back()->withErrors(['error' => 'Akses ditolak. Menu ini khusus Superadmin.']);
+        }
+
+        $request->validate([
+            'region_code' => 'required|string|unique:master_regions,region_code',
+            'region_name' => 'required|string',
+            'principal_code' => 'required|string',
+            'principal_name' => 'required|string',
+            'is_active' => 'nullable|boolean',
+        ]);
+
+        $this->syncSequence('master_regions');
+
+        DB::table('master_regions')->insert([
+            'region_code' => strtoupper(trim($request->region_code)),
+            'region_name' => trim($request->region_name),
+            'principal_code' => strtoupper(trim($request->principal_code)),
+            'principal_name' => trim($request->principal_name),
+            'is_active' => $request->has('is_active') ? (bool) $request->is_active : true,
+            'created_at' => now(),
+            'updated_at' => now(),
+        ]);
+
+        $this->logAction('CREATE', 'MASTER_REGION', "Menambahkan Master Region: {$request->region_code} - {$request->region_name}");
+
+        return back()->with('success', "Master Region '{$request->region_code}' berhasil ditambahkan.");
+    }
+
+    public function updateRegion(Request $request, $id): RedirectResponse
+    {
+        if (!$this->checkSuperadmin()) {
+            return back()->withErrors(['error' => 'Akses ditolak.']);
+        }
+
+        $request->validate([
+            'region_name' => 'required|string',
+            'principal_code' => 'required|string',
+            'principal_name' => 'required|string',
+            'is_active' => 'nullable|boolean',
+        ]);
+
+        DB::table('master_regions')->where('id', $id)->update([
+            'region_name' => trim($request->region_name),
+            'principal_code' => strtoupper(trim($request->principal_code)),
+            'principal_name' => trim($request->principal_name),
+            'is_active' => $request->has('is_active') ? (bool) $request->is_active : true,
+            'updated_at' => now(),
+        ]);
+
+        $this->logAction('UPDATE', 'MASTER_REGION', "Memperbarui Master Region ID {$id}: {$request->region_name}");
+
+        return back()->with('success', "Master Region berhasil diperbarui.");
+    }
+
+    public function destroyRegion($id): RedirectResponse
+    {
+        if (!$this->checkSuperadmin()) {
+            return back()->withErrors(['error' => 'Akses ditolak.']);
+        }
+
+        $reg = DB::table('master_regions')->where('id', $id)->first();
+        if ($reg) {
+            DB::table('master_regions')->where('id', $id)->delete();
+            $this->logAction('DELETE', 'MASTER_REGION', "Menghapus Master Region: {$reg->region_code}");
+        }
+
+        return back()->with('success', "Master Region berhasil dihapus.");
+    }
+
+    // 0.B MASTER ENTITY (Khusus SUPERADMIN)
+    public function masterEntity(Request $request): Response
+    {
+        if (!$this->checkSuperadmin()) {
+            abort(403, 'Akses Ditolak. Menu Master Entity khusus untuk Superadmin.');
+        }
+
+        $query = DB::table('master_entities');
+
+        if ($request->filled('region_code')) {
+            $query->where('region_code', $request->region_code);
+        }
+
+        if ($request->filled('search')) {
+            $s = trim($request->search);
+            $query->where(function ($q) use ($s) {
+                $q->where('entity_code_principal', 'LIKE', "%{$s}%")
+                  ->orWhere('entity_name_principal', 'LIKE', "%{$s}%")
+                  ->orWhere('region_code', 'LIKE', "%{$s}%")
+                  ->orWhere('region_name', 'LIKE', "%{$s}%");
+            });
+        }
+
+        $entities = $query->orderBy('entity_code_principal', 'asc')->get();
+        $regions = DB::table('master_regions')->where('is_active', true)->orderBy('region_code')->get();
+
+        return Inertia::render('Edp/Master/MasterEntity', [
+            'entities' => $entities,
+            'regions' => $regions,
+            'filters' => $request->only(['search', 'region_code']),
+        ]);
+    }
+
+    public function storeEntity(Request $request): RedirectResponse
+    {
+        if (!$this->checkSuperadmin()) {
+            return back()->withErrors(['error' => 'Akses ditolak.']);
+        }
+
+        $request->validate([
+            'region_code' => 'required|string',
+            'entity_code_principal' => 'required|string|unique:master_entities,entity_code_principal',
+            'entity_name_principal' => 'required|string',
+            'principal_code' => 'required|string',
+            'principal_name' => 'required|string',
+            'is_active' => 'nullable|boolean',
+        ]);
+
+        $this->syncSequence('master_entities');
+
+        $region = DB::table('master_regions')->where('region_code', $request->region_code)->first();
+        $regionName = $region ? $region->region_name : ($request->region_name ?? null);
+
+        DB::table('master_entities')->insert([
+            'region_code' => strtoupper(trim($request->region_code)),
+            'region_name' => $regionName,
+            'entity_code_principal' => strtoupper(trim($request->entity_code_principal)),
+            'entity_name_principal' => trim($request->entity_name_principal),
+            'principal_code' => strtoupper(trim($request->principal_code)),
+            'principal_name' => trim($request->principal_name),
+            'is_active' => $request->has('is_active') ? (bool) $request->is_active : true,
+            'created_at' => now(),
+            'updated_at' => now(),
+        ]);
+
+        $this->logAction('CREATE', 'MASTER_ENTITY', "Menambahkan Master Entity: {$request->entity_code_principal} - {$request->entity_name_principal}");
+
+        return back()->with('success', "Master Entity '{$request->entity_code_principal}' berhasil ditambahkan.");
+    }
+
+    public function updateEntity(Request $request, $id): RedirectResponse
+    {
+        if (!$this->checkSuperadmin()) {
+            return back()->withErrors(['error' => 'Akses ditolak.']);
+        }
+
+        $request->validate([
+            'region_code' => 'required|string',
+            'entity_name_principal' => 'required|string',
+            'principal_code' => 'required|string',
+            'principal_name' => 'required|string',
+            'is_active' => 'nullable|boolean',
+        ]);
+
+        $region = DB::table('master_regions')->where('region_code', $request->region_code)->first();
+        $regionName = $region ? $region->region_name : ($request->region_name ?? null);
+
+        DB::table('master_entities')->where('id', $id)->update([
+            'region_code' => strtoupper(trim($request->region_code)),
+            'region_name' => $regionName,
+            'entity_name_principal' => trim($request->entity_name_principal),
+            'principal_code' => strtoupper(trim($request->principal_code)),
+            'principal_name' => trim($request->principal_name),
+            'is_active' => $request->has('is_active') ? (bool) $request->is_active : true,
+            'updated_at' => now(),
+        ]);
+
+        $this->logAction('UPDATE', 'MASTER_ENTITY', "Memperbarui Master Entity ID {$id}: {$request->entity_name_principal}");
+
+        return back()->with('success', "Master Entity berhasil diperbarui.");
+    }
+
+    public function destroyEntity($id): RedirectResponse
+    {
+        if (!$this->checkSuperadmin()) {
+            return back()->withErrors(['error' => 'Akses ditolak.']);
+        }
+
+        $ent = DB::table('master_entities')->where('id', $id)->first();
+        if ($ent) {
+            DB::table('master_entities')->where('id', $id)->delete();
+            $this->logAction('DELETE', 'MASTER_ENTITY', "Menghapus Master Entity: {$ent->entity_code_principal}");
+        }
+
+        return back()->with('success', "Master Entity berhasil dihapus.");
+    }
+
     // 1. MASTER BRANCH
     public function masterBranch(Request $request): Response
     {

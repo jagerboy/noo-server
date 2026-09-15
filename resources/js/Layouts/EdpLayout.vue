@@ -56,6 +56,8 @@ function toggleSidebarPin() {
 
 const isMasterMenuOpen = ref(
   Boolean(
+    route().current('edp.master_region') ||
+    route().current('edp.master_entity') ||
     route().current('edp.master_branch') ||
     route().current('edp.master_salesman') ||
     route().current('edp.master_spv') ||
@@ -292,6 +294,10 @@ function toggleMasterMenu() {
                   NOO Master Data
                 </div>
                 <div class="space-y-1">
+                  <template v-if="userRole === 'SUPERADMIN'">
+                    <Link :href="route('edp.master_region')" class="block px-2.5 py-1.5 text-xs text-purple-300 hover:text-white hover:bg-slate-800 rounded-lg transition font-medium">★ Master Region</Link>
+                    <Link :href="route('edp.master_entity')" class="block px-2.5 py-1.5 text-xs text-purple-300 hover:text-white hover:bg-slate-800 rounded-lg transition font-medium">★ Master Entity</Link>
+                  </template>
                   <Link :href="route('edp.master_branch')" class="block px-2.5 py-1.5 text-xs text-slate-200 hover:text-white hover:bg-slate-800 rounded-lg transition">Master Branch</Link>
                   <Link :href="route('edp.master_salesman')" class="block px-2.5 py-1.5 text-xs text-slate-200 hover:text-white hover:bg-slate-800 rounded-lg transition">Master Salesman</Link>
                   <Link :href="route('edp.master_spv')" class="block px-2.5 py-1.5 text-xs text-slate-200 hover:text-white hover:bg-slate-800 rounded-lg transition">Master SPV</Link>
@@ -311,6 +317,28 @@ function toggleMasterMenu() {
               leave-to-class="opacity-0 -translate-y-1"
             >
               <div v-show="isMasterMenuOpen && isSidebarPinned" class="mt-1 ml-4 pl-4 border-l-2 border-[#2563EB] space-y-1">
+                <template v-if="userRole === 'SUPERADMIN'">
+                  <Link
+                    :href="route('edp.master_region')"
+                    :class="[
+                      'block px-3 py-2 rounded-[6px] text-[13px] font-medium transition duration-150 flex items-center justify-between',
+                      route().current('edp.master_region') ? 'bg-[#DBEAFE] text-[#1D4ED8] font-bold' : 'text-purple-700 hover:text-purple-950 hover:bg-purple-50'
+                    ]"
+                  >
+                    <span>Master Region</span>
+                    <span class="text-[9px] font-bold px-1.5 py-0.2 rounded bg-purple-100 text-purple-800 border border-purple-200">SA</span>
+                  </Link>
+                  <Link
+                    :href="route('edp.master_entity')"
+                    :class="[
+                      'block px-3 py-2 rounded-[6px] text-[13px] font-medium transition duration-150 flex items-center justify-between',
+                      route().current('edp.master_entity') ? 'bg-[#DBEAFE] text-[#1D4ED8] font-bold' : 'text-purple-700 hover:text-purple-950 hover:bg-purple-50'
+                    ]"
+                  >
+                    <span>Master Entity</span>
+                    <span class="text-[9px] font-bold px-1.5 py-0.2 rounded bg-purple-100 text-purple-800 border border-purple-200">SA</span>
+                  </Link>
+                </template>
                 <Link
                   :href="route('edp.master_branch')"
                   :class="[
