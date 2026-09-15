@@ -13,6 +13,10 @@ const props = defineProps({
   entities: [Array, Object],
   regions: [Array, Object],
   filters: Object,
+  canWrite: {
+    type: Boolean,
+    default: true,
+  },
 });
 
 const search = ref(props.filters?.search || '');
@@ -139,16 +143,13 @@ function resetFilters() {
             <h1 class="text-lg sm:text-xl md:text-[22px] font-bold text-[#111827] tracking-tight">
               Master Entity Principal
             </h1>
-            <span class="text-[10.5px] font-bold px-2 py-0.5 rounded-full bg-purple-100 text-purple-800 border border-purple-200">
-              Khusus Superadmin
-            </span>
           </div>
           <p class="text-[12.5px] md:text-[14px] leading-[1.5] text-[#6B7280] mt-0.5">
             Manajemen Master Kode dan Nama Entitas Principal terhubung ke Region Wilayah.
           </p>
         </div>
 
-        <div>
+        <div v-if="canWrite">
           <button
             @click="isAddModalOpen = true"
             class="px-3.5 py-1.5 text-[11.5px] font-semibold text-white bg-[#059669] rounded-lg hover:bg-[#047857] transition shadow-2xs flex items-center gap-1.5 cursor-pointer"
@@ -202,12 +203,12 @@ function resetFilters() {
                 <th class="px-4 py-3">Region Terkait</th>
                 <th class="px-4 py-3">Principal</th>
                 <th class="px-4 py-3">Status</th>
-                <th class="px-4 py-3 text-right">Aksi</th>
+                <th v-if="canWrite" class="px-4 py-3 text-right">Aksi</th>
               </tr>
             </thead>
             <tbody class="divide-y divide-[#E5E7EB] text-[12.5px] leading-[17px]">
               <tr v-if="filteredEntities.length === 0">
-                <td colspan="6" class="px-4 py-8 text-center text-[#9CA3AF] italic">
+                <td :colspan="canWrite ? 6 : 5" class="px-4 py-8 text-center text-[#9CA3AF] italic">
                   Data Entity tidak ditemukan untuk filter ini.
                 </td>
               </tr>
@@ -237,7 +238,7 @@ function resetFilters() {
                     {{ (e.is_active === 1 || e.is_active === true) ? 'AKTIF' : 'NON-AKTIF' }}
                   </span>
                 </td>
-                <td class="px-4 py-3 text-right space-x-2">
+                <td v-if="canWrite" class="px-4 py-3 text-right space-x-2">
                   <button @click="openEditModal(e)" class="text-[11.5px] font-semibold text-blue-600 hover:text-blue-800 hover:underline cursor-pointer">Edit</button>
                   <button @click="deleteEntity(e)" class="text-[11.5px] font-semibold text-red-600 hover:text-red-800 hover:underline cursor-pointer">Hapus</button>
                 </td>

@@ -195,10 +195,21 @@ const defaultMatrixData = [
     category: '🏢 NOO MASTER DATA',
     categoryClass: 'bg-purple-50/60 font-bold text-purple-900',
     items: [
-      { id: 'master_view', name: 'Lihat Master Data (Branch, Salesman, SPV, Outlet Type)', edp: true, admin: true, super: true },
-      { id: 'master_crud', name: 'Kelola Master Data (Tambah / Edit / Hapus Data Master)', edp: false, admin: true, super: true },
-      { id: 'master_seq', name: 'Setting & Update Counter Sequence Kode Customer Principal', edp: false, admin: true, super: true },
-      { id: 'master_bulk', name: 'Bulk Upload / Import Massal Master Data (CSV)', edp: false, admin: false, super: true },
+      { id: 'master_region_view', name: 'Master Region (Lihat / View Only)', edp: false, admin: true, super: true },
+      { id: 'master_region_edit', name: 'Master Region (Kelola / Tambah / Edit / Hapus)', edp: false, admin: false, super: true },
+      { id: 'master_entity_view', name: 'Master Entity (Lihat / View Only)', edp: false, admin: true, super: true },
+      { id: 'master_entity_edit', name: 'Master Entity (Kelola / Tambah / Edit / Hapus)', edp: false, admin: false, super: true },
+      { id: 'master_branch_view', name: 'Master Branch (Lihat / View Only)', edp: true, admin: true, super: true },
+      { id: 'master_branch_edit', name: 'Master Branch (Kelola / Tambah / Edit / Hapus)', edp: false, admin: true, super: true },
+      { id: 'master_salesman_view', name: 'Master Salesman (Lihat / View Only)', edp: true, admin: true, super: true },
+      { id: 'master_salesman_edit', name: 'Master Salesman (Kelola / Tambah / Edit / Hapus)', edp: false, admin: true, super: true },
+      { id: 'master_spv_view', name: 'Master SPV (Lihat / View Only)', edp: true, admin: true, super: true },
+      { id: 'master_spv_edit', name: 'Master SPV (Kelola / Tambah / Edit / Hapus)', edp: false, admin: true, super: true },
+      { id: 'master_outlet_types_view', name: 'Master Outlet Types (Lihat / View Only)', edp: true, admin: true, super: true },
+      { id: 'master_outlet_types_edit', name: 'Master Outlet Types (Kelola / Tambah / Edit / Hapus)', edp: false, admin: true, super: true },
+      { id: 'master_counter_sequence_view', name: 'Counter Sequence (Lihat / View Only)', edp: false, admin: true, super: true },
+      { id: 'master_counter_sequence_edit', name: 'Counter Sequence (Setting & Update Nomor Urut)', edp: false, admin: true, super: true },
+      { id: 'master_bulk_upload', name: 'Bulk Upload / Import Massal Master Data (CSV)', edp: false, admin: false, super: true },
     ]
   },
   {
@@ -212,7 +223,7 @@ const defaultMatrixData = [
   }
 ];
 
-const savedMatrix = localStorage.getItem('noo_permission_matrix_v2');
+const savedMatrix = localStorage.getItem('noo_permission_matrix_v3');
 const permissionMatrix = ref(savedMatrix ? JSON.parse(savedMatrix) : defaultMatrixData);
 const isEditingMatrix = ref(false);
 const matrixSuccessBanner = ref('');
@@ -232,7 +243,7 @@ function cancelEditMatrix() {
 }
 
 function saveMatrix() {
-  localStorage.setItem('noo_permission_matrix_v2', JSON.stringify(permissionMatrix.value));
+  localStorage.setItem('noo_permission_matrix_v3', JSON.stringify(permissionMatrix.value));
   isEditingMatrix.value = false;
   matrixSuccessBanner.value = 'Matriks Hak Akses Peran Pengguna berhasil diperbarui dan disimpan!';
 }

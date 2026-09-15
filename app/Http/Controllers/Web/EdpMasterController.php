@@ -126,13 +126,9 @@ class EdpMasterController extends Controller
         return ($user->role ?? '') === 'SUPERADMIN';
     }
 
-    // 0.A MASTER REGION (Khusus SUPERADMIN)
+    // 0.A MASTER REGION
     public function masterRegion(Request $request): Response
     {
-        if (!$this->checkSuperadmin()) {
-            abort(403, 'Akses Ditolak. Menu Master Region khusus untuk Superadmin.');
-        }
-
         $query = DB::table('master_regions');
 
         if ($request->filled('search')) {
@@ -149,13 +145,14 @@ class EdpMasterController extends Controller
         return Inertia::render('Edp/Master/MasterRegion', [
             'regions' => $regions,
             'filters' => $request->only(['search']),
+            'canWrite' => $this->checkCanWrite(),
         ]);
     }
 
     public function storeRegion(Request $request): RedirectResponse
     {
-        if (!$this->checkSuperadmin()) {
-            return back()->withErrors(['error' => 'Akses ditolak. Menu ini khusus Superadmin.']);
+        if (!$this->checkCanWrite()) {
+            return back()->withErrors(['error' => 'Akses ditolak. Anda tidak memiliki izin untuk menambah data Master Region.']);
         }
 
         $request->validate([
@@ -185,8 +182,8 @@ class EdpMasterController extends Controller
 
     public function updateRegion(Request $request, $id): RedirectResponse
     {
-        if (!$this->checkSuperadmin()) {
-            return back()->withErrors(['error' => 'Akses ditolak.']);
+        if (!$this->checkCanWrite()) {
+            return back()->withErrors(['error' => 'Akses ditolak. Anda tidak memiliki izin untuk mengedit data Master Region.']);
         }
 
         $request->validate([
@@ -211,8 +208,8 @@ class EdpMasterController extends Controller
 
     public function destroyRegion($id): RedirectResponse
     {
-        if (!$this->checkSuperadmin()) {
-            return back()->withErrors(['error' => 'Akses ditolak.']);
+        if (!$this->checkCanWrite()) {
+            return back()->withErrors(['error' => 'Akses ditolak. Anda tidak memiliki izin untuk menghapus data Master Region.']);
         }
 
         $reg = DB::table('master_regions')->where('id', $id)->first();
@@ -224,13 +221,9 @@ class EdpMasterController extends Controller
         return back()->with('success', "Master Region berhasil dihapus.");
     }
 
-    // 0.B MASTER ENTITY (Khusus SUPERADMIN)
+    // 0.B MASTER ENTITY
     public function masterEntity(Request $request): Response
     {
-        if (!$this->checkSuperadmin()) {
-            abort(403, 'Akses Ditolak. Menu Master Entity khusus untuk Superadmin.');
-        }
-
         $query = DB::table('master_entities');
 
         if ($request->filled('region_code')) {
@@ -254,13 +247,14 @@ class EdpMasterController extends Controller
             'entities' => $entities,
             'regions' => $regions,
             'filters' => $request->only(['search', 'region_code']),
+            'canWrite' => $this->checkCanWrite(),
         ]);
     }
 
     public function storeEntity(Request $request): RedirectResponse
     {
-        if (!$this->checkSuperadmin()) {
-            return back()->withErrors(['error' => 'Akses ditolak.']);
+        if (!$this->checkCanWrite()) {
+            return back()->withErrors(['error' => 'Akses ditolak. Anda tidak memiliki izin untuk menambah data Master Entity.']);
         }
 
         $request->validate([
@@ -296,8 +290,8 @@ class EdpMasterController extends Controller
 
     public function updateEntity(Request $request, $id): RedirectResponse
     {
-        if (!$this->checkSuperadmin()) {
-            return back()->withErrors(['error' => 'Akses ditolak.']);
+        if (!$this->checkCanWrite()) {
+            return back()->withErrors(['error' => 'Akses ditolak. Anda tidak memiliki izin untuk mengedit data Master Entity.']);
         }
 
         $request->validate([
@@ -328,8 +322,8 @@ class EdpMasterController extends Controller
 
     public function destroyEntity($id): RedirectResponse
     {
-        if (!$this->checkSuperadmin()) {
-            return back()->withErrors(['error' => 'Akses ditolak.']);
+        if (!$this->checkCanWrite()) {
+            return back()->withErrors(['error' => 'Akses ditolak. Anda tidak memiliki izin untuk menghapus data Master Entity.']);
         }
 
         $ent = DB::table('master_entities')->where('id', $id)->first();
