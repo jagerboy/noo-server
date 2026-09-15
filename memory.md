@@ -1,150 +1,229 @@
-# NOO+ Server Documentation & Architecture Decisions
+# 📘 Dokumentasi Komprehensif Arsitektur & Alur Sistem Informasi NOO+ (New Open Outlet)
 
-## Master Data - Master Salesman (`/principal/master-salesman`)
-- **Controller**: `app/Http/Controllers/Web/EdpMasterController.php` (`masterSalesman`, `getFilterOptions`)
-- **View**: `resources/js/Pages/Edp/Master/MasterSalesman.vue`
-- **Fitur Filter Bertingkat (Cascading Filter)**:
-  - Tersedia 4 filter: **REGION**, **ENTITY**, **CABANG / BRANCH**, dan **CARI SALESMAN**.
-  - Berlaku untuk seluruh role: `SUPERADMIN`, `ADMIN_PRINCIPAL`, dan `EDP_REGION`.
-  - Filter bertingkat:
-    1. Memilih **Region** akan menyaring daftar **Entity** dan daftar **Cabang** yang tersedia.
-    2. Memilih **Entity** akan menyaring daftar **Cabang** yang terikat dengan entity tersebut (baik dengan region maupun tanpa region terpilih).
-    3. Jika Region atau Entity diubah ke pilihan yang tidak lagi memuat Entity/Cabang yang sedang aktif, pilihan dropdown yang terdampak otomatis di-reset.
-  - **Instant Client-Side Filtering**: Dilakukan pada browser (Vue 3 `computed`) untuk kecepatan respons tanpa perlu reload halaman atau mencemari query URL.
-  - **Entity Column**: Kolom `Entity` ditampilkan di tabel Master Salesman untuk memverifikasi entitas principal masing-masing salesman.
+Dokumen ini merupakan referensi resmi (*living memory*) mengenai arsitektur, desain sistem, alur operasional *end-to-end*, konfigurasi teknis, struktur basis data, dan tata kelola hak akses **Sistem Informasi NOO+ (ASWFOODS & INAFOODS)**.
 
-## Executive Dashboard Principal (`/principal/dashboard`)
-- **Controller**: `app/Http/Controllers/Web/EdpDashboardController.php` (`index`, `exportChartExcel`, `exportChartPdf`)
-- **Service**: `app/Services/ExcelExportService.php` (`generateDashboardChartExcel`)
-- **View**: `resources/js/Pages/Edp/Dashboard.vue`
-- **Print/PDF Template**: `resources/views/edp/dashboard_chart_pdf.blade.php`
-- **Sinkronisasi Filter Grafik**:
-  - Filter tahun mandiri di masing-masing 4 grafik telah dihilangkan seluruhnya.
-  - Seluruh grafik tersinkronisasi mengikuti filter global (Bulan & Tahun) dari bilah filter utama di atas halaman.
-- **Fitur Export (Excel, PDF, JPG)**:
-  - Tersedia pada 3 grafik utama:
-    1. **Perbandingan Status Submisi NOO** (`comparison`)
-    2. **Analisis Submisi vs Approval per Region Area** (`areas`)
-    3. **Sebaran Submisi per Tipe Outlet / Channel** (`outlet_types`)
-  - Grafik **Top Cabang Submisi NOO Terbanyak** tidak memiliki tombol ekspor (sesuai instruksi pengguna).
-  - Desain tombol: Dropdown menu minimalis elegan `Export ▼` (tanpa emoji/ikon berlebihan).
-  - **Excel (.xlsx)**: Dihasilkan via `PhpSpreadsheet` dengan judul besar laporan eksekutif, metadata filter aktif, tabel ringkasan metrik statistik grafik, dan tabel detail data pengajuan NOO lengkap (Region, Entity, Cabang Distributor, Nama Toko, Salesman, Tanggal Submisi, Status, dan Tipe Outlet).
-  - **PDF Document**: Dihasilkan via Blade print view dengan styling khusus cetak `@page { size: A4 landscape; margin: 10mm; }`, tabel `table-layout: fixed` dengan `word-wrap: break-word` (menjamin **fit to width** tanpa overflow/terpotong), otomatis memicu dialog cetak/simpan PDF browser.
-  - **Gambar JPG (.jpg)**: Dihasilkan via HTML5 high-res Canvas rendering langsung di browser dan diunduh instan sebagai file gambar `.jpg` resmi beresolusi tajam.
+---
 
-## Portal SPV Area - Login (`/spv-login`)
-- **Controller**: `app/Http/Controllers/Auth/SpvLoginController.php` (`create`, `store`, `destroy`)
-- **View**: `resources/js/Pages/Auth/SpvLogin.vue`
-- **Asset Visual**: `Photo-Pabrik-ASW-Foods-Revisi.jpg` (disajikan via `public/Photo-Pabrik-ASW-Foods-Revisi.jpg` dan fallback route `routes/web.php`)
-- **Desain Antarmuka (UI/UX)**:
-  - **Split-Card Layout Modern**: Menggunakan kanvas luar dengan latar gradien halus berkarakter (`#E2E8F0` via `#E8EDF5` to `#DCE4EF`) dan kartu kontainer `rounded-[26px] sm:rounded-[30px]` berbayang lembut (`shadow-[0_20px_60px_-15px_rgba(15,23,42,0.12)]`).
-  - **Sisi Kiri (Form Kredensial SPV)**:
-    - Form bersih dan intuitif dengan brand identity NOO+, ASWFOODS, dan INAFOODS.
-    - Input Salescode otomatis diformat huruf kapital (`uppercase`).
-    - Input Password dilengkapi tombol **Eye / Eye-Slash toggle** (SVG icon inline) untuk melihat/sembunyikan password.
-    - Opsi **"Ingat Salescode di perangkat ini"** dengan penyimpanan otomatis ke `localStorage` (`noo_spv_remembered_salescode`).
-    - Animasi getar responsif (`animate-shake`) saat terjadi kesalahan autentikasi serta alert pesan error modern.
-    - Tombol masuk dengan gradien korporat dinamis (Royal Purple `#542B85` ke Navy `#1E2B7B`) dilengkapi indikator loading spinner animasi SVG.
-  - **Sisi Kanan (Hero Visual Pabrik & Text Blur Fade)**:
-    - Menampilkan foto fasilitas manufaktur **Pabrik ASW Foods Revisi** (`Photo-Pabrik-ASW-Foods-Revisi.jpg`) dengan posisi yang dinaikkan (`object-[center_70%]`, `translate-y-8 md:translate-y-10`, `scale-[1.18] md:scale-[1.20]`) sehingga atap lengkung kuning dan kompleks gedung pabrik tampak jelas dan tidak tertutup teks.
-    - Teks deskripsi resmi di bagian bawah foto bertuliskan **"NOO+ (New Open Outlet) - SPV Area"** dengan **background teks berbentuk blur fade ringkas** (`bg-gradient-to-t from-black/95 via-black/75 to-transparent backdrop-blur-[2px]`) yang proporsional dan tidak menutupi gedung pabrik.
-  - **Dukungan Tampilan Desktop & Tablet**:
-    - Kontainer fleksibel `max-w-md md:max-w-3xl lg:max-w-[940px]`.
-    - Pada tablet (iPad / Android Tablet 768px - 1024px) dan desktop, tata letak dual-panel (form kredensial 6 cols & visual hero pabrik 6 cols) tampil proporsional, lapang, dan bebas dari distorsi.
+## 1. Fundamental & Tujuan Sistem
 
-## Portal SPV Area - Inbox Submisi (`/spv/inbox`)
-- **Controller**: `app/Http/Controllers/Web/SpvPortalController.php` (`index`, `approve`, `reject`)
-- **View**: `resources/js/Pages/Spv/Inbox.vue`
-- **Komponen Pendukung**: `resources/js/Components/Pagination.vue`, `resources/js/Pages/Spv/Components/ProgressTrackingModal.vue`
-- **Tata Letak Tabel 8 Kolom Minimalis (Sesuai Referensi & Bebas Ikon Sampah)**:
-  - Seluruh ikon emoji sampah (👤, 📞, 📍, 🏢, 🕒, 📅, ⚠️, ⚡, 📋) telah dihilangkan agar desain tampil bersih, modern, dan minimalis.
-  - Urutan 8 kolom tabel:
-    1. **Toko & Sub-Toko**: Menampilkan Nama Toko (`nama_noo`), badge kode sub-toko (`type_outlet_code`) & deskripsi. **Tanpa info principal (badge ASWFOODS dihilangkan) dan tanpa badge EXIF**. Nama pemilik outlet dan No. HP disatukan secara ringkas di bawahnya (`Nama Pemilik • No HP`).
-    2. **Salesman & Cabang**: Nama salesman (`salesman_name`), kode salesman, dan nama cabang binaan (`branch_name` / `branch_id`).
-    3. **Alamat Ringkas**: Alamat jalan toko (`alamat_noo`) dan wilayah ringkas (Kecamatan, Kab/Kota).
-    4. **Status**: Badge pill status approval (*Pushed to SPV*, *Approved SPV*, *Approved EDP*, *Ditolak*).
-    5. **Cust Dist.**: Monospace badge rapi untuk `custcode_distributor` (atau tanda `-` bila belum diisi).
-    6. **Cust Principal**: Monospace badge rapi untuk `code_noo_principal` (atau tanda `-` bila belum diisi).
-    7. **Rute Kunjungan**: Rincian hari kunjungan (`Hari: ...`) & pola minggu (`Minggu: ...`), atau teks minimalis `Belum di-set`.
-    8. **Aksi**: Tombol biru solid `#2563EB` **Kelola & Rute** untuk memicu modal detail verifikasi dan penyusunan rute toko.
-- **Filter Toolbar Semi-Bertingkat (Cascading Filter)**:
-  - **Cabang Binaan**: Dropdown cabang yang secara ketat hanya menampilkan daftar cabang (`myBranches`) yang dinaungi oleh akun SPV aktif dari tabel `master_spvs`.
-  - **Sub-Grup**: Dropdown sub-grup / tipe outlet toko.
-  - **Filter Status SPV**: Pilihan untuk membedakan data:
-    - `Semua Status SPV`
-    - `Belum Diproses SPV` (Menunggu review & approval SPV: status `PUSHED_TO_SPV` / `ADMIN_APPROVED`)
-    - `Sudah Diproses SPV` (Sudah diapprove SPV atau ditolak SPV)
-  - **Filter Status EDP (Terpisah & Semi-Bertingkat)**:
-    - Pilihan: `Semua Status EDP`, `EDP: Pending Review`, `EDP: Approved`, `EDP: Rejected`.
-    - **Logika Semi-Bertingkat**: Ketika Status SPV bernilai *"Belum Diproses SPV"*, filter Status EDP otomatis dinonaktifkan (*disabled*) dengan label *"Belum ke EDP"* karena data submisi belum dikirim ke principal EDP. Begitu status EDP tertentu dipilih, filter status SPV otomatis menyesuaikan data yang sudah diproses.
-  - **Urutan (Sort)**: Dropdown sort Terbaru, Terlama, Nama Toko (A-Z / Z-A), dan Salesman (A-Z).
-  - **Metric Cards Interaktif**: Kartu metrik di atas (*Pending Review*, *Disetujui SPV*, *EDP Approved*, *Ditolak*) dapat diklik untuk menyaring data dengan instan.
-  - **Dua Lapis Filtering (Hybrid Fast & Server Query)**: Menggunakan Inertia `router.get` dengan query URL otomatis ter-update (debouce 400ms) sekaligus reaktivitas client-side Vue untuk performa kilat.
-- **Perbaikan Dropdown Pagination & Input Select**:
-  - Pada `Pagination.vue` dan seluruh `<select>` dropdown di bilah filter, diterapkan `appearance-none` dengan padding kanan lapang (`pr-7` / `pr-8`) serta ikon panah dropdown chevron SVG tersendiri di posisi yang presisi (`right-2` / `right-2.5`), menjamin teks pilihan panjang (seperti *"Tampilkan Semua"*) **tidak akan pernah menimpa ikon panah dropdown**.
+**Sistem Informasi NOO+** adalah platform terintegrasi untuk mendigitalkan, menstandarisasi, dan mengotomasi proses pendaftaran outlet/toko baru (*New Open Outlet*) secara nasional untuk principal **ASWFOODS** dan **INAFOODS**. 
 
-## Standar Perintah Deployment Git (CMD & Terminus)
-- **Wajib Diberikan**: Setiap kali ada perubahan fitur atau kode selesai dikerjakan, selalu sertakan perintah copy-paste berikut:
-  1. **CMD Windows (Lokal)**:
-     ```cmd
-     cd /d d:\AndroidStudioProjects\noo-server
-     npm run build
-     git add .
-     git commit -m "<deskripsi perubahan>"
-     git push origin main
-     ```
-  2. **Terminus (SSH Server ASWFOODS 172.22.1.232)**:
-     ```bash
-     cd /var/www/noo-server
-     git pull origin main
-     docker compose exec app php artisan optimize:clear
-     ```
+Sistem ini menggantikan seluruh proses lama (*legacy Google Apps Script & Google Spreadsheet*) menjadi sistem enterprise berbasis database terpusat yang tangguh, aman, dan dapat diaudit secara *real-time*.
 
-## Portal Admin Distributor - Login (`/distributor-login`)
-- **Controller**: `app/Http/Controllers/Auth/DistributorLoginController.php` (`create`, `store`, `destroy`, `getBootstrapData`)
-- **View**: `resources/js/Pages/Auth/DistributorLogin.vue`
-- **Inspirasi Desain**: Dribbble Form Prototype (Dual-Panel Split Container)
-- **Tata Letak & Fitur**:
-  - **Panel Kiri (Form Kredensial Bertingkat Ringkas & Tanpa Scroll)**:
-    - Desain proporsional hemat vertikal sehingga muat 100% di layar laptop/desktop tanpa scrollbar (`md:overflow-hidden`, padding responsif compact).
-    - Seluruh dropdown dibuat satu baris penuh (*full-width*) agar nama Region dan Entity tidak terpotong (...).
-    - Menghilangkan duplikasi ikon dropdown (hanya 1 ikon chevron bersih pada setiap select via `style="background-image: none !important;"`).
-    - Dilengkapi **satu tombol reset tunggal (`✕ Reset Pilihan`)** terpusat di baris Principal Area yang muncul secara dinamis jika salah satu atau seluruh dropdown telah dipilih, mereset seluruh pilihan bertingkat sekaligus.
-    - Dropdown bertingkat (*cascading*): **Principal Area** (ASW SUMATERA, ASW JAWA, ASW PULAU, INA JAWA, INA PULAU, INA SUMATERA), **Region**, **Entity Principal**, dan **Branch / Distributor**.
-    - Input **PIN Branch** dalam format password dengan inline **Eye / Eye-Slash toggle** (SVG icon), proteksi kerahasiaan, dan pesan error informatif.
-    - Opsi **"Ingat pilihan cabang di perangkat ini"** dengan penyimpanan otomatis di `localStorage` (`noo_distributor_remembered_branch`).
-    - Animasi getar (`animate-shake`) saat terjadi kegagalan otentikasi.
-    - Tombol masuk dengan gradien korporat dinamis (Navy `#1E2B7B` ke Royal Blue `#2563EB`) dilengkapi indikator loading spinner animasi SVG.
-  - **Panel Kanan (Slide Animated Alur NOO+ - Dribbble Style)**:
-    - Background gradien biru korporat (`from-[#1E2B7B] via-[#1D4ED8] to-[#2563EB]`) berpadu dengan partikel melayang (*floating confetti shapes*).
-    - Stack kartu mengambang (*floating 3D-card mockups*) interaktif yang memvisualisasikan 4 tahapan alur NOO+:
-      1. **Tahap 1**: *Salesman Input di Lapangan* (Mockup visual frame aplikasi mobile Android NOO+ v2.0 form **Inputan SE** yang lengkap dengan: Data Toko Baru, **GPS Locked & Akurasi 3.2m**, serta **2 Foto Fisik Toko: Tampak Depan & Tampak Dalam** terlampir, plus tombol submit data).
-      2. **Tahap 2**: *Admin Input Customer Code Distributor* (Mockup ERP cabang, input customer code versi distributor untuk di-mapping-kan ke Eskalink).
-      3. **Tahap 3**: *SPV Mengisi & Menentukan JKS* (Mockup validasi rute kunjungan, penetapan hari H1-H7 & minggu M1-M4, verifikasi radius outlet).
-      4. **Tahap 4**: *Principal (EDP) Melakukan Approval NOO* (Validasi Customer Master dan inject data outlet baru ke Eskalink).
-    - Navigasi slide otomatis (interval 5.5 detik, pause saat hover), indikator titik (*morphing pagination dots*), dan tombol chevron prev/next.
+### Tujuan Utama:
+1. **Validitas & Akurasi Data Toko**: Menghilangkan duplikasi toko, memverifikasi foto fisik toko & KTP pemilik, serta memastikan akurasi titik koordinat GPS di lapangan dengan mekanisme *GPS Locking & Geo-Sampling*.
+2. **Efisiensi Rantai Otorisasi (4 Tahap Workflow)**: Menghubungkan Sales Executive (lapangan), Admin Distributor (cabang), Supervisor Area (SPV), dan Tim Principal (EDP/Admin/Superadmin).
+3. **Penerbitan Kode Pelanggan Principal Unik**: Otomasi generator nomor urut *Customer Code Principal* (`code_noo_principal`) berbasis prefix entitas, region, dan counter sequence terkontrol.
+4. **Integrasi & Pemantauan Target RO**: Pelacakan target dan realisasi *Registered Outlet (RO)* per salesman dan cabang secara transparan.
 
-## Impor Migrasi Total & Backup Foto Legacy
-- **Commands**:
-  - `php artisan noo:import-full-legacy {path}`
-  - `php artisan noo:import-legacy-photos {path} [--dry-run] [--force]`
-- **Command Files**:
-  - `app/Console/Commands/ImportFullLegacyCommand.php`
-  - `app/Console/Commands/ImportLegacyPhotosCommand.php`
-- **Fitur Impor & Optimasi**:
-  1. **Full Legacy Migrator (`noo:import-full-legacy`)**:
-     - Menggabungkan data toko dari sheet Admin Distributor (`02_ADMIN_SHEET/`), SPV (`03_SPV_SHEET/NOO_SPV_JKS.xlsx`), dan EDP (`04_EDP_SHEET/NOO_EDP_REVIEW.xlsx`).
-     - **Deduplikasi Strict**: Menggunakan `request_id` (UUID) sebagai kunci unik untuk mengabaikan submisi yang sudah ada di database `noo_submissions`.
-     - **Auto Branch Registration**: Pendaftaran otomatis kode cabang baru ke `master_branches` bila belum terdaftar.
-     - **Optimasi RAM PhpSpreadsheet**: Menggunakan `setReadDataOnly(true)` dan menonaktifkan evaluasi formula (`$calculateFormulas = false`) serta formatting (`$formatData = false`) di `toArray()` agar memuat file Excel besar (>40.000 baris) dengan cepat tanpa OOM (Out Of Memory / Exit Code 137) di container Docker.
-     - **Excel Serial Date Converter**: Menggunakan `\PhpOffice\PhpSpreadsheet\Shared\Date::excelToDateTimeObject()` untuk mengonversi angka float serial Excel (contoh: `46134.6455` -> `2026-04-22 15:29:32`), menyelesaikan masalah tanggal `submitted_at` terset ke Epoch Unix `1970-01-01 12:49:10`.
-     - **Auto Repair Tanggal 1970**: Otomatis memperbarui kolom `submitted_at` pada data toko lama di database yang terlanjur bernilai `1970-01-01`.
-  2. **Legacy Photo Importer (`noo:import-legacy-photos`)**:
-     - **Multi-Passe Engine**:
-       - **Passe 0**: Deteksi UUID `request_id` di folder/filename foto (100% Direct Match).
-       - **Passe 1**: Pencocokan Kode Principal (`code_noo_principal`, `previous_code_noo_principal`, `custcode_distributor`).
-       - **Passe 2**: Pencocokan Nama Toko (`nama_noo`).
-       - **Passe 3**: Pencocokan Cabang + Tanggal Presisi (`branch_id` + `submitted_at`).
-       - **Passe 4**: Fallback Match per Cabang.
-     - **Klasifikasi Tipe Foto**: Mendukung keyword `DEPAN` (`DEPAN`, `STORE`, `OUTLET`, `OUTSIDE`, `TOKO`, `FRONT`), `DALAM` (`DALAM`, `INSIDE`, `INTERIOR`), dan `KTP` (`KTP`, `SELFIE`, `OWNER`, `PEMILIK`, `TAX`, `NPWP`).
-     - **Path Storage Target**: Disimpan ke `storage/app/public/noo_photos/{branch_id}/{submitted_at_date}/{request_id}_{type}.jpg` dan dapat diakses publik secara instan via static route `/storage/`.
+---
+
+## 2. Arsitektur & Teknologi (Tech Stack)
+
+```
+[ Android App (SE) ] ──(REST API)──┐
+                                   ▼
+[ Web Browser (Distributor/SPV) ] ──┼──► [ Nginx / Reverse Proxy ]
+                                   │              │
+[ Web Browser (Principal Portal) ] ─┘              ▼
+                                          [ Laravel 12 Backend ]
+                                          ├── Inertia.js + Vue 3 (SSR/SPA)
+                                          ├── Eloquent & Query Builder
+                                          ├── PhpSpreadsheet (Export Engine)
+                                          └── Storage Driver (Local/Public)
+                                                  │
+                                                  ▼
+                                      [ PostgreSQL 16 Database ]
+```
+
+### Komponen Teknologi:
+- **Backend Framework**: PHP 8.2+ / Laravel 12.x
+- **Frontend Architecture**: Vue.js 3 (Composition API / `<script setup>`), Inertia.js, Tailwind CSS
+- **Database Engine**: PostgreSQL 16 (dengan indeks performa khusus pada pencarian teks dan filter status)
+- **Containerization**: Docker & Docker Compose (`docker compose exec app ...`)
+- **Web Server / Gateway**: Nginx Reverse Proxy
+- **File Storage**: Local Symbolic Storage (`storage/app/public/noo_photos/` disajikan via `/storage/`)
+- **Excel & Document Engine**: `PhpSpreadsheet` (dengan optimasi memori untuk dataset skala besar)
+
+---
+
+## 3. Analisis Alur Operasional End-to-End (4 Tahapan Workflow)
+
+```mermaid
+graph TD
+    A[Tahap 1: Mobile App SE] -->|Submit Toko + Foto + GPS| B[Status: SE_SUBMITTED]
+    B --> C{Tahap 2: Admin Distributor}
+    C -->|Tolak Toko| D[Status: ADMIN_REJECTED]
+    C -->|Isi Custcode Distributor & Submit| E[Status: PUSHED_TO_SPV]
+    E --> F{Tahap 3: SPV Area}
+    F -->|Tolak Pengajuan| G[Status: REJECTED_SPV]
+    F -->|Tentukan Rute H1-H7, M1-M4 & Approve| H[Status: APPROVED_SPV]
+    H --> I{Tahap 4: Principal EDP / Admin}
+    I -->|Verifikasi KTP / Data Kurang| J[Status: REJECTED_EDP]
+    I -->|Approve & Terbitkan Kode Principal| K[Status: APPROVED_EDP / RO Ready]
+```
+
+### Tahap 1: Sales Executive (Mobile App Android NOO+ v2.0)
+- **Aktor**: Salesman / Sales Executive (SE) di lapangan.
+- **Aktivitas**:
+  1. Login ke aplikasi Android NOO+ dengan memilih Cabang & Salesman serta verifikasi PIN Cabang.
+  2. Mengisi metadata toko: Nama Toko, Nama Pemilik, No. HP, Alamat, Kelurahan, Kecamatan, Kab/Kota, Provinsi, dan Tipe Outlet.
+  3. Mengambil titik koordinat GPS (*GPS Locking & Multi-Sampling* dengan batas toleransi akurasi meter).
+  4. Mengambil 2 foto fisik toko: **Tampak Depan** (dengan plang/toko) dan **Tampak Dalam** (rak/display).
+  5. Mengirim data ke endpoint backend `POST /api/mobile/submit-meta` dan `POST /api/mobile/upload-photo`.
+- **Status Awal**: `SE_SUBMITTED`.
+
+### Tahap 2: Portal Admin Distributor (`/distributor-login` -> `/distributor/inbox`)
+- **Aktor**: Admin Distributor di kantor cabang.
+- **Aktivitas**:
+  1. Login bertingkat (*Cascading Form*): Memilih Principal Area -> Region -> Entity -> Branch -> Masukkan PIN Cabang.
+  2. Memeriksa inbox pengajuan toko baru dari salesman cabangnya.
+  3. Memvalidasi data, menginput **Kode Customer Distributor** (`custcode_distributor`) yang terdaftar pada sistem internal cabang.
+  4. Menambahkan catatan admin (`admin_notes`).
+  5. **Tindakan**:
+     - **Push to SPV**: Mengirimkan pengajuan ke Supervisor Area (`PUSHED_TO_SPV`).
+     - **Tolak Pengajuan**: Menolak pengajuan dengan mencantumkan alasan penolakan (`ADMIN_REJECTED`).
+
+### Tahap 3: Portal SPV Area (`/spv-login` -> `/spv/inbox`)
+- **Aktor**: Supervisor Area (SPV) binaan cabang terkait.
+- **Aktivitas**:
+  1. Login menggunakan Salescode SPV & Password.
+  2. Melihat daftar pengajuan yang telah dipush oleh Admin Distributor pada cabang binaannya (`myBranches`).
+  3. Melakukan verifikasi kelayakan toko, keabsahan lokasi, dan potensi penjualan.
+  4. **Penyusunan Rute Kunjungan (JKS)**: Menetapkan hari kunjungan (`H1` s/d `H7`) dan pola minggu kunjungan (`M1`, `M2`, `M3`, `M4`).
+  5. **Tindakan**:
+     - **Approve SPV**: Menyetujui pengajuan toko beserta rutenya untuk diteruskan ke Principal (`APPROVED_SPV`).
+     - **Reject SPV**: Menolak pengajuan dengan mencantumkan alasan pembatalan (`REJECTED_SPV`).
+
+### Tahap 4: Portal Principal (`/principal/inbox`, `/principal/dashboard`, dll.)
+- **Aktor**: EDP Regional, Admin Principal, dan Superadmin.
+- **Aktivitas**:
+  1. **NOO Verification**:
+     - Verifikasi kelengkapan dokumen toko, foto tampak depan, foto tampak dalam, dan foto KTP.
+     - **Watermarking & Revisi KTP**: Memverifikasi KTP pemilik atau memberikan izin revisi KTP 1x dengan watermark pengaman otomatis.
+     - **Penerbitan Kode Principal**: Mengenerate nomor urut `code_noo_principal` unik berdasarkan prefix entitas dan sequence database.
+     - **Keputusan**: `APPROVED_EDP` (toko resmi terdaftar dan siap di-inject ke ERP Eskalink) atau `REJECTED_EDP` (dikembalikan/ditolak).
+     - **RO (Registered Outlet) Toggling**: Mengubah status keikutsertaan toko dalam program target RO.
+     - **Ekspor Data**: Mengunduh berkas laporan Excel (.xlsx) data Approved & Rejected lengkap.
+  2. **Monitoring RO (`/principal/monitoring-ro`)**:
+     - Memantau pencapaian realisasi toko baru RO terhadap target bulanan per salesman/cabang.
+     - Mengunggah berkas template target RO bulanan (.xlsx).
+  3. **Progress Tracking NOO (`/principal/progress-tracking`)**:
+     - Melacak jejak audit status submisi secara transparan.
+     - Fitur Reset Otoritas: Superadmin / Admin dapat melakukan *Reset Inputan Admin Distributor* (kembali ke `SE_SUBMITTED`) atau *Reset Keputusan SPV* (kembali ke `PUSHED_TO_SPV`).
+  4. **NOO Master Data (`/principal/master-*`)**:
+     - Pengelolaan data Master Region, Master Entity, Master Branch, Master Salesman, Master SPV, Master Outlet Types, dan Counter Sequence.
+  5. **Manajemen Akun & Role Manager (`/principal/account-management`)**:
+     - Manajemen akun pengguna portal dan pengaturan **Matriks Hak Akses Peran Pengguna (Permissions Matrix)** dengan pemisahan akses *View Only* dan *Kelola/Edit*.
+  6. **Logs & Audit (`/principal/logs`)**:
+     - Rekaman riwayat aktivitas operasional seluruh pengguna sistem (*Audit Trail*).
+
+---
+
+## 4. Struktur Basis Data & Tabel-Tabel Utama
+
+### 1. `noo_submissions` (Tabel Inti Submisi Toko)
+Menyimpan seluruh siklus hidup pengajuan toko dari mobile hingga principal.
+- **Identifikasi**: `id` (BigSerial, PK), `request_id` (UUID string, Unique, Idempotency key).
+- **Metadata Toko**: `nama_noo`, `nama_pemilik_outlet`, `no_hp_noo`, `alamat_noo`, `kel_noo`, `kec_noo`, `kab_kota_noo`, `provinsi_noo`, `type_outlet_code`, `type_outlet_desc`.
+- **Organisasi & Principal**: `principal` ('ASWFOODS'/'INAFOODS'), `principal_code`, `sub_group_region`, `region_code`, `branch_id`, `branch_name`, `area_code`, `salesman_code`, `salesman_name`.
+- **Geolokasi & GPS**: `la`, `lg`, `accuracy_m`, `samples_count`, `locked_la`, `locked_lg`, `locked_accuracy_m`, `mock_flag_locked`, `submit_la`, `submit_lg`, `submit_accuracy_m`, `mock_flag_submit`, `submit_distance_m`, `submit_radius_m`.
+- **Berkas Foto**: `photo_depan_url`, `photo_dalam_url`, `photo_ktp_url`, `ktp_owner_name`, `photo_status`.
+- **Mapping Kode Pelanggan**: `custcode_distributor`, `code_noo_principal`, `previous_code_noo_principal`.
+- **Rute Kunjungan SPV (JKS)**: `call_plan_frequency`, `call_plan_week`, `call_plan_days` (JSON/Array), `spv_salescode`, `spv_name`.
+- **Status & Siklus Hidup**: `status` (Enum/Varchar), `is_ro` (Boolean), `submitted_at`, `pushed_to_spv_at`, `approved_spv_at`, `approved_edp_at`, `rejected_at`, `reject_reason`, `reset_reason`.
+- **Catatan & Approver**: `admin_notes`, `spv_notes`, `edp_notes`, `admin_approver_name`, `spv_approver_name`, `edp_approver_name`.
+
+### 2. `users` (Tabel Akun Pengguna Portal Principal)
+- `id`, `username`, `name`, `email`, `password`.
+- `role`: `'SUPERADMIN'`, `'ADMIN_PRINCIPAL'`, `'EDP_REGION'`.
+- `region_code`: Scoping wilayah akses data (contoh: `'ASWSUM'`, `'INAJWA'`, atau multiple dipisah koma).
+- `entity_code_principal`: Scoping entitas spesifik jika ada.
+- `is_active`: Status aktif akun.
+
+### 3. `master_regions` & `master_entities` (Hierarki Wilayah & Entitas Principal)
+- **`master_regions`**: `id`, `region_code` (Unique), `region_name`, `principal_code` ('ASW'/'INA'), `principal_name` ('ASWFOODS'/'INAFOODS'), `is_active`.
+- **`master_entities`**: `id`, `region_code`, `region_name`, `entity_code_principal` (Unique), `entity_name_principal`, `principal_code`, `principal_name`, `is_active`.
+
+### 4. `master_branches`, `master_salesmen`, `master_spvs`, `master_outlet_types`
+- **`master_branches`**: `id`, `branch_id` (Unique), `branch_name`, `region_code`, `region_name`, `entity_code_principal`, `entity_name_principal`, `pin_branch`, `is_active`.
+- **`master_salesmen`**: `id`, `salesman_code` (Unique), `salesman_name`, `branch_id`, `branch_name`, `is_active`.
+- **`master_spvs`**: `id`, `salescode` (Unique), `spv_name`, `password`, `branch_ids` (Array string cabang binaan), `is_active`.
+- **`master_outlet_types`**: `id`, `code` (Unique), `description`, `is_active`.
+
+### 5. `counter_sequences` (Generator Nomor Urut Kode Customer Principal)
+- Menyimpan nilai atomik penomoran berjalan berdasarkan prefix kode cabang/entitas: `id`, `prefix_code`, `current_number`, `updated_at`.
+
+### 6. `target_ros` (Target RO Bulanan Salesman)
+- Menyimpan target toko baru berstatus Registered Outlet (RO): `id`, `branch_id`, `salesman_code`, `target_month` (YYYY-MM), `target_ro_count`.
+
+### 7. `activity_logs` (Audit Trails)
+- Rekaman setiap aksi operasional pengguna: `id`, `username`, `user_role`, `action` ('CREATE', 'UPDATE', 'DELETE', 'APPROVE', 'REJECT', 'RESET'), `module`, `description`, `ip_address`, `created_at`.
+
+---
+
+## 5. Tata Kelola Hak Akses & Matriks Otorisasi (Permissions Matrix)
+
+Matriks hak akses portal dikelola secara sentral oleh **Superadmin** melalui menu `Manajemen Akun` (`AccountManagement.vue`). Seluruh modul Master Data dan fitur operasional dipisahkan menjadi dua tingkatan hak akses:
+1. **Lihat / View Only**: Mengizinkan pengguna membuka halaman, melihat data tabel, dan menggunakan filter pencarian tanpa izin mengubah data.
+2. **Kelola / Tambah / Edit / Hapus**: Mengizinkan pembuatan data baru, pengeditan data, dan penghapusan data master.
+
+### Standar Otorisasi Bawaan (Default Matrix):
+| Modul / Fitur Portal | EDP Region | Admin Principal | Superadmin |
+| :--- | :---: | :---: | :---: |
+| **Home (Dashboard Eksekutif & Chart)** | View Only | View Only | Full Access |
+| **NOO Verification (Approval & Reject Toko)** | ✅ | ✅ | ✅ |
+| **Revisi Foto KTP (Watermarking Standar)** | ✅ | ✅ | ✅ |
+| **Unlock / Reset Kunci Revisi KTP** | ❌ | ❌ | ✅ |
+| **Reset Approval EDP & Status Reject** | ❌ | ✅ | ✅ |
+| **Ubah Status Registered Outlet (RO)** | ✅ | ✅ | ✅ |
+| **Export Excel Data Approved & Rejected** | ✅ | ✅ | ✅ |
+| **Monitoring RO (Target vs Realisasi)** | ❌ | ❌ | ✅ |
+| **Progress Tracking & Reset Inputan** | View Only | Reset Admin/SPV | Full Control |
+| **Master Region (View Only)** | ❌ | ✅ | ✅ |
+| **Master Region (Kelola / Edit / Hapus)** | ❌ | ❌ | ✅ |
+| **Master Entity (View Only)** | ❌ | ✅ | ✅ |
+| **Master Entity (Kelola / Edit / Hapus)** | ❌ | ❌ | ✅ |
+| **Master Branch (View Only / Kelola)** | View Only | Kelola | Full Access |
+| **Master Salesman (View Only / Kelola)** | View Only | Kelola | Full Access |
+| **Master SPV (View Only / Kelola)** | View Only | Kelola | Full Access |
+| **Master Outlet Types (View Only / Kelola)** | View Only | Kelola | Full Access |
+| **Counter Sequence (View Only / Setting)** | ❌ | Setting & Update | Full Access |
+| **Bulk Upload CSV Data Master** | ❌ | ❌ | ✅ |
+| **User Management & Role Manager Matrix** | ❌ | ❌ | ✅ |
+| **Audit Logs & Riwayat Aktivitas Sistem** | ❌ | View Only | Full Access |
+
+---
+
+## 6. Prosedur Deployment & Pemeliharaan Server
+
+### 1. Terminal Lokal (Pengembangan / CMD Windows):
+```cmd
+cd /d d:\AndroidStudioProjects\noo-server
+
+# 1. Jalankan build asset frontend Vite
+npm run build
+
+# 2. Commit dan push perubahan kode
+git add .
+git commit -m "feat: deskripsi perubahan"
+git push origin main
+```
+
+### 2. Terminal Server Production (SSH ASWFOODS 172.22.1.232):
+```bash
+cd /var/www/noo-server
+
+# 1. Tarik pembaruan dari repository
+git pull origin main
+
+# 2. Bersihkan cache aplikasi di dalam container docker
+docker compose exec app php artisan optimize:clear
+
+# 3. Jalankan migrasi atau seeder (jika ada pembaruan skema database)
+# docker compose exec app php artisan migrate
+# docker compose exec app php artisan db:seed --class=MasterRegionEntitySeeder
+```
+
+---
+*Dokumentasi ini dikelola secara otomatis dan merefleksikan arsitektur sistem informasi NOO+ terkini.*
