@@ -519,8 +519,10 @@ function getActiveQueryParams() {
   if (search.value) queryParams.search = search.value;
   if (sortSelect.value) queryParams.sort = sortSelect.value;
 
-  const perPageVal = props.filters?.per_page || props.submissions?.per_page;
-  if (perPageVal) {
+  const perPageVal = props.filters?.per_page !== undefined
+    ? props.filters.per_page
+    : (props.submissions?.per_page >= 100000 ? -1 : props.submissions?.per_page);
+  if (perPageVal !== undefined && perPageVal !== null && perPageVal !== '') {
     queryParams.per_page = perPageVal;
   }
   return queryParams;
@@ -1755,7 +1757,7 @@ function getLineStyle(stepBefore, item) {
           :from="submissions.from"
           :to="submissions.to"
           :total="submissions.total"
-          :current-per-page="submissions.per_page"
+          :current-per-page="filters?.per_page !== undefined ? filters.per_page : submissions.per_page"
         />
       </div>
 

@@ -164,22 +164,22 @@ class EdpPortalController extends Controller
                 $query->orderByRaw("COALESCE(spv_submit_at, pushed_to_edp_at, pushed_to_spv_at, submitted_at, created_at) ASC");
                 break;
             case 'nama_noo_asc':
-                $query->orderBy('nama_noo', 'ASC');
+                $query->orderByRaw("LOWER(nama_noo) ASC");
                 break;
             case 'nama_noo_desc':
-                $query->orderBy('nama_noo', 'DESC');
+                $query->orderByRaw("LOWER(nama_noo) DESC");
                 break;
             case 'branch_name_asc':
-                $query->orderBy('branch_name', 'ASC');
+                $query->orderByRaw("LOWER(branch_name) ASC");
                 break;
             case 'branch_name_desc':
-                $query->orderBy('branch_name', 'DESC');
+                $query->orderByRaw("LOWER(branch_name) DESC");
                 break;
             case 'salesman_name_asc':
-                $query->orderBy('salesman_name', 'ASC');
+                $query->orderByRaw("LOWER(salesman_name) ASC");
                 break;
             case 'salesman_name_desc':
-                $query->orderBy('salesman_name', 'DESC');
+                $query->orderByRaw("LOWER(salesman_name) DESC");
                 break;
             case 'status_asc':
                 $query->orderBy('status', 'ASC');
@@ -307,6 +307,10 @@ class EdpPortalController extends Controller
             $request->only(['search', 'region_code', 'principal', 'branch_id', 'status', 'is_ro', 'edp_month', 'edp_months', 'edp_year', 'sort', 'per_page']),
             fn($val) => $val !== null && $val !== ''
         );
+        if ($request->has('per_page')) {
+            $rawPerPage = (int) $request->input('per_page');
+            $activeFilters['per_page'] = ($rawPerPage <= 0 || $rawPerPage >= 1000) ? -1 : $rawPerPage;
+        }
 
         return Inertia::render('Edp/Inbox', [
             'submissions' => $submissions,
