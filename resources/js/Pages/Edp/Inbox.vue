@@ -17,7 +17,7 @@ import BaseButton from '@/Components/BaseButton.vue';
 import BaseCard from '@/Components/BaseCard.vue';
 
 const props = defineProps({
-  submissions: Array,
+  submissions: [Object, Array],
   userRegion: String,
   userRole: {
     type: String,
@@ -44,6 +44,7 @@ const selectedEdpMonths = ref(
 );
 const selectedEdpYear = ref(props.filters?.edp_year ? String(props.filters.edp_year) : '');
 const search = ref(props.filters?.search || '');
+const sortSelect = ref(props.filters?.sort || 'created_at_desc');
 
 const isMonthDropdownOpen = ref(false);
 const monthDropdownRef = ref(null);
@@ -131,6 +132,7 @@ const modalEdpMonths = ref(
     : (props.filters?.edp_month ? [String(props.filters.edp_month)] : [])
 );
 const modalEdpYear = ref(props.filters?.edp_year ? String(props.filters.edp_year) : '');
+const modalSort = ref(props.filters?.sort || 'created_at_desc');
 
 function openFilterModal() {
   modalRegion.value = selectedRegion.value;
@@ -139,6 +141,7 @@ function openFilterModal() {
   modalStatus.value = selectedStatus.value;
   modalEdpMonths.value = [...selectedEdpMonths.value];
   modalEdpYear.value = selectedEdpYear.value;
+  modalSort.value = sortSelect.value;
   showFilterModal.value = true;
 }
 
@@ -412,23 +415,21 @@ function removeChip(key) {
   applyFilters();
 }
 
-function applyFilters() {
-  const queryParams = {};
-  if (selectedRegion.value) queryParams.region_code = selectedRegion.value;
-  if (selectedPrincipal.value) queryParams.principal = selectedPrincipal.value;
-  if (selectedBranch.value) queryParams.branch_id = selectedBranch.value;
-  if (selectedStatus.value) queryParams.status = selectedStatus.value;
-  if (selectedEdpMonths.value && selectedEdpMonths.value.length > 0) {
-    queryParams.edp_months = selectedEdpMonths.value.join(',');
+function applyFilters(overrides = {}) {
+  const queryParams = getActiveQueryParams();
+  Object.assign(queryParams, overrides);
+
+  // Reset to page 1 unless page is explicitly specified in overrides
+  if (!overrides.page) {
+    queryParams.page = 1;
   }
-  if (selectedEdpYear.value) queryParams.edp_year = selectedEdpYear.value;
-  if (search.value) queryParams.search = search.value;
 
   router.get(
     route('edp.inbox'),
     queryParams,
     {
       preserveScroll: true,
+      preserveState: true,
       replace: true,
       onStart: () => {
         isLoadingFilters.value = true;
@@ -447,6 +448,7 @@ function applyFilterModal() {
   selectedStatus.value = modalStatus.value;
   selectedEdpMonths.value = [...modalEdpMonths.value];
   selectedEdpYear.value = modalEdpYear.value;
+  sortSelect.value = modalSort.value;
   showFilterModal.value = false;
   applyFilters();
 }
@@ -459,12 +461,14 @@ function resetFilters() {
   selectedEdpMonths.value = [];
   selectedEdpYear.value = '';
   search.value = '';
+  sortSelect.value = 'created_at_desc';
   modalRegion.value = '';
   modalPrincipal.value = '';
   modalBranch.value = '';
   modalStatus.value = '';
   modalEdpMonths.value = [];
   modalEdpYear.value = '';
+  modalSort.value = 'created_at_desc';
   showFilterModal.value = false;
   applyFilters();
 }
@@ -513,6 +517,12 @@ function getActiveQueryParams() {
   }
   if (selectedEdpYear.value) queryParams.edp_year = selectedEdpYear.value;
   if (search.value) queryParams.search = search.value;
+  if (sortSelect.value) queryParams.sort = sortSelect.value;
+
+  const perPageVal = props.filters?.per_page || props.submissions?.per_page;
+  if (perPageVal) {
+    queryParams.per_page = perPageVal;
+  }
   return queryParams;
 }
 
@@ -1225,44 +1235,30 @@ function handleResetEdpApproval() {
   );
 }
 
-const sortKey = ref('created_at');
-const sortDir = ref('desc');
-
-const sortSelect = computed({
-  get() {
-    return `${sortKey.value}_${sortDir.value}`;
-  },
-  set(val) {
-    if (!val) return;
-    const parts = val.split('_');
-    const dir = parts.pop();
-    const key = parts.join('_');
-    sortKey.value = key;
-    sortDir.value = dir;
-  },
-});
-
 const sortedSubmissions = computed(() => {
-  const list = [...(props.submissions?.data || props.submissions || [])];
-  if (!sortKey.value) return list;
-
-  return list.sort((a, b) => {
-    let valA = a[sortKey.value] ?? '';
-    let valB = b[sortKey.value] ?? '';
-
-    if (['submitted_at', 'created_at', 'pushed_to_spv_at', 'spv_submit_at', 'pushed_to_edp_at', 'edp_reviewed_at'].includes(sortKey.value)) {
-      valA = valA ? new Date(valA).getTime() : 0;
-      valB = valB ? new Date(valB).getTime() : 0;
-    } else if (typeof valA === 'string') {
-      valA = valA.toLowerCase();
-      valB = valB.toLowerCase();
-    }
-
-    if (valA < valB) return sortDir.value === 'asc' ? -1 : 1;
-    if (valA > valB) return sortDir.value === 'asc' ? 1 : -1;
-    return 0;
-  });
+  return props.submissions?.data || (Array.isArray(props.submissions) ? props.submissions : []);
 });
+
+watch(
+  () => props.filters,
+  (newFilters) => {
+    if (!newFilters) return;
+    selectedRegion.value = newFilters.region_code || '';
+    selectedPrincipal.value = newFilters.principal || '';
+    selectedBranch.value = newFilters.branch_id || '';
+    selectedStatus.value = newFilters.status || '';
+    selectedEdpMonths.value = newFilters.edp_months
+      ? String(newFilters.edp_months).split(',')
+      : (newFilters.edp_month ? [String(newFilters.edp_month)] : []);
+    selectedEdpYear.value = newFilters.edp_year ? String(newFilters.edp_year) : '';
+    search.value = newFilters.search || '';
+    if (newFilters.sort) {
+      sortSelect.value = newFilters.sort;
+      modalSort.value = newFilters.sort;
+    }
+  },
+  { deep: true }
+);
 
 function exportExcel(type) {
   window.open(route('edp.export_excel', { type }), '_blank');
@@ -1609,7 +1605,7 @@ function getLineStyle(stepBefore, item) {
             <div class="relative inline-flex items-center shrink-0">
               <select
                 v-model="sortSelect"
-                @change="applyFilters"
+                @change="applyFilters()"
                 class="pl-2.5 pr-7 py-1.5 text-[12px] font-medium rounded-lg border border-slate-300 bg-slate-50 hover:bg-white text-slate-700 focus:ring-2 focus:ring-blue-500 cursor-pointer shadow-2xs transition max-w-[220px] truncate"
               >
                 <option value="created_at_desc">Sort: Waktu Submit Terbaru</option>
@@ -1617,13 +1613,17 @@ function getLineStyle(stepBefore, item) {
                 <option value="nama_noo_asc">Sort: Nama Outlet (A-Z)</option>
                 <option value="nama_noo_desc">Sort: Nama Outlet (Z-A)</option>
                 <option value="branch_name_asc">Sort: Nama Cabang (A-Z)</option>
+                <option value="branch_name_desc">Sort: Nama Cabang (Z-A)</option>
                 <option value="salesman_name_asc">Sort: Nama Salesman (A-Z)</option>
+                <option value="salesman_name_desc">Sort: Nama Salesman (Z-A)</option>
+                <option value="status_asc">Sort: Status Submisi (A-Z)</option>
+                <option value="status_desc">Sort: Status Submisi (Z-A)</option>
               </select>
             </div>
 
             <!-- Filter & Sort Dialog Button -->
             <button
-              @click="showFilterModal = true"
+              @click="openFilterModal"
               class="px-2.5 py-1.5 text-[11px] font-semibold text-slate-800 bg-white hover:bg-slate-100 border border-slate-300 rounded-lg shadow-2xs transition flex items-center gap-1.5 cursor-pointer shrink-0"
             >
               <svg class="w-3.5 h-3.5 text-slate-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2.586a1 1 0 01-.293.707l-6.414 6.414a1 1 0 00-.293.707V17l-4 4v-6.586a1 1 0 00-.293-.707L3.293 7.293A1 1 0 013 6.586V4z"/></svg>
@@ -3043,8 +3043,12 @@ function getLineStyle(stepBefore, item) {
                     <option value="created_at_asc">Waktu Submit (Terlama ke Terbaru)</option>
                     <option value="nama_noo_asc">Nama Outlet (A - Z)</option>
                     <option value="nama_noo_desc">Nama Outlet (Z - A)</option>
-                    <option value="branch_name_asc">Cabang Distributor (A - Z)</option>
-                    <option value="status_asc">Status Submisi</option>
+                    <option value="branch_name_asc">Nama Cabang (A - Z)</option>
+                    <option value="branch_name_desc">Nama Cabang (Z - A)</option>
+                    <option value="salesman_name_asc">Nama Salesman (A - Z)</option>
+                    <option value="salesman_name_desc">Nama Salesman (Z - A)</option>
+                    <option value="status_asc">Status Submisi (A - Z)</option>
+                    <option value="status_desc">Status Submisi (Z - A)</option>
                   </select>
                   <svg class="w-3.5 h-3.5 absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/></svg>
                 </div>

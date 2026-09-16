@@ -158,9 +158,43 @@ class EdpPortalController extends Controller
             $perPage = 100000;
         }
 
-        $submissions = $query->orderByRaw("CASE WHEN status IN ('PUSHED_TO_EDP', 'APPROVED_SPV', 'APPROVED_BY_SPV') THEN 0 ELSE 1 END ASC")
-            ->orderByRaw("COALESCE(spv_submit_at, pushed_to_edp_at, pushed_to_spv_at, submitted_at, created_at) DESC")
-            ->paginate($perPage)
+        $sort = (string) $request->input('sort', 'created_at_desc');
+        switch ($sort) {
+            case 'created_at_asc':
+                $query->orderByRaw("COALESCE(spv_submit_at, pushed_to_edp_at, pushed_to_spv_at, submitted_at, created_at) ASC");
+                break;
+            case 'nama_noo_asc':
+                $query->orderBy('nama_noo', 'ASC');
+                break;
+            case 'nama_noo_desc':
+                $query->orderBy('nama_noo', 'DESC');
+                break;
+            case 'branch_name_asc':
+                $query->orderBy('branch_name', 'ASC');
+                break;
+            case 'branch_name_desc':
+                $query->orderBy('branch_name', 'DESC');
+                break;
+            case 'salesman_name_asc':
+                $query->orderBy('salesman_name', 'ASC');
+                break;
+            case 'salesman_name_desc':
+                $query->orderBy('salesman_name', 'DESC');
+                break;
+            case 'status_asc':
+                $query->orderBy('status', 'ASC');
+                break;
+            case 'status_desc':
+                $query->orderBy('status', 'DESC');
+                break;
+            case 'created_at_desc':
+            default:
+                $query->orderByRaw("CASE WHEN status IN ('PUSHED_TO_EDP', 'APPROVED_SPV', 'APPROVED_BY_SPV') THEN 0 ELSE 1 END ASC")
+                      ->orderByRaw("COALESCE(spv_submit_at, pushed_to_edp_at, pushed_to_spv_at, submitted_at, created_at) DESC");
+                break;
+        }
+
+        $submissions = $query->paginate($perPage)
             ->withQueryString()
             ->through(function ($item) use ($outletTypes) {
             $formatPhoto = function ($path) {
@@ -270,7 +304,7 @@ class EdpPortalController extends Controller
         }
 
         $activeFilters = array_filter(
-            $request->only(['search', 'region_code', 'principal', 'branch_id', 'status', 'is_ro', 'edp_month', 'edp_months', 'edp_year']),
+            $request->only(['search', 'region_code', 'principal', 'branch_id', 'status', 'is_ro', 'edp_month', 'edp_months', 'edp_year', 'sort', 'per_page']),
             fn($val) => $val !== null && $val !== ''
         );
 
@@ -291,7 +325,7 @@ class EdpPortalController extends Controller
     private function redirectWithFilters(Request $request, string $flashType, string $flashMessage): RedirectResponse
     {
         $filterParams = array_filter(
-            $request->only(['search', 'region_code', 'principal', 'branch_id', 'status', 'is_ro', 'edp_month', 'edp_months', 'edp_year']),
+            $request->only(['search', 'region_code', 'principal', 'branch_id', 'status', 'is_ro', 'edp_month', 'edp_months', 'edp_year', 'sort', 'per_page', 'page']),
             fn($val) => $val !== null && $val !== ''
         );
 
