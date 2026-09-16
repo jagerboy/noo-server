@@ -44,7 +44,37 @@ const selectedEdpMonths = ref(
 );
 const selectedEdpYear = ref(props.filters?.edp_year ? String(props.filters.edp_year) : '');
 const search = ref(props.filters?.search || '');
-const sortSelect = ref(props.filters?.sort || 'created_at_desc');
+function parseSortParam(sortParam) {
+  if (!sortParam) return { key: 'created_at', dir: 'desc' };
+  const str = String(sortParam);
+  if (str.endsWith('_asc')) {
+    return { key: str.slice(0, -4), dir: 'asc' };
+  }
+  if (str.endsWith('_desc')) {
+    return { key: str.slice(0, -5), dir: 'desc' };
+  }
+  return { key: str, dir: 'desc' };
+}
+
+const initialSort = parseSortParam(props.filters?.sort);
+const sortKey = ref(initialSort.key);
+const sortDir = ref(initialSort.dir);
+
+const sortSelect = computed({
+  get() {
+    return `${sortKey.value}_${sortDir.value}`;
+  },
+  set(val) {
+    const parsed = parseSortParam(val);
+    sortKey.value = parsed.key;
+    sortDir.value = parsed.dir;
+  },
+});
+
+function toggleSortDir() {
+  sortDir.value = sortDir.value === 'asc' ? 'desc' : 'asc';
+  applyFilters();
+}
 
 const isMonthDropdownOpen = ref(false);
 const monthDropdownRef = ref(null);
@@ -132,7 +162,18 @@ const modalEdpMonths = ref(
     : (props.filters?.edp_month ? [String(props.filters.edp_month)] : [])
 );
 const modalEdpYear = ref(props.filters?.edp_year ? String(props.filters.edp_year) : '');
-const modalSort = ref(props.filters?.sort || 'created_at_desc');
+const modalSortKey = ref(initialSort.key);
+const modalSortDir = ref(initialSort.dir);
+const modalSort = computed({
+  get() {
+    return `${modalSortKey.value}_${modalSortDir.value}`;
+  },
+  set(val) {
+    const parsed = parseSortParam(val);
+    modalSortKey.value = parsed.key;
+    modalSortDir.value = parsed.dir;
+  },
+});
 
 function openFilterModal() {
   modalRegion.value = selectedRegion.value;
@@ -141,7 +182,8 @@ function openFilterModal() {
   modalStatus.value = selectedStatus.value;
   modalEdpMonths.value = [...selectedEdpMonths.value];
   modalEdpYear.value = selectedEdpYear.value;
-  modalSort.value = sortSelect.value;
+  modalSortKey.value = sortKey.value;
+  modalSortDir.value = sortDir.value;
   showFilterModal.value = true;
 }
 
@@ -448,7 +490,8 @@ function applyFilterModal() {
   selectedStatus.value = modalStatus.value;
   selectedEdpMonths.value = [...modalEdpMonths.value];
   selectedEdpYear.value = modalEdpYear.value;
-  sortSelect.value = modalSort.value;
+  sortKey.value = modalSortKey.value;
+  sortDir.value = modalSortDir.value;
   showFilterModal.value = false;
   applyFilters();
 }
@@ -461,14 +504,16 @@ function resetFilters() {
   selectedEdpMonths.value = [];
   selectedEdpYear.value = '';
   search.value = '';
-  sortSelect.value = 'created_at_desc';
+  sortKey.value = 'created_at';
+  sortDir.value = 'desc';
   modalRegion.value = '';
   modalPrincipal.value = '';
   modalBranch.value = '';
   modalStatus.value = '';
   modalEdpMonths.value = [];
   modalEdpYear.value = '';
-  modalSort.value = 'created_at_desc';
+  modalSortKey.value = 'created_at';
+  modalSortDir.value = 'desc';
   showFilterModal.value = false;
   applyFilters();
 }
@@ -1254,10 +1299,11 @@ watch(
       : (newFilters.edp_month ? [String(newFilters.edp_month)] : []);
     selectedEdpYear.value = newFilters.edp_year ? String(newFilters.edp_year) : '';
     search.value = newFilters.search || '';
-    if (newFilters.sort) {
-      sortSelect.value = newFilters.sort;
-      modalSort.value = newFilters.sort;
-    }
+    const parsed = parseSortParam(newFilters.sort);
+    sortKey.value = parsed.key;
+    sortDir.value = parsed.dir;
+    modalSortKey.value = parsed.key;
+    modalSortDir.value = parsed.dir;
   },
   { deep: true }
 );
@@ -1603,24 +1649,35 @@ function getLineStyle(stepBefore, item) {
             </div>
 
 
-            <!-- Quick Sort Select -->
-            <div class="relative inline-flex items-center shrink-0">
+            <!-- Quick Sort Select (Column Category) & Direction Toggle Button (ASC/DESC) -->
+            <div class="inline-flex items-center rounded-lg border border-slate-300 bg-white shadow-2xs overflow-hidden shrink-0">
               <select
-                v-model="sortSelect"
+                v-model="sortKey"
                 @change="applyFilters()"
-                class="pl-2.5 pr-7 py-1.5 text-[12px] font-medium rounded-lg border border-slate-300 bg-slate-50 hover:bg-white text-slate-700 focus:ring-2 focus:ring-blue-500 cursor-pointer shadow-2xs transition max-w-[220px] truncate"
+                class="pl-2.5 pr-7 py-1.5 text-[12px] font-semibold bg-slate-50 hover:bg-white text-slate-700 focus:ring-0 border-0 cursor-pointer max-w-[170px] truncate"
               >
-                <option value="created_at_desc">Sort: Waktu Submit Terbaru</option>
-                <option value="created_at_asc">Sort: Waktu Submit Terlama</option>
-                <option value="nama_noo_asc">Sort: Nama Outlet (A-Z)</option>
-                <option value="nama_noo_desc">Sort: Nama Outlet (Z-A)</option>
-                <option value="branch_name_asc">Sort: Nama Cabang (A-Z)</option>
-                <option value="branch_name_desc">Sort: Nama Cabang (Z-A)</option>
-                <option value="salesman_name_asc">Sort: Nama Salesman (A-Z)</option>
-                <option value="salesman_name_desc">Sort: Nama Salesman (Z-A)</option>
-                <option value="status_asc">Sort: Status Submisi (A-Z)</option>
-                <option value="status_desc">Sort: Status Submisi (Z-A)</option>
+                <option value="created_at">Waktu Submit</option>
+                <option value="nama_noo">Nama Outlet</option>
+                <option value="branch_name">Nama Cabang</option>
+                <option value="salesman_name">Nama Salesman</option>
+                <option value="status">Status Submisi</option>
               </select>
+
+              <button
+                type="button"
+                @click="toggleSortDir"
+                :title="sortDir === 'asc' ? 'Urutan: Ascending (A-Z / Terlama). Klik untuk ubah ke Descending' : 'Urutan: Descending (Z-A / Terbaru). Klik untuk ubah ke Ascending'"
+                class="px-2.5 py-1.5 border-l border-slate-200 bg-slate-50 hover:bg-slate-100 text-slate-700 hover:text-blue-600 transition flex items-center gap-1.5 text-[11px] font-bold cursor-pointer shrink-0"
+              >
+                <span v-if="sortDir === 'asc'" class="flex items-center gap-1 text-blue-600 font-bold">
+                  <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M3 4h13M3 8h9m-9 4h6m4 0l4-4m0 0l4 4m-4-4v12"/></svg>
+                  <span>ASC (A-Z)</span>
+                </span>
+                <span v-else class="flex items-center gap-1 text-slate-700 font-bold">
+                  <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M3 4h13M3 8h9m-9 4h9m5-4v12m0 0l-4-4m4 4l4-4"/></svg>
+                  <span>DESC (Z-A)</span>
+                </span>
+              </button>
             </div>
 
             <!-- Filter & Sort Dialog Button -->
@@ -3033,26 +3090,47 @@ function getLineStyle(stepBefore, item) {
                 </div>
               </div>
 
-              <!-- SORT DROPDOWN -->
-              <div>
-                <label class="block text-xs font-bold text-slate-700 mb-1">Urutkan Tampilan Tabel (Sort):</label>
-                <div class="relative">
-                  <select
-                    v-model="modalSort"
-                    class="w-full text-xs font-semibold p-2.5 pr-8 rounded-lg border border-slate-300 bg-white text-slate-800 focus:ring-2 focus:ring-blue-500 shadow-2xs cursor-pointer appearance-none"
-                  >
-                    <option value="created_at_desc">Waktu Submit (Terbaru ke Terlama)</option>
-                    <option value="created_at_asc">Waktu Submit (Terlama ke Terbaru)</option>
-                    <option value="nama_noo_asc">Nama Outlet (A - Z)</option>
-                    <option value="nama_noo_desc">Nama Outlet (Z - A)</option>
-                    <option value="branch_name_asc">Nama Cabang (A - Z)</option>
-                    <option value="branch_name_desc">Nama Cabang (Z - A)</option>
-                    <option value="salesman_name_asc">Nama Salesman (A - Z)</option>
-                    <option value="salesman_name_desc">Nama Salesman (Z - A)</option>
-                    <option value="status_asc">Status Submisi (A - Z)</option>
-                    <option value="status_desc">Status Submisi (Z - A)</option>
-                  </select>
-                  <svg class="w-3.5 h-3.5 absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/></svg>
+              <!-- SORT SECTION IN MODAL -->
+              <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <div>
+                  <label class="block text-xs font-bold text-slate-700 mb-1">Urutkan Berdasarkan (Kolom):</label>
+                  <div class="relative">
+                    <select
+                      v-model="modalSortKey"
+                      class="w-full text-xs font-semibold p-2.5 pr-8 rounded-lg border border-slate-300 bg-white text-slate-800 focus:ring-2 focus:ring-blue-500 shadow-2xs cursor-pointer appearance-none"
+                    >
+                      <option value="created_at">📅 Waktu Submit</option>
+                      <option value="nama_noo">🏪 Nama Outlet</option>
+                      <option value="branch_name">🏢 Nama Cabang</option>
+                      <option value="salesman_name">👤 Nama Salesman</option>
+                      <option value="status">📌 Status Submisi</option>
+                    </select>
+                    <svg class="w-3.5 h-3.5 absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/></svg>
+                  </div>
+                </div>
+
+                <div>
+                  <label class="block text-xs font-bold text-slate-700 mb-1">Arah Urutan (Direction):</label>
+                  <div class="flex items-center h-10 border border-slate-300 rounded-lg p-1 bg-slate-50 gap-1">
+                    <button
+                      type="button"
+                      @click="modalSortDir = 'desc'"
+                      class="flex-1 h-full rounded-md text-xs font-bold transition flex items-center justify-center gap-1.5 cursor-pointer"
+                      :class="modalSortDir === 'desc' ? 'bg-blue-600 text-white shadow-xs' : 'text-slate-600 hover:text-slate-900 hover:bg-white'"
+                    >
+                      <span>⬇ DESC</span>
+                      <span class="text-[10px] font-normal opacity-80">(Z-A / Terbaru)</span>
+                    </button>
+                    <button
+                      type="button"
+                      @click="modalSortDir = 'asc'"
+                      class="flex-1 h-full rounded-md text-xs font-bold transition flex items-center justify-center gap-1.5 cursor-pointer"
+                      :class="modalSortDir === 'asc' ? 'bg-blue-600 text-white shadow-xs' : 'text-slate-600 hover:text-slate-900 hover:bg-white'"
+                    >
+                      <span>⬆ ASC</span>
+                      <span class="text-[10px] font-normal opacity-80">(A-Z / Terlama)</span>
+                    </button>
+                  </div>
                 </div>
               </div>
             </div>

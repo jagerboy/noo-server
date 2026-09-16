@@ -307,6 +307,7 @@ class EdpPortalController extends Controller
             $request->only(['search', 'region_code', 'principal', 'branch_id', 'status', 'is_ro', 'edp_month', 'edp_months', 'edp_year', 'sort', 'per_page']),
             fn($val) => $val !== null && $val !== ''
         );
+        $activeFilters['sort'] = $sort;
         if ($request->has('per_page')) {
             $rawPerPage = (int) $request->input('per_page');
             $activeFilters['per_page'] = ($rawPerPage <= 0 || $rawPerPage >= 1000) ? -1 : $rawPerPage;
