@@ -101,9 +101,6 @@ function onEntityChange() {
   applyFilters();
 }
 
-const sortKey = ref(props.filters?.sort_by || 'branch_id');
-const sortDir = ref(props.filters?.sort_dir || 'asc');
-
 function handleSort(key) {
   if (sortKey.value === key) {
     sortDir.value = sortDir.value === 'asc' ? 'desc' : 'asc';
