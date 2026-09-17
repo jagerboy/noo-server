@@ -1020,14 +1020,12 @@ function getCardAccentClass(item) {
               <tr
                 v-for="item in sortedSubmissions"
                 :key="item.id || item.request_id"
-                @click="openDetailModal(item)"
-                class="transition border-b cursor-pointer group hover:bg-slate-50/80 select-none bg-white"
-                title="Klik untuk membuka detail submisi & kelola rute toko"
+                class="transition border-b hover:bg-slate-50/80 bg-white"
               >
                 <!-- 1. Toko & Salesman -->
-                <td class="px-3.5 py-3 align-top">
+                <td class="px-3.5 py-3 align-middle">
                   <div class="flex items-center gap-1.5 flex-wrap">
-                    <span class="font-bold text-[13px] text-slate-900 group-hover:text-blue-600 transition">
+                    <span class="font-bold text-[13px] text-slate-900">
                       {{ item.nama_noo }}
                     </span>
                     <span
@@ -1043,7 +1041,7 @@ function getCardAccentClass(item) {
                 </td>
 
                 <!-- 2. Alamat & Cabang -->
-                <td class="px-3 py-3 align-top">
+                <td class="px-3 py-3 align-middle">
                   <div class="text-[12px] text-slate-800 line-clamp-2" :title="item.alamat_noo">
                     {{ item.alamat_noo || '-' }}
                   </div>
@@ -1053,14 +1051,14 @@ function getCardAccentClass(item) {
                 </td>
 
                 <!-- 3. Status -->
-                <td class="px-3 py-3 align-top">
+                <td class="px-3 py-3 align-middle">
                   <span class="inline-block px-2.5 py-0.5 rounded-full text-[10.5px] font-semibold border shadow-2xs whitespace-nowrap" :class="getStatusBadgeStyle(item.status)">
                     {{ formatStatusLabel(item.status) }}
                   </span>
                 </td>
 
                 <!-- 4. Cust Dist. -->
-                <td class="px-2.5 py-3 align-top">
+                <td class="px-2.5 py-3 align-middle">
                   <span
                     v-if="item.custcode_distributor"
                     class="text-[11px] font-mono font-medium px-1.5 py-0.5 rounded bg-blue-50 text-blue-700 border border-blue-200 inline-block whitespace-nowrap"
@@ -1072,7 +1070,7 @@ function getCardAccentClass(item) {
                 </td>
 
                 <!-- 5. Cust Principal -->
-                <td class="px-2.5 py-3 align-top">
+                <td class="px-2.5 py-3 align-middle">
                   <span
                     v-if="item.code_noo_principal"
                     class="text-[11px] font-mono font-medium px-1.5 py-0.5 rounded bg-emerald-50 text-emerald-700 border border-emerald-200 inline-block whitespace-nowrap"
@@ -1084,7 +1082,7 @@ function getCardAccentClass(item) {
                 </td>
 
                 <!-- 6. Rute Kunjungan -->
-                <td class="px-2.5 py-3 align-top">
+                <td class="px-2.5 py-3 align-middle">
                   <div v-if="hasRoute(item)" class="text-[11px] space-y-0.5 whitespace-nowrap leading-tight">
                     <div class="text-slate-700">Hari: <span class="font-medium text-slate-900">{{ getRouteDaysSummary(item) }}</span></div>
                     <div class="text-slate-500">Mg: <span class="font-medium text-slate-800">{{ getRouteWeeksSummary(item) }}</span></div>
@@ -1095,7 +1093,7 @@ function getCardAccentClass(item) {
                 </td>
 
                 <!-- 7. Button Detail (Kelola) -->
-                <td class="px-3 py-3 align-top text-center" @click.stop>
+                <td class="px-3 py-3 align-middle text-center">
                   <button
                     type="button"
                     @click="openDetailModal(item)"
@@ -1117,7 +1115,18 @@ function getCardAccentClass(item) {
         :from="submissions.from"
         :to="submissions.to"
         :total="submissions.total"
-        :current-per-page="submissions.per_page"
+        :current-per-page="filters?.per_page !== undefined ? filters.per_page : submissions.per_page"
+        @change-per-page="(val) => {
+          const params = {};
+          if (searchQuery) params.search = searchQuery;
+          if (branchFilter && branchFilter !== 'ALL') params.branch_id = branchFilter;
+          if (spvStatusFilter && spvStatusFilter !== 'ALL') params.spv_status = spvStatusFilter;
+          if (edpStatusFilter && edpStatusFilter !== 'ALL') params.edp_status = edpStatusFilter;
+          if (sortSelect && sortSelect !== 'default') params.sort = sortSelect;
+          params.per_page = val;
+          params.page = 1;
+          router.get(route('spv.inbox'), params, { preserveState: true, preserveScroll: true, replace: true });
+        }"
       />
 
     </div>    <!-- MODAL PREVIEW DETAIL & PENGATURAN RUTE SPV (LEVEL 1 Z-INDEX 99990) -->
