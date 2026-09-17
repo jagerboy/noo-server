@@ -3,7 +3,7 @@
  * Komponen Pagination Laravel Inertia.js untuk Web Portal NOO+
  * Fitur: Navigasi Halaman, Display Rincian Data & Dynamic Per-Page Select (10, 25, 50, 100, All Data).
  */
-import { ref, watch } from 'vue';
+import { ref, watch, useAttrs } from 'vue';
 import { Link, router } from '@inertiajs/vue3';
 
 const props = defineProps({
@@ -19,6 +19,9 @@ const props = defineProps({
     default: 10,
   },
 });
+
+const emit = defineEmits(['change-per-page', 'changePerPage']);
+const attrs = useAttrs();
 
 const perPageOptions = [
   { value: 10, label: '10' },
@@ -45,8 +48,23 @@ watch(
 );
 
 function changePerPage() {
-  const currentUrl = new URL(window.location.href);
-  currentUrl.searchParams.set('per_page', String(selectedPerPage.value));
+  const newPerPage = selectedPerPage.value;
+  emit('change-per-page', newPerPage);
+  emit('changePerPage', newPerPage);
+
+  // If parent component provided a handler, let parent handle applyFilters()
+  if (attrs.onChangePerPage || attrs['onChange-per-page']) {
+    return;
+  }
+
+  // Fallback standalone behavior using current URL or Laravel link URL:
+  let baseUrl = window.location.href;
+  const linkWithUrl = props.links?.find((l) => l.url);
+  if (linkWithUrl?.url) {
+    baseUrl = linkWithUrl.url;
+  }
+  const currentUrl = new URL(baseUrl, window.location.origin);
+  currentUrl.searchParams.set('per_page', String(newPerPage));
   currentUrl.searchParams.set('page', '1');
 
   router.get(

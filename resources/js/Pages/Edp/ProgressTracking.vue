@@ -657,6 +657,7 @@ const sortedSubmissions = computed(() => {
           :to="submissions.to"
           :total="submissions.total"
           :current-per-page="filters?.per_page !== undefined ? filters.per_page : submissions.per_page"
+          @change-per-page="(val) => applyFilters({ per_page: val, page: 1 })"
         />
       </div>
     </div>
