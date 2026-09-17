@@ -201,14 +201,15 @@ class EdpProgressController extends Controller
             $perPage = 100000;
         }
 
-        $sortKey = $request->input('sort_key', 'created_at');
-        $sortDir = strtolower($request->input('sort_dir', 'desc')) === 'asc' ? 'asc' : 'desc';
+        $sortKey = (string) $request->input('sort_key', 'created_at');
+        $sortDir = strtolower((string) $request->input('sort_dir', 'desc')) === 'asc' ? 'asc' : 'desc';
 
         $allowedSortKeys = [
             'nama_noo' => 'nama_noo',
             'created_at' => 'created_at',
             'submitted_at' => 'submitted_at',
             'branch_id' => 'branch_id',
+            'branch_name' => 'branch_name',
             'status' => 'status',
             'stage_code' => 'status',
             'salesman_name' => 'salesman_name',
@@ -216,7 +217,15 @@ class EdpProgressController extends Controller
 
         $column = $allowedSortKeys[$sortKey] ?? 'created_at';
 
-        $submissions = $query->orderBy($column, $sortDir)->paginate($perPage)->withQueryString();
+        if (in_array($column, ['nama_noo', 'salesman_name', 'branch_name'])) {
+            $query->orderByRaw("LOWER({$column}) {$sortDir}");
+        } elseif ($column === 'created_at' || $column === 'submitted_at') {
+            $query->orderByRaw("COALESCE(submitted_at, created_at, updated_at) {$sortDir}");
+        } else {
+            $query->orderBy($column, $sortDir);
+        }
+
+        $submissions = $query->paginate($perPage)->withQueryString();
 
         $formatPhoto = function ($path) {
             if (empty($path)) return null;
@@ -250,12 +259,23 @@ class EdpProgressController extends Controller
             return $item;
         });
 
+        $activeFilters = array_filter(
+            $request->only(['search', 'region_code', 'branch_id', 'stage', 'sort_key', 'sort_dir', 'per_page']),
+            fn($val) => $val !== null && $val !== ''
+        );
+        $activeFilters['sort_key'] = $sortKey;
+        $activeFilters['sort_dir'] = $sortDir;
+        if ($request->has('per_page')) {
+            $rawPerPage = (int) $request->input('per_page');
+            $activeFilters['per_page'] = ($rawPerPage <= 0 || $rawPerPage >= 1000) ? -1 : $rawPerPage;
+        }
+
         return Inertia::render('Edp/ProgressTracking', [
             'submissions' => $submissions,
             'metrics' => $metrics,
             'userRole' => $userRole,
             'canReset' => in_array($userRole, ['SUPERADMIN', 'ADMIN_PRINCIPAL']),
-            'filters' => $request->only(['search', 'region_code', 'branch_id', 'stage', 'sort_key', 'sort_dir']),
+            'filters' => $activeFilters,
             'filterOptions' => $this->getFilterOptions($user),
         ]);
     }

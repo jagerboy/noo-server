@@ -3,7 +3,7 @@
  * Halaman Progress Tracking Submisi NOO & Reset Inputan Admin / SPV / EDP.
  * Menampilkan Vertical Stepper Timeline modern dan kontrol reset bertingkat.
  */
-import { ref, computed, onMounted, onUnmounted } from 'vue';
+import { ref, computed, watch, onMounted, onUnmounted } from 'vue';
 import { Head, useForm, router } from '@inertiajs/vue3';
 import EdpLayout from '@/Layouts/EdpLayout.vue';
 import SearchableSelect from '@/Components/SearchableSelect.vue';
@@ -22,6 +22,22 @@ const search = ref(props.filters?.search || '');
 const selectedRegion = ref(props.filters?.region_code || '');
 const selectedBranch = ref(props.filters?.branch_id || '');
 const selectedStage = ref(props.filters?.stage || 'all');
+const sortKey = ref(props.filters?.sort_key || 'created_at');
+const sortDir = ref(props.filters?.sort_dir || 'desc');
+
+watch(
+  () => props.filters,
+  (newFilters) => {
+    if (!newFilters) return;
+    search.value = newFilters.search || '';
+    selectedRegion.value = newFilters.region_code || '';
+    selectedBranch.value = newFilters.branch_id || '';
+    selectedStage.value = newFilters.stage || 'all';
+    sortKey.value = newFilters.sort_key || 'created_at';
+    sortDir.value = newFilters.sort_dir || 'desc';
+  },
+  { deep: true }
+);
 
 const activeSubmissionModal = ref(null);
 const resetModalState = ref({
@@ -61,17 +77,36 @@ function formatRole(role) {
   return (role || '').replace(/_/g, ' ');
 }
 
-function applyFilters() {
+function getActiveQueryParams() {
+  const queryParams = {};
+  if (search.value) queryParams.search = search.value;
+  if (selectedRegion.value) queryParams.region_code = selectedRegion.value;
+  if (selectedBranch.value) queryParams.branch_id = selectedBranch.value;
+  if (selectedStage.value && selectedStage.value !== 'all') queryParams.stage = selectedStage.value;
+  if (sortKey.value) queryParams.sort_key = sortKey.value;
+  if (sortDir.value) queryParams.sort_dir = sortDir.value;
+
+  const perPageVal = props.filters?.per_page !== undefined
+    ? props.filters.per_page
+    : (props.submissions?.per_page >= 100000 ? -1 : props.submissions?.per_page);
+  if (perPageVal !== undefined && perPageVal !== null && perPageVal !== '') {
+    queryParams.per_page = perPageVal;
+  }
+  return queryParams;
+}
+
+function applyFilters(overrides = {}) {
+  const queryParams = getActiveQueryParams();
+  Object.assign(queryParams, overrides);
+
+  // Reset to page 1 unless page is explicitly specified in overrides
+  if (!overrides.page) {
+    queryParams.page = 1;
+  }
+
   router.get(
     route('edp.progress_tracking'),
-    {
-      search: search.value,
-      region_code: selectedRegion.value,
-      branch_id: selectedBranch.value,
-      stage: selectedStage.value,
-      sort_key: sortKey.value,
-      sort_dir: sortDir.value,
-    },
+    queryParams,
     {
       preserveState: true,
       preserveScroll: true,
@@ -90,6 +125,23 @@ function resetFilters() {
   selectedRegion.value = '';
   selectedBranch.value = '';
   selectedStage.value = 'all';
+  sortKey.value = 'created_at';
+  sortDir.value = 'desc';
+  applyFilters();
+}
+
+function handleSort(key) {
+  if (sortKey.value === key) {
+    sortDir.value = sortDir.value === 'asc' ? 'desc' : 'asc';
+  } else {
+    sortKey.value = key;
+    sortDir.value = 'asc';
+  }
+  applyFilters();
+}
+
+function toggleSortDir() {
+  sortDir.value = sortDir.value === 'asc' ? 'desc' : 'asc';
   applyFilters();
 }
 
@@ -232,40 +284,8 @@ function isItemRejected(item) {
   return isRejectedAdmin(item) || isRejectedSpv(item) || isRejectedEdp(item);
 }
 
-const sortKey = ref(props.filters?.sort_key || 'created_at');
-const sortDir = ref(props.filters?.sort_dir || 'desc');
-
-function handleSort(key) {
-  if (sortKey.value === key) {
-    sortDir.value = sortDir.value === 'asc' ? 'desc' : 'asc';
-  } else {
-    sortKey.value = key;
-    sortDir.value = 'asc';
-  }
-  applyFilters();
-}
-
 const sortedSubmissions = computed(() => {
-  const rawList = props.submissions?.data || props.submissions || [];
-  const list = [...rawList];
-  if (!sortKey.value) return list;
-
-  return list.sort((a, b) => {
-    let valA = a[sortKey.value] ?? '';
-    let valB = b[sortKey.value] ?? '';
-
-    if (['submitted_at', 'created_at', 'pushed_to_spv_at', 'pushed_to_edp_at'].includes(sortKey.value)) {
-      valA = valA ? new Date(valA).getTime() : 0;
-      valB = valB ? new Date(valB).getTime() : 0;
-    } else if (typeof valA === 'string') {
-      valA = valA.toLowerCase();
-      valB = valB.toLowerCase();
-    }
-
-    if (valA < valB) return sortDir.value === 'asc' ? -1 : 1;
-    if (valA > valB) return sortDir.value === 'asc' ? 1 : -1;
-    return 0;
-  });
+  return props.submissions?.data || [];
 });
 </script>
 
@@ -369,7 +389,7 @@ const sortedSubmissions = computed(() => {
 
       <!-- FILTER BAR -->
       <div class="bg-white p-3 sm:p-3.5 md:p-4 rounded-xl border border-[#E5E7EB] shadow-xs space-y-3">
-        <div class="grid grid-cols-1 sm:grid-cols-4 gap-3">
+        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-3">
           <div>
             <label class="block text-[11.5px] font-medium text-slate-500 mb-1">REGION</label>
             <SearchableSelect
@@ -377,7 +397,7 @@ const sortedSubmissions = computed(() => {
               :options="regionOptions"
               placeholder="-- Semua Region --"
               searchPlaceholder="Cari Region..."
-              @change="applyFilters"
+              @change="applyFilters()"
             />
           </div>
 
@@ -388,13 +408,13 @@ const sortedSubmissions = computed(() => {
               :options="branchOptions"
               placeholder="-- Semua Cabang --"
               searchPlaceholder="Cari Cabang..."
-              @change="applyFilters"
+              @change="applyFilters()"
             />
           </div>
 
           <div>
             <label class="block text-[11.5px] font-medium text-slate-500 mb-1">TAHAPAN WORKFLOW</label>
-            <select v-model="selectedStage" @change="applyFilters" class="w-full px-2.5 py-1.5 text-[12px] font-medium border border-slate-300 rounded-lg bg-white">
+            <select v-model="selectedStage" @change="applyFilters()" class="w-full px-2.5 py-1.5 text-[12px] font-medium border border-slate-300 rounded-lg bg-white">
               <option value="all">-- Semua Tahapan --</option>
               <option value="stuck_admin">Admin Belum Memproses Kode Cust</option>
               <option value="stuck_spv">SPV Belum Memproses Rute JKS</option>
@@ -405,14 +425,56 @@ const sortedSubmissions = computed(() => {
           </div>
 
           <div>
+            <label class="block text-[11.5px] font-medium text-slate-500 mb-1">URUTKAN DATA (SORT)</label>
+            <div class="inline-flex items-center w-full rounded-lg border border-slate-300 bg-white shadow-2xs overflow-hidden">
+              <select
+                v-model="sortKey"
+                @change="applyFilters()"
+                class="pl-2.5 pr-2 py-1.5 text-[12px] font-semibold bg-slate-50 hover:bg-white text-slate-700 focus:ring-0 border-0 cursor-pointer flex-1 min-w-0 truncate"
+              >
+                <option value="created_at">Waktu Submit</option>
+                <option value="nama_noo">Nama Outlet</option>
+                <option value="branch_name">Nama Cabang</option>
+                <option value="salesman_name">Nama Salesman</option>
+                <option value="status">Status Submisi</option>
+              </select>
+
+              <button
+                type="button"
+                @click="toggleSortDir"
+                :title="sortDir === 'asc' ? 'Urutan: Ascending (A-Z / Terlama). Klik untuk ubah ke Descending' : 'Urutan: Descending (Z-A / Terbaru). Klik untuk ubah ke Ascending'"
+                class="px-2.5 py-1.5 border-l border-slate-200 bg-slate-50 hover:bg-slate-100 text-slate-700 hover:text-blue-600 transition flex items-center gap-1 text-[11px] font-bold cursor-pointer shrink-0"
+              >
+                <span v-if="sortDir === 'asc'" class="flex items-center gap-1 text-blue-600 font-bold">
+                  <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M3 4h13M3 8h9m-9 4h6m4 0l4-4m0 0l4 4m-4-4v12"/></svg>
+                  <span>ASC</span>
+                </span>
+                <span v-else class="flex items-center gap-1 text-slate-700 font-bold">
+                  <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M3 4h13M3 8h9m-9 4h9m5-4v12m0 0l-4-4m4 4l4-4"/></svg>
+                  <span>DESC</span>
+                </span>
+              </button>
+            </div>
+          </div>
+
+          <div>
             <label class="block text-[11.5px] font-medium text-slate-500 mb-1">CARI TOKO / SALESMAN</label>
-            <input
-              type="text"
-              v-model="search"
-              @keyup.enter="applyFilters"
-              placeholder="Nama Toko, Custcode, Salesman..."
-              class="w-full px-2.5 py-1.5 text-[12px] border border-slate-300 rounded-lg placeholder-slate-400"
-            />
+            <div class="relative w-full">
+              <input
+                type="text"
+                v-model="search"
+                @keyup.enter="applyFilters()"
+                placeholder="Nama Toko, Custcode, Salesman..."
+                class="w-full pl-2.5 pr-7 py-1.5 text-[12px] border border-slate-300 rounded-lg placeholder-slate-400"
+              />
+              <button
+                v-if="search"
+                @click="search = ''; applyFilters();"
+                class="absolute right-2 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 text-xs font-bold cursor-pointer"
+              >
+                ✕
+              </button>
+            </div>
           </div>
         </div>
 
@@ -589,10 +651,12 @@ const sortedSubmissions = computed(() => {
 
         <!-- Pagination Links -->
         <Pagination
+          v-if="submissions?.links"
           :links="submissions.links"
           :from="submissions.from"
           :to="submissions.to"
           :total="submissions.total"
+          :current-per-page="filters?.per_page !== undefined ? filters.per_page : submissions.per_page"
         />
       </div>
     </div>
