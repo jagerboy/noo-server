@@ -281,10 +281,6 @@ function saveMatrix() {
   matrixSuccessBanner.value = 'Matriks Hak Akses Peran Pengguna berhasil diperbarui dan disimpan!';
 }
 
-function handleSearch() {
-  router.get(route('edp.account_management'), { search: search.value }, { preserveState: true, replace: true });
-}
-
 function submitAddAccount() {
   if (addForm.role !== 'SUPERADMIN' && selectedSingleRegionsAdd.value.length === 0 && addForm.region_code !== '') {
     regionErrorAdd.value = 'Wilayah Operasional (Region Scope) wajib dipilih minimal 1 region.';
