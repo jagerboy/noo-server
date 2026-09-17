@@ -2,7 +2,7 @@
 /**
  * Halaman Audit Logs System NOO+ - Web Portal
  */
-import { ref } from 'vue';
+import { ref, watch } from 'vue';
 import { Head, router } from '@inertiajs/vue3';
 import EdpLayout from '@/Layouts/EdpLayout.vue';
 import Pagination from '@/Components/Pagination.vue';
@@ -19,13 +19,36 @@ const props = defineProps({
 const search = ref(props.filters?.search || '');
 const selectedRole = ref(props.filters?.role || 'ALL');
 
-function handleSearch() {
+watch(
+  () => props.filters,
+  (newFilters) => {
+    if (newFilters) {
+      search.value = newFilters.search || '';
+      selectedRole.value = newFilters.role || 'ALL';
+    }
+  },
+  { deep: true }
+);
+
+function handleSearch(overrides = {}) {
+  const params = {
+    search: search.value || undefined,
+    role: selectedRole.value !== 'ALL' ? selectedRole.value : undefined,
+  };
+  const perPageVal = props.filters?.per_page !== undefined
+    ? props.filters.per_page
+    : (props.logs?.per_page >= 100000 ? -1 : props.logs?.per_page);
+  if (perPageVal !== undefined && perPageVal !== null && perPageVal !== '') {
+    params.per_page = perPageVal;
+  }
+  Object.assign(params, overrides);
+  if (!overrides.page) {
+    params.page = 1;
+  }
+
   router.get(
     route('edp.logs'),
-    {
-      search: search.value,
-      role: selectedRole.value,
-    },
+    params,
     { preserveState: true, replace: true }
   );
 }
@@ -175,10 +198,13 @@ function exportToExcel() {
         </div>
         <!-- Pagination Links -->
         <Pagination
+          v-if="logs?.links"
           :links="logs.links"
           :from="logs.from"
           :to="logs.to"
           :total="logs.total"
+          :current-per-page="filters?.per_page !== undefined ? filters.per_page : logs.per_page"
+          @change-per-page="(val) => handleSearch({ per_page: val, page: 1 })"
         />
       </div>
     </div>

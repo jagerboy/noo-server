@@ -1177,11 +1177,17 @@ class EdpMasterController extends Controller
 
         $sequences = $query->orderBy($orderColumn, $sortDir)->paginate($perPage)->withQueryString();
 
+        $activeFilters = $request->only(['search', 'region_code', 'entity', 'branch_id', 'sort_by', 'sort_dir']);
+        if ($request->has('per_page')) {
+            $rawPerPage = (int) $request->input('per_page');
+            $activeFilters['per_page'] = ($rawPerPage <= 0 || $rawPerPage >= 1000) ? -1 : $rawPerPage;
+        }
+
         return Inertia::render('Edp/Master/CounterSequence', [
             'sequences' => $sequences,
             'canEditSequence' => true,
             'canWriteFull' => $this->checkCanWrite(),
-            'filters' => $request->only(['search', 'region_code', 'entity', 'branch_id', 'sort_by', 'sort_dir']),
+            'filters' => $activeFilters,
             'filterOptions' => $this->getFilterOptions($user),
         ]);
     }

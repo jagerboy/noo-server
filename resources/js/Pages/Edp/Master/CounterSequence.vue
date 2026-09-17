@@ -4,7 +4,7 @@
  * Fitur: Filter dinamis dengan SearchableSelect, Preview Kode Customer Principal Selanjutnya,
  * & Edit Sequence Terakhir (EDP Region / Admin).
  */
-import { ref, computed } from 'vue';
+import { ref, computed, watch } from 'vue';
 import { Head, useForm, router } from '@inertiajs/vue3';
 import EdpLayout from '@/Layouts/EdpLayout.vue';
 import SearchableSelect from '@/Components/SearchableSelect.vue';
@@ -23,6 +23,23 @@ const search = ref(props.filters?.search || '');
 const selectedRegion = ref(props.filters?.region_code || '');
 const selectedEntity = ref(props.filters?.entity || '');
 const selectedBranch = ref(props.filters?.branch_id || '');
+const sortKey = ref(props.filters?.sort_by || 'branch_id');
+const sortDir = ref(props.filters?.sort_dir || 'asc');
+
+watch(
+  () => props.filters,
+  (newFilters) => {
+    if (newFilters) {
+      search.value = newFilters.search || '';
+      selectedRegion.value = newFilters.region_code || '';
+      selectedEntity.value = newFilters.entity || '';
+      selectedBranch.value = newFilters.branch_id || '';
+      sortKey.value = newFilters.sort_by || 'branch_id';
+      sortDir.value = newFilters.sort_dir || 'asc';
+    }
+  },
+  { deep: true }
+);
 
 const editingItem = ref(null);
 
@@ -107,17 +124,35 @@ const editForm = useForm({
   last_seq: 0,
 });
 
-function applyFilters() {
+function getActiveQueryParams() {
+  const queryParams = {};
+  if (search.value) queryParams.search = search.value;
+  if (selectedRegion.value) queryParams.region_code = selectedRegion.value;
+  if (selectedEntity.value) queryParams.entity = selectedEntity.value;
+  if (selectedBranch.value) queryParams.branch_id = selectedBranch.value;
+  if (sortKey.value) queryParams.sort_by = sortKey.value;
+  if (sortDir.value) queryParams.sort_dir = sortDir.value;
+
+  const perPageVal = props.filters?.per_page !== undefined
+    ? props.filters.per_page
+    : (props.sequences?.per_page >= 100000 ? -1 : props.sequences?.per_page);
+  if (perPageVal !== undefined && perPageVal !== null && perPageVal !== '') {
+    queryParams.per_page = perPageVal;
+  }
+  return queryParams;
+}
+
+function applyFilters(overrides = {}) {
+  const queryParams = getActiveQueryParams();
+  Object.assign(queryParams, overrides);
+
+  if (!overrides.page) {
+    queryParams.page = 1;
+  }
+
   router.get(
     route('edp.counter_sequence'),
-    {
-      search: search.value,
-      region_code: selectedRegion.value,
-      entity: selectedEntity.value,
-      branch_id: selectedBranch.value,
-      sort_by: sortKey.value,
-      sort_dir: sortDir.value,
-    },
+    queryParams,
     { preserveState: true, replace: true }
   );
 }
@@ -378,10 +413,13 @@ const isBulkModalOpen = ref(false);
         </div>
         <!-- Pagination Links -->
         <Pagination
+          v-if="sequences?.links"
           :links="sequences.links"
           :from="sequences.from"
           :to="sequences.to"
           :total="sequences.total"
+          :current-per-page="filters?.per_page !== undefined ? filters.per_page : sequences.per_page"
+          @change-per-page="(val) => applyFilters({ per_page: val, page: 1 })"
         />
       </div>
 

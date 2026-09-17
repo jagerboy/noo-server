@@ -64,9 +64,15 @@ class EdpLogsController extends Controller
         $allRoles = array_values(array_unique(array_merge($defaultRoles, $dbRoles)));
         sort($allRoles);
 
+        $activeFilters = $request->only(['search', 'role']);
+        if ($request->has('per_page')) {
+            $rawPerPage = (int) $request->input('per_page');
+            $activeFilters['per_page'] = ($rawPerPage <= 0 || $rawPerPage >= 1000) ? -1 : $rawPerPage;
+        }
+
         return Inertia::render('Edp/Logs', [
             'logs' => $logs,
-            'filters' => $request->only(['search', 'role']),
+            'filters' => $activeFilters,
             'availableRoles' => $allRoles,
         ]);
     }

@@ -113,11 +113,17 @@ class AdminDistributorController extends Controller
             return $item;
         });
 
+        $activeFilters = $request->only(['search', 'status']);
+        if ($request->has('per_page')) {
+            $rawPerPage = (int) $request->input('per_page');
+            $activeFilters['per_page'] = ($rawPerPage <= 0 || $rawPerPage >= 1000) ? -1 : $rawPerPage;
+        }
+
         return Inertia::render('Admin/Inbox', [
             'submissions' => $submissions,
             'stats' => $stats,
             'userBranch' => $branchId,
-            'filters' => $request->only(['search', 'status']),
+            'filters' => $activeFilters,
         ]);
     }
 

@@ -33,14 +33,37 @@ const props = defineProps({
 const searchQuery = ref(props.filters?.search || '');
 const statusFilter = ref(props.filters?.status || 'ALL');
 
+watch(
+  () => props.filters,
+  (newFilters) => {
+    if (newFilters) {
+      searchQuery.value = newFilters.search || '';
+      statusFilter.value = newFilters.status || 'ALL';
+    }
+  },
+  { deep: true }
+);
+
 let filterDebounceTimer = null;
-function triggerBackendFilter() {
+function triggerBackendFilter(overrides = {}) {
+  const params = {
+    search: searchQuery.value || undefined,
+    status: statusFilter.value !== 'ALL' ? statusFilter.value : undefined,
+  };
+  const perPageVal = props.filters?.per_page !== undefined
+    ? props.filters.per_page
+    : (props.submissions?.per_page >= 100000 ? -1 : props.submissions?.per_page);
+  if (perPageVal !== undefined && perPageVal !== null && perPageVal !== '') {
+    params.per_page = perPageVal;
+  }
+  Object.assign(params, overrides);
+  if (!overrides.page) {
+    params.page = 1;
+  }
+
   router.get(
     route('admin.inbox'),
-    {
-      search: searchQuery.value,
-      status: statusFilter.value,
-    },
+    params,
     {
       preserveState: true,
       preserveScroll: true,
@@ -801,7 +824,8 @@ function getRowStyle(item) {
           :from="submissions.from"
           :to="submissions.to"
           :total="submissions.total"
-          :current-per-page="submissions.per_page"
+          :current-per-page="filters?.per_page !== undefined ? filters.per_page : submissions.per_page"
+          @change-per-page="(val) => triggerBackendFilter({ per_page: val, page: 1 })"
         />
       </div>
 

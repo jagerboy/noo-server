@@ -117,11 +117,17 @@ class EdpAccountManagementController extends Controller
 
         $regions = collect($regionsArray);
 
+        $activeFilters = $request->only(['search']);
+        if ($request->has('per_page')) {
+            $rawPerPage = (int) $request->input('per_page');
+            $activeFilters['per_page'] = ($rawPerPage <= 0 || $rawPerPage >= 1000) ? -1 : $rawPerPage;
+        }
+
         return Inertia::render('Edp/AccountManagement', [
             'accounts' => $accounts,
             'regions' => $regions,
             'principalAreas' => $principalAreas,
-            'filters' => $request->only(['search']),
+            'filters' => $activeFilters,
         ]);
     }
 
