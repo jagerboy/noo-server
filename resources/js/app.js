@@ -6,7 +6,9 @@ import { resolvePageComponent } from 'laravel-vite-plugin/inertia-helpers';
 import { createApp, h } from 'vue';
 import { ZiggyVue } from '../../vendor/tightenco/ziggy';
 
-const appName = import.meta.env.VITE_APP_NAME || 'NOO+';
+const appName = (import.meta.env.VITE_APP_NAME && import.meta.env.VITE_APP_NAME !== 'Laravel') 
+    ? import.meta.env.VITE_APP_NAME 
+    : 'NOO+';
 
 // Clean address bar URL globally on initial load & after any filter / navigation completes
 const cleanUrlAddressBar = () => {
@@ -26,7 +28,11 @@ router.on('finish', () => {
 });
 
 createInertiaApp({
-    title: (title) => title ? title : appName,
+    title: (title) => {
+        if (!title) return appName;
+        const cleanTitle = title.replace(/\s*-\s*Laravel\s*$/i, '').trim();
+        return cleanTitle || appName;
+    },
     resolve: (name) =>
         resolvePageComponent(
             `./Pages/${name}.vue`,

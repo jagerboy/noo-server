@@ -13,7 +13,7 @@ return [
     |
     */
 
-    'name' => env('APP_NAME', 'NOO+'),
+    'name' => (env('APP_NAME') && env('APP_NAME') !== 'Laravel') ? env('APP_NAME') : 'NOO+',
 
     /*
     |--------------------------------------------------------------------------
