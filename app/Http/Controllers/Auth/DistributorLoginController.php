@@ -231,6 +231,7 @@ class DistributorLoginController extends Controller
         session(['distributor_user' => (object)[
             'branch_id' => $branchId,
             'name' => $branch->branch_name,
+            'branch_name' => $branch->branch_name,
             'role' => 'ADMIN_DISTRIBUTOR',
             'region_code' => $regionCode,
             'entity_code_principal' => $entityCode,

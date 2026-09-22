@@ -5,7 +5,7 @@
         <meta name="viewport" content="width=device-width, initial-scale=1">
         <meta http-equiv="Content-Security-Policy" content="upgrade-insecure-requests">
 
-        <title inertia>{{ config('app.name', 'Laravel') }}</title>
+        <title inertia>{{ config('app.name', 'NOO+') }}</title>
 
         <!-- Favicon & App Icons -->
         <link rel="icon" type="image/x-icon" href="/favicon-v2.ico">

@@ -119,10 +119,13 @@ class AdminDistributorController extends Controller
             $activeFilters['per_page'] = ($rawPerPage <= 0 || $rawPerPage >= 1000) ? -1 : $rawPerPage;
         }
 
+        $branchName = $user->branch_name ?? $user->name ?? $branchId;
+
         return Inertia::render('Admin/Inbox', [
             'submissions' => $submissions,
             'stats' => $stats,
             'userBranch' => $branchId,
+            'branchName' => $branchName,
             'filters' => $activeFilters,
         ]);
     }

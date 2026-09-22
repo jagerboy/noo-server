@@ -4,11 +4,13 @@
  * Vue 3 Composition API + Light Mode Theme Design System Specification.
  */
 import { ref, computed, watch, onMounted, onUnmounted } from 'vue';
-import { useForm, router } from '@inertiajs/vue3';
+import { useForm, router, Head, usePage } from '@inertiajs/vue3';
 import AdminLayout from '@/Layouts/AdminLayout.vue';
 import Pagination from '@/Components/Pagination.vue';
 import BaseButton from '@/Components/BaseButton.vue';
 import BaseCard from '@/Components/BaseCard.vue';
+
+const page = usePage();
 
 const props = defineProps({
   submissions: {
@@ -23,10 +25,24 @@ const props = defineProps({
     type: String,
     default: '',
   },
+  branchName: {
+    type: String,
+    default: '',
+  },
   filters: {
     type: Object,
     default: () => ({}),
   },
+});
+
+const displayBranchName = computed(() => {
+  return props.branchName || page.props.auth?.user?.branch_name || page.props.auth?.user?.name || props.userBranch || '';
+});
+
+const pageTitle = computed(() => {
+  return displayBranchName.value
+    ? `NOO+ Portal Admin Distributor - ${displayBranchName.value}`
+    : 'NOO+ Portal Admin Distributor';
 });
 
 // State Filter & Search
@@ -621,6 +637,7 @@ function getRowStyle(item) {
 </script>
 
 <template>
+  <Head :title="pageTitle" />
   <AdminLayout>
     <div class="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 space-y-6">
 
