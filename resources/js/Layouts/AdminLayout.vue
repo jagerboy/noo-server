@@ -45,11 +45,11 @@ const showingNavigationDropdown = ref(false);
           <!-- Right User Profile & Logout -->
           <div class="hidden sm:flex sm:items-center sm:ms-6">
             <div class="relative ms-3">
-              <Dropdown align="right" width="64">
+              <Dropdown align="right" width="56">
                 <template #trigger>
                   <button
                     type="button"
-                    class="inline-flex items-center rounded-lg bg-black/20 hover:bg-black/50 backdrop-blur-md px-3.5 py-2 text-xs font-semibold text-white focus:outline-none transition-all duration-200 shadow-sm border border-[#F59E0B] hover:border-amber-300"
+                    class="inline-flex items-center rounded-lg bg-black/20 hover:bg-black/50 backdrop-blur-md px-3.5 py-2 text-xs font-semibold text-white focus:outline-none transition-all duration-200 shadow-sm border border-[#F59E0B] hover:border-amber-300 cursor-pointer min-h-[36px]"
                   >
                     <span class="font-bold text-xs whitespace-nowrap">{{ page.props.auth.user.name }}</span>
 
@@ -61,11 +61,12 @@ const showingNavigationDropdown = ref(false);
 
                 <template #content>
                   <div class="px-4 py-2.5 border-b border-[#E5E7EB] bg-[#F9FAFB]">
-                    <p class="text-xs text-[#6B7280]">Cabang Login:</p>
+                    <p class="text-[11px] text-[#6B7280]">Cabang Login:</p>
                     <p class="text-xs font-bold text-[#111827] truncate">{{ page.props.auth.user.branch_id || 'Global Branch' }}</p>
                   </div>
-                  <DropdownLink :href="route('distributor_logout')" method="post" as="button" class="text-[#DC2626]">
-                    🚪 Sign Out
+                  <DropdownLink :href="route('distributor_logout')" method="post" as="button" class="text-[#DC2626] hover:bg-rose-50 font-semibold flex items-center gap-2 whitespace-nowrap text-xs">
+                    <span>🚪</span>
+                    <span>Sign Out</span>
                   </DropdownLink>
                 </template>
               </Dropdown>

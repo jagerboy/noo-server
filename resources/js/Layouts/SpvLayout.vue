@@ -45,7 +45,7 @@ const showingNavigationDropdown = ref(false);
           <!-- Right User Profile & Logout -->
           <div class="hidden sm:flex sm:items-center sm:ms-6">
             <div class="relative ms-3">
-              <Dropdown align="right" width="64">
+              <Dropdown align="right" width="56">
                 <template #trigger>
                   <button
                     type="button"
@@ -61,11 +61,12 @@ const showingNavigationDropdown = ref(false);
 
                 <template #content>
                   <div class="px-4 py-2.5 border-b border-[#E5E7EB] bg-[#F9FAFB]">
-                    <p class="text-xs text-[#6B7280]">Role Login:</p>
-                    <p class="text-xs font-bold text-[#111827]">SPV Area</p>
+                    <p class="text-[11px] text-[#6B7280]">Role Login:</p>
+                    <p class="text-xs font-bold text-[#111827] truncate">SPV Area</p>
                   </div>
-                  <DropdownLink :href="route('spv_logout')" method="post" as="button" class="text-[#DC2626]">
-                    🚪 Sign Out
+                  <DropdownLink :href="route('spv_logout')" method="post" as="button" class="text-[#DC2626] hover:bg-rose-50 font-semibold flex items-center gap-2 whitespace-nowrap text-xs">
+                    <span>🚪</span>
+                    <span>Sign Out</span>
                   </DropdownLink>
                 </template>
               </Dropdown>
