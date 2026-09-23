@@ -105,46 +105,46 @@ function submitLogin() {
 <template>
   <Head title="Login - Portal Principal NOO+" />
 
-  <!-- Kanvas Luar: Background Berwarna Kontras Lembut & Elegan -->
-  <div class="flex items-center justify-center min-h-screen bg-gradient-to-br from-[#E2E8F0] via-[#E8EDF5] to-[#DCE4EF] p-4 sm:p-6 lg:p-10 font-sans selection:bg-rose-100 select-none">
+  <!-- Kanvas Luar: Background Berwarna Kontras Lembut & Elegan (Fit 100% Layar) -->
+  <div class="flex items-center justify-center min-h-screen sm:h-screen bg-gradient-to-br from-[#E2E8F0] via-[#E8EDF5] to-[#DCE4EF] p-3 sm:p-4 lg:p-6 font-sans selection:bg-rose-100 select-none overflow-y-auto sm:overflow-hidden">
     
     <!-- KARTU UTAMA: Split Card Rounded dengan Border Halus -->
-    <div class="w-full max-w-4xl lg:max-w-[940px] bg-white rounded-[28px] sm:rounded-[32px] border border-slate-300/80 shadow-[0_20px_60px_-15px_rgba(15,23,42,0.12)] overflow-hidden grid grid-cols-1 md:grid-cols-12 min-h-[530px] md:max-h-[680px] my-auto">
+    <div class="w-full max-w-4xl lg:max-w-[900px] bg-white rounded-2xl sm:rounded-[28px] border border-slate-300/80 shadow-[0_20px_60px_-15px_rgba(15,23,42,0.12)] overflow-hidden grid grid-cols-1 md:grid-cols-12 my-auto">
       
       <!-- SISI KIRI: RUANG UNTUK ELEVATED FLOATING LOGIN CARD (6 COLS) -->
-      <div class="md:col-span-6 flex items-center justify-center p-6 sm:p-8 lg:p-10 bg-white relative">
+      <div class="md:col-span-6 flex items-center justify-center p-4 sm:p-5 lg:p-6 bg-white relative">
         
         <!-- Elevated Floating Card (Dengan Animasi Shake Responsif saat Error) -->
         <div
-          class="w-full max-w-[340px] sm:max-w-[360px] bg-white rounded-2xl sm:rounded-[22px] p-6 sm:p-7 shadow-[0_12px_35px_rgba(0,0,0,0.06)] border border-slate-100 flex flex-col justify-between transition-all duration-200"
+          class="w-full max-w-[330px] sm:max-w-[345px] bg-white rounded-2xl p-4 sm:p-5 shadow-[0_10px_30px_rgba(0,0,0,0.05)] border border-slate-100 flex flex-col justify-between transition-all duration-200"
           :class="{ 'animate-shake ring-2 ring-rose-400/30 border-rose-200': isShaking }"
         >
           
           <div>
             <!-- Header Brand: Logo NOO+ & Portal Principal (Tanpa Teks ASW • INA) -->
-            <div class="flex items-center gap-2.5 mb-3">
-              <img src="/logo-noo-plus-v2.png" alt="Logo NOO+" class="h-7.5 sm:h-8 w-auto object-contain rounded drop-shadow-2xs" />
-              <span class="text-[12.5px] font-bold text-[#D9232A] tracking-tight">Portal Principal</span>
+            <div class="flex items-center gap-2 mb-2">
+              <img src="/logo-noo-plus-v2.png" alt="Logo NOO+" class="h-7 sm:h-7.5 w-auto object-contain rounded drop-shadow-2xs" />
+              <span class="text-[12px] font-bold text-[#D9232A] tracking-tight">Portal Principal</span>
             </div>
 
             <!-- Judul "Login" Besar & Bersih -->
-            <div class="mb-4">
-              <h1 class="text-2xl sm:text-[28px] font-bold text-slate-900 tracking-tight leading-tight">Sign In</h1>
-              <p class="text-[12px] text-slate-500 mt-0.5">Masuk ke sistem verifikasi level principal</p>
+            <div class="mb-3">
+              <h1 class="text-xl sm:text-2xl font-bold text-slate-900 tracking-tight leading-tight">Sign In</h1>
+              <p class="text-[11.5px] text-slate-500 mt-0.5">Masuk ke sistem verifikasi level principal</p>
             </div>
 
             <!-- Daftar Akun Cepat Tersimpan -->
-            <div v-if="savedAccounts.length > 0" class="mb-3">
-              <label class="block text-[9.5px] font-bold text-slate-400 uppercase tracking-wider mb-1">Pilih Akun:</label>
+            <div v-if="savedAccounts.length > 0" class="mb-2.5">
+              <label class="block text-[9px] font-bold text-slate-400 uppercase tracking-wider mb-1">Pilih Akun:</label>
               <div class="flex items-center gap-1.5 flex-wrap">
                 <div
                   v-for="u in savedAccounts"
                   :key="u"
-                  class="inline-flex items-center gap-1 px-2.5 py-0.5 text-[11px] font-semibold rounded-md border transition cursor-pointer"
+                  class="inline-flex items-center gap-1 px-2 py-0.5 text-[10.5px] font-semibold rounded-md border transition cursor-pointer"
                   :class="form.username === u ? 'bg-red-50 text-[#D9232A] border-red-200' : 'bg-slate-50 text-slate-600 border-slate-200 hover:bg-slate-100'"
                   @click="selectSavedAccount(u)"
                 >
-                  <span class="truncate max-w-[130px]">{{ u }}</span>
+                  <span class="truncate max-w-[120px]">{{ u }}</span>
                   <button
                     type="button"
                     @click.stop="removeSavedAccount(u)"
@@ -168,16 +168,16 @@ function submitLogin() {
             >
               <div
                 v-if="form.errors.username || form.errors.password"
-                class="flex items-center gap-2.5 p-3 mb-3 rounded-xl bg-rose-50/90 border border-rose-200 text-rose-800 shadow-xs"
+                class="flex items-center gap-2 p-2.5 mb-2.5 rounded-xl bg-rose-50/90 border border-rose-200 text-rose-800 shadow-xs"
                 role="alert"
               >
                 <div class="p-1 bg-rose-100 text-rose-600 rounded-lg shrink-0 animate-pulse">
-                  <svg class="w-4 h-4" viewBox="0 0 20 20" fill="currentColor">
+                  <svg class="w-3.5 h-3.5" viewBox="0 0 20 20" fill="currentColor">
                     <path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z" clip-rule="evenodd" />
                   </svg>
                 </div>
                 <div class="flex-1 min-w-0">
-                  <p class="text-[12px] font-semibold text-rose-800 leading-snug">
+                  <p class="text-[11.5px] font-semibold text-rose-800 leading-snug">
                     Username atau Password yang dimasukkan salah.
                   </p>
                 </div>
@@ -185,25 +185,25 @@ function submitLogin() {
             </transition>
 
             <!-- Form Kredensial -->
-            <form @submit.prevent="submitLogin" class="space-y-3.5">
+            <form @submit.prevent="submitLogin" class="space-y-2.5">
               
               <!-- Input Username -->
               <div>
-                <label class="block text-[11.5px] font-semibold text-slate-600 mb-1">Username</label>
+                <label class="block text-[11px] font-semibold text-slate-600 mb-1">Username</label>
                 <input
                   type="text"
                   v-model="form.username"
                   @input="form.clearErrors('username')"
                   placeholder="Contoh: admin.aswsum"
                   required
-                  class="w-full px-3.5 py-2 text-[13px] rounded-lg border transition leading-tight shadow-2xs"
+                  class="w-full px-3 py-1.5 text-[12.5px] rounded-lg border transition leading-tight shadow-2xs"
                   :class="form.errors.username ? 'border-rose-400 bg-rose-50/20 text-rose-900 focus:bg-white focus:outline-none focus:border-rose-500 focus:ring-2 focus:ring-rose-500/20' : 'border-slate-200 bg-slate-50/40 text-slate-800 placeholder-slate-400 focus:bg-white focus:outline-none focus:border-[#D9232A] focus:ring-2 focus:ring-[#D9232A]/15'"
                 />
               </div>
 
               <!-- Input Password -->
               <div>
-                <label class="block text-[11.5px] font-semibold text-slate-600 mb-1">Password</label>
+                <label class="block text-[11px] font-semibold text-slate-600 mb-1">Password</label>
                 <div class="relative">
                   <input
                     ref="passwordInput"
@@ -212,21 +212,21 @@ function submitLogin() {
                     @input="form.clearErrors('password', 'username')"
                     placeholder="••••••••"
                     required
-                    class="w-full px-3.5 py-2 text-[13px] rounded-lg border transition leading-tight pr-9 shadow-2xs"
+                    class="w-full px-3 py-1.5 text-[12.5px] rounded-lg border transition leading-tight pr-8 shadow-2xs"
                     :class="(form.errors.password || form.errors.username) ? 'border-rose-400 bg-rose-50/20 text-rose-900 focus:bg-white focus:outline-none focus:border-rose-500 focus:ring-2 focus:ring-rose-500/20' : 'border-slate-200 bg-slate-50/40 text-slate-800 placeholder-slate-400 focus:bg-white focus:outline-none focus:border-[#D9232A] focus:ring-2 focus:ring-[#D9232A]/15'"
                   />
                   <!-- Toggle Visibility Password Button -->
                   <button
                     type="button"
                     @click="showPassword = !showPassword"
-                    class="absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 transition p-1"
+                    class="absolute right-2 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 transition p-1"
                     title="Lihat Password"
                   >
-                    <svg v-if="!showPassword" xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <svg v-if="!showPassword" xmlns="http://www.w3.org/2000/svg" class="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                       <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
                       <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
                     </svg>
-                    <svg v-else xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <svg v-else xmlns="http://www.w3.org/2000/svg" class="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                       <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13.875 18.825A10.05 10.05 0 0112 19c-4.478 0-8.268-2.943-9.543-7a9.97 9.97 0 011.563-3.029m5.858.908a3 3 0 114.243 4.243M9.878 9.878l4.242 4.242M9.88 9.88l-3.29-3.29m7.532 7.532l3.29 3.29M3 3l18 18" />
                     </svg>
                   </button>
@@ -235,7 +235,7 @@ function submitLogin() {
 
               <!-- Baris Opsi: Ingat Saya Saja (Forgot Password Dihilangkan) -->
               <div class="flex items-center justify-between pt-0.5">
-                <label class="flex items-center gap-1.5 cursor-pointer select-none text-[11.5px] text-slate-500">
+                <label class="flex items-center gap-1.5 cursor-pointer select-none text-[11px] text-slate-500">
                   <input
                     type="checkbox"
                     v-model="rememberMe"
@@ -249,7 +249,7 @@ function submitLogin() {
               <button
                 type="submit"
                 :disabled="form.processing || !form.username || !form.password"
-                class="w-full py-2.5 mt-1.5 text-[13.5px] font-bold text-white transition-all bg-[#D9232A] hover:bg-[#B91C22] active:scale-[0.99] rounded-lg shadow-sm shadow-[#D9232A]/30 disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer flex items-center justify-center gap-2"
+                class="w-full py-2 mt-1 text-[13px] font-bold text-white transition-all bg-[#D9232A] hover:bg-[#B91C22] active:scale-[0.99] rounded-lg shadow-sm shadow-[#D9232A]/30 disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer flex items-center justify-center gap-2"
               >
                 <span v-if="form.processing">Signing in...</span>
                 <span v-else>Sign in</span>
@@ -257,31 +257,33 @@ function submitLogin() {
             </form>
 
             <!-- Akses Portal Lainnya (Admin Distributor & SPV) -->
-            <div class="mt-4 pt-3.5 border-t border-slate-100">
-              <div class="text-center mb-2">
-                <span class="text-[10.5px] font-semibold text-slate-400 uppercase tracking-wider">Akses Portal Lainnya</span>
+            <div class="mt-3 pt-2.5 border-t border-slate-100">
+              <div class="text-center mb-1.5">
+                <span class="text-[10px] font-semibold text-slate-400 uppercase tracking-wider">Akses Portal Lainnya</span>
               </div>
               <div class="grid grid-cols-2 gap-2">
                 <a
                   href="https://noo.coreappl.id/admin-distributor/"
-                  class="flex flex-col items-center justify-center py-2 px-2 rounded-xl bg-slate-50/90 hover:bg-slate-100 border border-slate-200/80 hover:border-slate-300 transition-all shadow-2xs group cursor-pointer"
+                  class="flex flex-col items-center justify-center py-1.5 px-2 rounded-xl bg-slate-50/90 hover:bg-red-50/70 border border-slate-200/90 hover:border-red-300/80 transition-all shadow-2xs hover:shadow-xs group cursor-pointer"
+                  title="Masuk ke Portal Admin Distributor"
                 >
-                  <span class="text-[11px] font-semibold text-slate-700 group-hover:text-slate-900 leading-tight">Portal NOO+</span>
-                  <span class="text-[10px] font-medium text-slate-500 group-hover:text-[#D9232A] leading-tight mt-0.5">Admin Distributor</span>
+                  <span class="text-[10.5px] font-semibold text-slate-700 group-hover:text-red-950 leading-tight">Portal NOO+</span>
+                  <span class="text-[9.5px] font-semibold text-slate-500 group-hover:text-[#D9232A] leading-tight mt-0.5">Admin Distributor</span>
                 </a>
                 <a
                   href="https://noo.coreappl.id/spv"
-                  class="flex flex-col items-center justify-center py-2 px-2 rounded-xl bg-slate-50/90 hover:bg-slate-100 border border-slate-200/80 hover:border-slate-300 transition-all shadow-2xs group cursor-pointer"
+                  class="flex flex-col items-center justify-center py-1.5 px-2 rounded-xl bg-slate-50/90 hover:bg-purple-50/70 border border-slate-200/90 hover:border-purple-300/80 transition-all shadow-2xs hover:shadow-xs group cursor-pointer"
+                  title="Masuk ke Portal SPV Area"
                 >
-                  <span class="text-[11px] font-semibold text-slate-700 group-hover:text-slate-900 leading-tight">Portal NOO+</span>
-                  <span class="text-[10px] font-medium text-slate-500 group-hover:text-[#542B85] leading-tight mt-0.5">SPV</span>
+                  <span class="text-[10.5px] font-semibold text-slate-700 group-hover:text-purple-950 leading-tight">Portal NOO+</span>
+                  <span class="text-[9.5px] font-semibold text-slate-500 group-hover:text-[#542B85] leading-tight mt-0.5">SPV</span>
                 </a>
               </div>
             </div>
           </div>
 
           <!-- Footer Bersih Kartu Login -->
-          <div class="mt-4 pt-3 border-t border-slate-100 text-center text-[11px] text-slate-400">
+          <div class="mt-3 pt-2 border-t border-slate-100 text-center text-[10.5px] text-slate-400">
             Copyright &copy; 2026 <strong class="text-slate-600">Portal Principal NOO+</strong>
           </div>
 
@@ -290,7 +292,7 @@ function submitLogin() {
       </div>
 
       <!-- SISI KANAN: FLUID LIQUID BLOB GRADIENT DENGAN LATAR DEEP INDIGO & TEKS KASAT MATA -->
-      <div class="hidden md:flex md:col-span-6 relative overflow-hidden bg-[#0F0C22] select-none items-end justify-start p-7 sm:p-8 lg:p-10">
+      <div class="hidden md:flex md:col-span-6 relative overflow-hidden bg-[#0F0C22] select-none items-end justify-start p-5 sm:p-6 lg:p-8">
         
         <!-- FLUID AURORA MESH CANVAS (LATAR BELAKANG DEEP CORPORATE NAVY-PURPLE) -->
         <div class="aurora-container absolute inset-0 w-full h-full overflow-hidden bg-gradient-to-br from-[#0F0C22] via-[#1B0E3B] to-[#0A102A]">
@@ -320,18 +322,18 @@ function submitLogin() {
         <!-- KONTEN TEKS DESKRIPSI PRINCIPAL NOO+ (SEPENUHNYA KASAT MATA & HIGH-CONTRAST) -->
         <div class="relative z-20 w-full max-w-[420px] text-white">
           <!-- Badge Kategori Resmi -->
-          <div class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-white/15 backdrop-blur-md border border-white/20 text-[10px] font-bold text-white uppercase tracking-wider mb-3 shadow-xs">
+          <div class="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-white/15 backdrop-blur-md border border-white/20 text-[9.5px] font-bold text-white uppercase tracking-wider mb-2 shadow-xs">
             <span class="w-1.5 h-1.5 rounded-full bg-[#F59E0B]"></span>
             Portal Principal NOO+
           </div>
           
           <!-- Judul Utama (Putih Tebal, Tajam & Kasat Mata) -->
-          <h2 class="text-xl sm:text-[22px] font-extrabold text-white tracking-tight leading-snug drop-shadow-md">
+          <h2 class="text-lg sm:text-xl font-extrabold text-white tracking-tight leading-snug drop-shadow-md">
             Verifikasi &amp; Otorisasi Outlet Baru Secara Terpadu dan Akurat.
           </h2>
           
           <!-- Teks Deskripsi Sistem (Kontras Tinggi & Mudah Dibaca) -->
-          <p class="text-[12.5px] sm:text-[13px] text-white/85 leading-relaxed mt-2.5 font-normal drop-shadow-sm">
+          <p class="text-[12px] sm:text-[12.5px] text-white/85 leading-relaxed mt-2 font-normal drop-shadow-sm">
             Pusat monitoring validitas data toko, kaji ulang identitas, sinkronisasi titik lokasi GPS, dan integrasi distribusi ASWFOODS &amp; INAFOODS.
           </p>
         </div>
