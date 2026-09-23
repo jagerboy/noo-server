@@ -109,7 +109,7 @@ function submitLogin() {
   <div class="flex items-center justify-center min-h-screen bg-gradient-to-br from-[#E2E8F0] via-[#E8EDF5] to-[#DCE4EF] p-4 sm:p-6 lg:p-10 font-sans selection:bg-rose-100 select-none">
     
     <!-- KARTU UTAMA: Split Card Rounded dengan Border Halus -->
-    <div class="w-full max-w-4xl lg:max-w-[940px] bg-white rounded-[28px] sm:rounded-[32px] border border-slate-300/80 shadow-[0_20px_60px_-15px_rgba(15,23,42,0.12)] overflow-hidden grid grid-cols-1 md:grid-cols-12 min-h-[510px] max-h-[620px] my-auto">
+    <div class="w-full max-w-4xl lg:max-w-[940px] bg-white rounded-[28px] sm:rounded-[32px] border border-slate-300/80 shadow-[0_20px_60px_-15px_rgba(15,23,42,0.12)] overflow-hidden grid grid-cols-1 md:grid-cols-12 min-h-[530px] md:max-h-[680px] my-auto">
       
       <!-- SISI KIRI: RUANG UNTUK ELEVATED FLOATING LOGIN CARD (6 COLS) -->
       <div class="md:col-span-6 flex items-center justify-center p-6 sm:p-8 lg:p-10 bg-white relative">
@@ -255,10 +255,33 @@ function submitLogin() {
                 <span v-else>Sign in</span>
               </button>
             </form>
+
+            <!-- Akses Portal Lainnya (Admin Distributor & SPV) -->
+            <div class="mt-4 pt-3.5 border-t border-slate-100">
+              <div class="text-center mb-2">
+                <span class="text-[10.5px] font-semibold text-slate-400 uppercase tracking-wider">Akses Portal Lainnya</span>
+              </div>
+              <div class="grid grid-cols-2 gap-2">
+                <a
+                  href="https://noo.coreappl.id/admin-distributor/"
+                  class="flex flex-col items-center justify-center py-2 px-2 rounded-xl bg-slate-50/90 hover:bg-slate-100 border border-slate-200/80 hover:border-slate-300 transition-all shadow-2xs group cursor-pointer"
+                >
+                  <span class="text-[11px] font-semibold text-slate-700 group-hover:text-slate-900 leading-tight">Portal NOO+</span>
+                  <span class="text-[10px] font-medium text-slate-500 group-hover:text-[#D9232A] leading-tight mt-0.5">Admin Distributor</span>
+                </a>
+                <a
+                  href="https://noo.coreappl.id/spv"
+                  class="flex flex-col items-center justify-center py-2 px-2 rounded-xl bg-slate-50/90 hover:bg-slate-100 border border-slate-200/80 hover:border-slate-300 transition-all shadow-2xs group cursor-pointer"
+                >
+                  <span class="text-[11px] font-semibold text-slate-700 group-hover:text-slate-900 leading-tight">Portal NOO+</span>
+                  <span class="text-[10px] font-medium text-slate-500 group-hover:text-[#542B85] leading-tight mt-0.5">SPV</span>
+                </a>
+              </div>
+            </div>
           </div>
 
           <!-- Footer Bersih Kartu Login -->
-          <div class="mt-6 pt-3 border-t border-slate-100 text-center text-[11px] text-slate-400">
+          <div class="mt-4 pt-3 border-t border-slate-100 text-center text-[11px] text-slate-400">
             Copyright &copy; 2026 <strong class="text-slate-600">Portal Principal NOO+</strong>
           </div>
 
