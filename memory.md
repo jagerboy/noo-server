@@ -165,9 +165,9 @@ $$\text{Customer Code} = \text{Prefix Utama} + \text{Principal Code} + \text{Pre
 - Sequence: `00001`, `00002`, `00067`, dst.
 - **Hasil**: `CAPLG00067`
 
-### Logika Sequence & Reuse:
+### Logika Sequence:
 - Tabel `counter_sequences` mengunci row via `DB::table('counter_sequences')->where(...)->lockForUpdate()`.
-- Jika toko pernah di-approve lalu di-reset approval, sistem menyimpan `previous_code_noo_principal`. Saat di-approve kembali, kode lama tersebut akan digunakan kembali (*reused*) agar nomor urut tidak terbuang.
+- Setiap kali toko baru disetujui (Approve EDP), sistem selalu mengambil sequence berikutnya (`last_seq + 1`) dari tabel `counter_sequences` dan memperbarui `last_seq` secara otomatis.
 
 ---
 

@@ -416,11 +416,8 @@ class EdpPortalController extends Controller
             $userName = $user->name ?? $user->username ?? 'EDP Principal';
 
             $codeNoo = $submission->code_noo_principal;
-            if (empty($codeNoo) && !empty($submission->previous_code_noo_principal)) {
-                // Gunakan kembali kode principal lama toko ini (dari sebelum di-reset) tanpa menambah counter sequence
-                $codeNoo = trim((string)$submission->previous_code_noo_principal);
-            } elseif (empty($codeNoo)) {
-                // Buat kode baru dari sequence berikutnya
+            if (empty($codeNoo)) {
+                // Selalu buat kode baru dari sequence counter berikutnya (+1 menaik)
                 $codeNoo = $this->codeGeneratorService->generateCode(
                     $submission->principal_code,
                     $submission->branch_id,
@@ -430,7 +427,7 @@ class EdpPortalController extends Controller
 
             DB::table('noo_submissions')->where('request_id', $requestId)->update([
                 'code_noo_principal' => $codeNoo,
-                'previous_code_noo_principal' => null, // Reset previous code setelah berhasil digunakan kembali
+                'previous_code_noo_principal' => null,
                 'edp_notes' => $request->input('edp_notes'),
                 'approved_by_edp' => $userName,
                 'edp_decision' => 'APPROVED',

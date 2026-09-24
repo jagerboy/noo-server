@@ -1858,15 +1858,8 @@ function getLineStyle(stepBefore, item) {
                 <p v-if="activeModalSubmission.code_noo_principal" class="text-[15px] font-mono font-bold text-[#15803D]">
                   {{ activeModalSubmission.code_noo_principal }}
                 </p>
-                <div v-else-if="activeModalSubmission.previous_code_noo_principal" class="space-y-0.5">
-                  <p class="text-[14px] font-mono font-bold text-amber-700 flex items-center gap-1">
-                    <span>{{ activeModalSubmission.previous_code_noo_principal }}</span>
-                    <span class="text-[10px] font-sans font-bold bg-amber-100 text-amber-800 px-1.5 py-0.2 rounded border border-amber-300">Reuse on Approve</span>
-                  </p>
-                  <p class="text-[11px] text-amber-600 leading-tight">Kode sebelumnya (akan otomatis dipakai kembali saat di-approve)</p>
-                </div>
-                <p v-else class="text-[14px] font-mono font-medium text-slate-400">
-                  BELUM TERGENERATE
+                <p v-else class="text-[13px] font-mono font-medium text-slate-400 italic">
+                  BELUM TERGENERATE (Auto Sequence saat Approve)
                 </p>
               </div>
               <div>
