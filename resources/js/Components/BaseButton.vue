@@ -20,7 +20,7 @@ const props = defineProps({
   variant: {
     type: String,
     default: 'primary',
-    validator: (val) => ['primary', 'secondary', 'outline', 'danger'].includes(val),
+    validator: (val) => ['primary', 'secondary', 'outline', 'danger', 'success'].includes(val),
   },
   size: {
     type: String,
@@ -54,6 +54,8 @@ const variantClasses = computed(() => {
       return 'bg-white hover:bg-slate-50 active:bg-slate-100 text-slate-700 hover:text-slate-900 border border-slate-300 shadow-2xs';
     case 'danger':
       return 'bg-noo-danger hover:bg-[#c2122e] active:bg-[#9d0e25] text-white border border-noo-danger shadow-2xs';
+    case 'success':
+      return 'bg-emerald-600 hover:bg-emerald-700 active:bg-emerald-800 text-white border border-emerald-600 shadow-2xs';
     default:
       return 'bg-noo-primary text-white border border-noo-primary';
   }

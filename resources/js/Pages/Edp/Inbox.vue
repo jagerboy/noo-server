@@ -563,6 +563,12 @@ function getActiveQueryParams() {
   if (selectedEdpYear.value) queryParams.edp_year = selectedEdpYear.value;
   if (search.value) queryParams.search = search.value;
   if (sortSelect.value) queryParams.sort = sortSelect.value;
+  if (props.filters?.is_ro) queryParams.is_ro = props.filters.is_ro;
+
+  const currentPage = props.submissions?.current_page;
+  if (currentPage && currentPage > 1) {
+    queryParams.page = currentPage;
+  }
 
   const perPageVal = props.filters?.per_page !== undefined
     ? props.filters.per_page
@@ -1607,7 +1613,7 @@ function getLineStyle(stepBefore, item) {
 
         <div class="flex items-center gap-2 flex-wrap sm:flex-nowrap shrink-0">
           <BaseButton
-            variant="primary"
+            variant="success"
             size="sm"
             @click="openExportModal"
           >
