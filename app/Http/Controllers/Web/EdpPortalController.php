@@ -329,12 +329,7 @@ class EdpPortalController extends Controller
 
     private function redirectWithFilters(Request $request, string $flashType, string $flashMessage): RedirectResponse
     {
-        $filterParams = array_filter(
-            $request->only(['search', 'region_code', 'principal', 'branch_id', 'status', 'is_ro', 'edp_month', 'edp_months', 'edp_year', 'sort', 'per_page', 'page']),
-            fn($val) => $val !== null && $val !== ''
-        );
-
-        return redirect()->route('edp.inbox', $filterParams)->with($flashType, $flashMessage);
+        return back()->with($flashType, $flashMessage);
     }
 
     public function updateStoreName(Request $request): RedirectResponse
@@ -402,6 +397,7 @@ class EdpPortalController extends Controller
         $request->validate([
             'request_id' => 'required|uuid',
             'edp_notes' => 'nullable|string',
+            'code_mode' => 'nullable|string|in:PREVIOUS,NEW_SEQUENCE',
         ]);
 
         try {
@@ -414,15 +410,21 @@ class EdpPortalController extends Controller
 
             $user = $request->user();
             $userName = $user->name ?? $user->username ?? 'EDP Principal';
+            $codeMode = $request->input('code_mode');
 
             $codeNoo = $submission->code_noo_principal;
             if (empty($codeNoo)) {
-                // Selalu buat kode baru dari sequence counter berikutnya (+1 menaik)
-                $codeNoo = $this->codeGeneratorService->generateCode(
-                    $submission->principal_code,
-                    $submission->branch_id,
-                    $submission->area_code
-                );
+                if ($codeMode === 'PREVIOUS' && !empty($submission->previous_code_noo_principal)) {
+                    // Gunakan kembali kode principal sebelumnya (tanpa increment counter sequence)
+                    $codeNoo = trim((string)$submission->previous_code_noo_principal);
+                } else {
+                    // Selalu buat kode baru dari sequence counter berikutnya (+1 menaik)
+                    $codeNoo = $this->codeGeneratorService->generateCode(
+                        $submission->principal_code,
+                        $submission->branch_id,
+                        $submission->area_code
+                    );
+                }
             }
 
             DB::table('noo_submissions')->where('request_id', $requestId)->update([

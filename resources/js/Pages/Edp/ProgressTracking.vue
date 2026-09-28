@@ -20,6 +20,7 @@ const props = defineProps({
 
 const search = ref(props.filters?.search || '');
 const selectedRegion = ref(props.filters?.region_code || '');
+const selectedEntity = ref(props.filters?.entity || props.filters?.entity_code_principal || '');
 const selectedBranch = ref(props.filters?.branch_id || '');
 const selectedStage = ref(props.filters?.stage || 'all');
 const sortKey = ref(props.filters?.sort_key || 'created_at');
@@ -31,6 +32,7 @@ watch(
     if (!newFilters) return;
     search.value = newFilters.search || '';
     selectedRegion.value = newFilters.region_code || '';
+    selectedEntity.value = newFilters.entity || newFilters.entity_code_principal || '';
     selectedBranch.value = newFilters.branch_id || '';
     selectedStage.value = newFilters.stage || 'all';
     sortKey.value = newFilters.sort_key || 'created_at';
@@ -59,16 +61,52 @@ const regionOptions = computed(() => {
   }));
 });
 
+const entityOptions = computed(() => {
+  let list = props.filterOptions?.entities || [];
+  if (selectedRegion.value) {
+    list = list.filter((e) => e.region_code === selectedRegion.value);
+  }
+  return list.map((e) => ({
+    value: e.entity_code_principal,
+    label: e.entity_name_principal ? `${e.entity_code_principal} - ${e.entity_name_principal}` : e.entity_code_principal,
+  }));
+});
+
 const branchOptions = computed(() => {
   let list = props.filterOptions?.branches || [];
   if (selectedRegion.value) {
     list = list.filter((b) => b.region_code === selectedRegion.value);
+  }
+  if (selectedEntity.value) {
+    list = list.filter((b) => b.entity_code_principal === selectedEntity.value);
   }
   return list.map((b) => ({
     value: b.branch_id,
     label: `${b.branch_id} - ${b.branch_name}`,
   }));
 });
+
+function onRegionChange() {
+  // Reset entity and branch if they are no longer valid for selected region
+  if (selectedEntity.value) {
+    const valid = entityOptions.value.some((e) => e.value === selectedEntity.value);
+    if (!valid) selectedEntity.value = '';
+  }
+  if (selectedBranch.value) {
+    const valid = branchOptions.value.some((b) => b.value === selectedBranch.value);
+    if (!valid) selectedBranch.value = '';
+  }
+  applyFilters();
+}
+
+function onEntityChange() {
+  // Reset branch if it is no longer valid for selected entity
+  if (selectedBranch.value) {
+    const valid = branchOptions.value.some((b) => b.value === selectedBranch.value);
+    if (!valid) selectedBranch.value = '';
+  }
+  applyFilters();
+}
 
 function formatRole(role) {
   if (role === 'EDP_REGION') return 'EDP Regional';
@@ -81,6 +119,7 @@ function getActiveQueryParams() {
   const queryParams = {};
   if (search.value) queryParams.search = search.value;
   if (selectedRegion.value) queryParams.region_code = selectedRegion.value;
+  if (selectedEntity.value) queryParams.entity = selectedEntity.value;
   if (selectedBranch.value) queryParams.branch_id = selectedBranch.value;
   if (selectedStage.value && selectedStage.value !== 'all') queryParams.stage = selectedStage.value;
   if (sortKey.value) queryParams.sort_key = sortKey.value;
@@ -123,6 +162,7 @@ function setStageFilter(stage) {
 function resetFilters() {
   search.value = '';
   selectedRegion.value = '';
+  selectedEntity.value = '';
   selectedBranch.value = '';
   selectedStage.value = 'all';
   sortKey.value = 'created_at';
@@ -293,14 +333,14 @@ const sortedSubmissions = computed(() => {
   <EdpLayout>
     <Head title="Progress Tracking NOO - Portal NOO+" />
 
-    <div class="space-y-6">
+    <div class="space-y-3 sm:space-y-3.5">
       <!-- HEADER METRICS DASHBOARD -->
-      <div class="flex flex-col md:flex-row md:items-center justify-between gap-3 bg-white p-3.5 sm:p-4 md:p-5 rounded-xl border border-[#E5E7EB] shadow-xs">
+      <div class="flex flex-col md:flex-row md:items-center justify-between gap-2.5 bg-white p-3 sm:p-3.5 md:p-4 rounded-xl border border-[#E5E7EB] shadow-xs">
         <div>
-          <h1 class="text-lg sm:text-xl md:text-[22px] font-bold text-[#111827] tracking-tight flex items-center gap-2">
+          <h1 class="text-base sm:text-lg md:text-[20px] font-bold text-[#111827] tracking-tight flex items-center gap-2">
             <span>Monitoring Progress Workflow NOO</span>
           </h1>
-          <p class="text-[12.5px] md:text-[14px] leading-[1.5] text-[#6B7280] mt-0.5">
+          <p class="text-[12px] md:text-[13px] leading-snug text-[#6B7280] mt-0.5">
             Lacak posisi submisi toko & lakukan reset inputan Admin/SPV/EDP sesuai tahapan workflow.
           </p>
         </div>
@@ -312,17 +352,17 @@ const sortedSubmissions = computed(() => {
         </div>
       </div>
 
-      <!-- METRIC CARDS INTERAKTIF -->
-      <div class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-2.5 sm:gap-3">
+      <!-- METRIC CARDS INTERAKTIF (COMPACT SPACING) -->
+      <div class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-2 sm:gap-2.5">
         <!-- CARD TOTAL -->
         <button
           @click="setStageFilter('all')"
           :class="[
-            'p-2.5 sm:p-3 md:p-3.5 rounded-xl border text-left transition shadow-xs cursor-pointer',
+            'p-2 sm:p-2.5 md:p-3 rounded-xl border text-left transition shadow-xs cursor-pointer',
             selectedStage === 'all' ? 'bg-blue-600 text-white border-blue-600 ring-2 ring-blue-400' : 'bg-white text-gray-800 border-gray-200 hover:border-blue-300'
           ]"
         >
-          <div class="text-xl md:text-2xl font-bold">{{ metrics?.total || 0 }}</div>
+          <div class="text-lg sm:text-xl md:text-2xl font-bold">{{ metrics?.total || 0 }}</div>
           <div class="text-[10px] md:text-[11px] font-semibold uppercase tracking-wider mt-0.5" :class="selectedStage === 'all' ? 'text-blue-100' : 'text-gray-500'">Total NOO</div>
         </button>
 
@@ -330,35 +370,35 @@ const sortedSubmissions = computed(() => {
         <button
           @click="setStageFilter('stuck_admin')"
           :class="[
-            'p-2.5 sm:p-3 md:p-3.5 rounded-xl border text-left transition shadow-xs cursor-pointer',
+            'p-2 sm:p-2.5 md:p-3 rounded-xl border text-left transition shadow-xs cursor-pointer',
             selectedStage === 'stuck_admin' ? 'bg-amber-600 text-white border-amber-600 ring-2 ring-amber-400' : 'bg-white text-gray-800 border-gray-200 hover:border-amber-300'
           ]"
         >
-          <div class="text-xl md:text-2xl font-bold text-amber-600" :class="{ 'text-white': selectedStage === 'stuck_admin' }">{{ metrics?.stuckAdmin || 0 }}</div>
-          <div class="text-[10px] md:text-[11px] font-semibold uppercase tracking-wider mt-0.5" :class="selectedStage === 'stuck_admin' ? 'text-amber-100' : 'text-amber-700'">Admin Belum Memproses</div>
+          <div class="text-lg sm:text-xl md:text-2xl font-bold text-amber-600" :class="{ 'text-white': selectedStage === 'stuck_admin' }">{{ metrics?.stuckAdmin || 0 }}</div>
+          <div class="text-[10px] md:text-[11px] font-semibold uppercase tracking-wider mt-0.5" :class="selectedStage === 'stuck_admin' ? 'text-amber-100' : 'text-amber-700'">Admin Belum Proses</div>
         </button>
 
         <!-- SPV BELUM MEMPROSES JKS -->
         <button
           @click="setStageFilter('stuck_spv')"
           :class="[
-            'p-2.5 sm:p-3 md:p-3.5 rounded-xl border text-left transition shadow-xs cursor-pointer',
+            'p-2 sm:p-2.5 md:p-3 rounded-xl border text-left transition shadow-xs cursor-pointer',
             selectedStage === 'stuck_spv' ? 'bg-purple-600 text-white border-purple-600 ring-2 ring-purple-400' : 'bg-white text-gray-800 border-gray-200 hover:border-purple-300'
           ]"
         >
-          <div class="text-xl md:text-2xl font-bold text-purple-600" :class="{ 'text-white': selectedStage === 'stuck_spv' }">{{ metrics?.stuckSpv || 0 }}</div>
-          <div class="text-[10px] md:text-[11px] font-semibold uppercase tracking-wider mt-0.5" :class="selectedStage === 'stuck_spv' ? 'text-purple-100' : 'text-purple-700'">SPV Belum Memproses JKS</div>
+          <div class="text-lg sm:text-xl md:text-2xl font-bold text-purple-600" :class="{ 'text-white': selectedStage === 'stuck_spv' }">{{ metrics?.stuckSpv || 0 }}</div>
+          <div class="text-[10px] md:text-[11px] font-semibold uppercase tracking-wider mt-0.5" :class="selectedStage === 'stuck_spv' ? 'text-purple-100' : 'text-purple-700'">SPV Belum Proses</div>
         </button>
 
         <!-- PENDING EDP -->
         <button
           @click="setStageFilter('pending_edp')"
           :class="[
-            'p-2.5 sm:p-3 md:p-3.5 rounded-xl border text-left transition shadow-xs cursor-pointer',
+            'p-2 sm:p-2.5 md:p-3 rounded-xl border text-left transition shadow-xs cursor-pointer',
             selectedStage === 'pending_edp' ? 'bg-sky-600 text-white border-sky-600 ring-2 ring-sky-400' : 'bg-white text-gray-800 border-gray-200 hover:border-sky-300'
           ]"
         >
-          <div class="text-xl md:text-2xl font-bold text-sky-600" :class="{ 'text-white': selectedStage === 'pending_edp' }">{{ metrics?.pendingEdp || 0 }}</div>
+          <div class="text-lg sm:text-xl md:text-2xl font-bold text-sky-600" :class="{ 'text-white': selectedStage === 'pending_edp' }">{{ metrics?.pendingEdp || 0 }}</div>
           <div class="text-[10px] md:text-[11px] font-semibold uppercase tracking-wider mt-0.5" :class="selectedStage === 'pending_edp' ? 'text-sky-100' : 'text-sky-700'">Pending EDP</div>
         </button>
 
@@ -366,11 +406,11 @@ const sortedSubmissions = computed(() => {
         <button
           @click="setStageFilter('completed')"
           :class="[
-            'p-2.5 sm:p-3 md:p-3.5 rounded-xl border text-left transition shadow-xs cursor-pointer',
+            'p-2 sm:p-2.5 md:p-3 rounded-xl border text-left transition shadow-xs cursor-pointer',
             selectedStage === 'completed' ? 'bg-emerald-600 text-white border-emerald-600 ring-2 ring-emerald-400' : 'bg-white text-gray-800 border-gray-200 hover:border-emerald-300'
           ]"
         >
-          <div class="text-xl md:text-2xl font-bold text-emerald-600" :class="{ 'text-white': selectedStage === 'completed' }">{{ metrics?.completed || 0 }}</div>
+          <div class="text-lg sm:text-xl md:text-2xl font-bold text-emerald-600" :class="{ 'text-white': selectedStage === 'completed' }">{{ metrics?.completed || 0 }}</div>
           <div class="text-[10px] md:text-[11px] font-semibold uppercase tracking-wider mt-0.5" :class="selectedStage === 'completed' ? 'text-emerald-100' : 'text-emerald-700'">Selesai</div>
         </button>
 
@@ -378,31 +418,46 @@ const sortedSubmissions = computed(() => {
         <button
           @click="setStageFilter('rejected')"
           :class="[
-            'p-2.5 sm:p-3 md:p-3.5 rounded-xl border text-left transition shadow-xs cursor-pointer',
+            'p-2 sm:p-2.5 md:p-3 rounded-xl border text-left transition shadow-xs cursor-pointer',
             selectedStage === 'rejected' ? 'bg-rose-600 text-white border-rose-600 ring-2 ring-rose-400' : 'bg-white text-gray-800 border-gray-200 hover:border-rose-300'
           ]"
         >
-          <div class="text-xl md:text-2xl font-bold text-rose-600" :class="{ 'text-white': selectedStage === 'rejected' }">{{ metrics?.rejected || 0 }}</div>
+          <div class="text-lg sm:text-xl md:text-2xl font-bold text-rose-600" :class="{ 'text-white': selectedStage === 'rejected' }">{{ metrics?.rejected || 0 }}</div>
           <div class="text-[10px] md:text-[11px] font-semibold uppercase tracking-wider mt-0.5" :class="selectedStage === 'rejected' ? 'text-rose-100' : 'text-rose-700'">Ditolak</div>
         </button>
       </div>
 
-      <!-- FILTER BAR -->
-      <div class="bg-white p-3 sm:p-3.5 md:p-4 rounded-xl border border-[#E5E7EB] shadow-xs space-y-3">
-        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-3">
+      <!-- FILTER BAR (COMPACT & SEBARIS) -->
+      <div class="bg-white p-2.5 sm:p-3 rounded-xl border border-[#E5E7EB] shadow-xs space-y-2.5">
+        <!-- BARIS 1: 5 DROPDOWN FILTER BERJAJAR DI SATU BARIS DESKTOP -->
+        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-2.5">
+          <!-- 1. REGION -->
           <div>
-            <label class="block text-[11.5px] font-medium text-slate-500 mb-1">REGION</label>
+            <label class="block text-[11px] font-semibold text-slate-600 uppercase tracking-wider mb-1">REGION</label>
             <SearchableSelect
               v-model="selectedRegion"
               :options="regionOptions"
               placeholder="-- Semua Region --"
               searchPlaceholder="Cari Region..."
-              @change="applyFilters()"
+              @change="onRegionChange"
             />
           </div>
 
+          <!-- 2. ENTITY (PRINCIPAL) -->
           <div>
-            <label class="block text-[11.5px] font-medium text-slate-500 mb-1">CABANG / BRANCH</label>
+            <label class="block text-[11px] font-semibold text-slate-600 uppercase tracking-wider mb-1">ENTITY</label>
+            <SearchableSelect
+              v-model="selectedEntity"
+              :options="entityOptions"
+              placeholder="-- Semua Entity --"
+              searchPlaceholder="Cari Entity..."
+              @change="onEntityChange"
+            />
+          </div>
+
+          <!-- 3. CABANG / BRANCH -->
+          <div>
+            <label class="block text-[11px] font-semibold text-slate-600 uppercase tracking-wider mb-1">CABANG / BRANCH</label>
             <SearchableSelect
               v-model="selectedBranch"
               :options="branchOptions"
@@ -412,9 +467,10 @@ const sortedSubmissions = computed(() => {
             />
           </div>
 
+          <!-- 4. TAHAPAN WORKFLOW -->
           <div>
-            <label class="block text-[11.5px] font-medium text-slate-500 mb-1">TAHAPAN WORKFLOW</label>
-            <select v-model="selectedStage" @change="applyFilters()" class="w-full px-2.5 py-1.5 text-[12px] font-medium border border-slate-300 rounded-lg bg-white">
+            <label class="block text-[11px] font-semibold text-slate-600 uppercase tracking-wider mb-1">TAHAPAN WORKFLOW</label>
+            <select v-model="selectedStage" @change="applyFilters()" class="w-full px-2.5 py-1.5 text-[12px] font-medium border border-slate-300 rounded-lg bg-white text-slate-800 focus:ring-1 focus:ring-blue-500 focus:border-blue-500">
               <option value="all">-- Semua Tahapan --</option>
               <option value="stuck_admin">Admin Belum Memproses Kode Cust</option>
               <option value="stuck_spv">SPV Belum Memproses Rute JKS</option>
@@ -424,8 +480,9 @@ const sortedSubmissions = computed(() => {
             </select>
           </div>
 
+          <!-- 5. URUTKAN DATA (SORT) -->
           <div>
-            <label class="block text-[11.5px] font-medium text-slate-500 mb-1">URUTKAN DATA (SORT)</label>
+            <label class="block text-[11px] font-semibold text-slate-600 uppercase tracking-wider mb-1">URUTKAN DATA</label>
             <div class="inline-flex items-center w-full rounded-lg border border-slate-300 bg-white shadow-2xs overflow-hidden">
               <select
                 v-model="sortKey"
@@ -456,31 +513,36 @@ const sortedSubmissions = computed(() => {
               </button>
             </div>
           </div>
-
-          <div>
-            <label class="block text-[11.5px] font-medium text-slate-500 mb-1">CARI TOKO / SALESMAN</label>
-            <div class="relative w-full">
-              <input
-                type="text"
-                v-model="search"
-                @keyup.enter="applyFilters()"
-                placeholder="Nama Toko, Custcode, Salesman..."
-                class="w-full pl-2.5 pr-7 py-1.5 text-[12px] border border-slate-300 rounded-lg placeholder-slate-400"
-              />
-              <button
-                v-if="search"
-                @click="search = ''; applyFilters();"
-                class="absolute right-2 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 text-xs font-bold cursor-pointer"
-              >
-                ✕
-              </button>
-            </div>
-          </div>
         </div>
 
-        <div class="flex justify-end pt-1 border-t border-slate-100">
-          <button @click="resetFilters" class="px-2 py-0.5 text-[10.5px] font-medium text-rose-500 hover:text-rose-700 hover:underline transition cursor-pointer">
-            Reset Filter
+        <!-- BARIS 2: KOLOM SEARCH DI BAWAH REGION, SEBARIS DENGAN RESET FILTER -->
+        <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-2 pt-2 border-t border-slate-100">
+          <div class="relative w-full max-w-sm">
+            <div class="absolute inset-y-0 left-0 pl-2.5 flex items-center pointer-events-none text-slate-400">
+              <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/></svg>
+            </div>
+            <input
+              type="text"
+              v-model="search"
+              @keyup.enter="applyFilters()"
+              placeholder="Cari Toko, Custcode, Salesman..."
+              class="w-full pl-8 pr-7 py-1.5 text-[12px] border border-slate-300 rounded-lg placeholder-slate-400 focus:ring-1 focus:ring-blue-500 focus:border-blue-500 bg-white"
+            />
+            <button
+              v-if="search"
+              @click="search = ''; applyFilters();"
+              class="absolute right-2 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 text-xs font-bold cursor-pointer"
+            >
+              ✕
+            </button>
+          </div>
+
+          <button
+            @click="resetFilters"
+            class="inline-flex items-center gap-1.5 px-3 py-1.5 text-[11.5px] font-semibold text-rose-600 hover:text-rose-700 bg-rose-50 hover:bg-rose-100 rounded-lg border border-rose-200/80 transition cursor-pointer self-end sm:self-center shadow-2xs"
+          >
+            <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/></svg>
+            <span>Reset Filter</span>
           </button>
         </div>
       </div>

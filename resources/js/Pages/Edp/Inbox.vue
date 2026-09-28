@@ -612,7 +612,22 @@ function saveStoreAddress() {
   );
 }
 
+const showApproveChoiceModal = ref(false);
+const selectedCodeMode = ref('PREVIOUS'); // 'PREVIOUS' | 'NEW_SEQUENCE'
+
 function handleApprove() {
+  if (!activeModalSubmission.value || isProcessingApprove.value || isProcessingReject.value) return;
+  
+  if (activeModalSubmission.value.previous_code_noo_principal) {
+    selectedCodeMode.value = 'PREVIOUS';
+    showApproveChoiceModal.value = true;
+    return;
+  }
+
+  executeApproval('NEW_SEQUENCE');
+}
+
+function executeApproval(mode = 'NEW_SEQUENCE') {
   if (!activeModalSubmission.value || isProcessingApprove.value || isProcessingReject.value) return;
   const currentReqId = activeModalSubmission.value.request_id;
 
@@ -621,6 +636,7 @@ function handleApprove() {
     {
       request_id: currentReqId,
       edp_notes: edpNotesInput.value,
+      code_mode: mode,
     },
     {
       preserveState: true,
@@ -632,6 +648,7 @@ function handleApprove() {
         isProcessingApprove.value = false;
       },
       onSuccess: () => {
+        showApproveChoiceModal.value = false;
         closeDetailModal();
       },
     }
@@ -2531,6 +2548,124 @@ function getLineStyle(stepBefore, item) {
           </div>
         </div>
       </Teleport>
+
+      <!-- APPROVAL CODE CHOICE MODAL (PILIHAN KODE PRINCIPAL SEBELUMNYA VS SEQUENCE BARU) -->
+      <Teleport to="body">
+        <div v-if="showApproveChoiceModal" class="fixed inset-0 min-h-screen min-w-full w-full h-full bg-black/60 z-[999999] flex items-center justify-center p-4 overflow-y-auto backdrop-blur-xs">
+          <div class="bg-white rounded-xl max-w-lg w-full p-6 space-y-4 shadow-2xl border border-slate-200 my-auto animate-in fade-in zoom-in-95 duration-150">
+            <!-- Header -->
+            <div class="flex items-start justify-between border-b border-slate-100 pb-3">
+              <div>
+                <h3 class="text-base font-bold text-slate-900 flex items-center gap-2">
+                  <span class="w-2 h-2 rounded-full bg-emerald-500"></span>
+                  <span>Pilihan Kode Pelanggan Principal</span>
+                </h3>
+                <p class="text-xs text-slate-500 mt-0.5">
+                  Toko <strong class="text-slate-800">{{ activeModalSubmission?.nama_noo }}</strong> pernah memiliki kode principal sebelum di-reset.
+                </p>
+              </div>
+              <button 
+                type="button"
+                @click="showApproveChoiceModal = false" 
+                class="p-1 rounded-lg text-slate-400 hover:text-slate-600 hover:bg-slate-100 transition cursor-pointer"
+              >
+                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
+              </button>
+            </div>
+
+            <!-- Radio Options -->
+            <div class="space-y-3 pt-1">
+              <label 
+                @click="selectedCodeMode = 'PREVIOUS'"
+                :class="[
+                  'flex items-start gap-3 p-3.5 rounded-xl border-2 transition cursor-pointer',
+                  selectedCodeMode === 'PREVIOUS'
+                    ? 'border-emerald-500 bg-emerald-50/50 shadow-xs'
+                    : 'border-slate-200 hover:border-slate-300 bg-white'
+                ]"
+              >
+                <input 
+                  type="radio" 
+                  name="code_approval_mode" 
+                  value="PREVIOUS" 
+                  v-model="selectedCodeMode" 
+                  class="mt-1 text-emerald-600 focus:ring-emerald-500"
+                />
+                <div class="flex-1">
+                  <div class="flex items-center justify-between">
+                    <span class="text-sm font-bold text-slate-900">Gunakan Kode Principal Sebelumnya</span>
+                    <span class="px-2 py-0.5 text-[11px] font-bold rounded-md bg-emerald-100 text-emerald-800 border border-emerald-200">
+                      {{ activeModalSubmission?.previous_code_noo_principal }}
+                    </span>
+                  </div>
+                  <p class="text-xs text-slate-600 mt-1 leading-relaxed">
+                    Kode sebelumnya (<strong>{{ activeModalSubmission?.previous_code_noo_principal }}</strong>) akan digunakan kembali. Nomor counter sequence cabang <span class="font-semibold text-emerald-700">TIDAK bertambah</span>.
+                  </p>
+                </div>
+              </label>
+
+              <label 
+                @click="selectedCodeMode = 'NEW_SEQUENCE'"
+                :class="[
+                  'flex items-start gap-3 p-3.5 rounded-xl border-2 transition cursor-pointer',
+                  selectedCodeMode === 'NEW_SEQUENCE'
+                    ? 'border-blue-500 bg-blue-50/50 shadow-xs'
+                    : 'border-slate-200 hover:border-slate-300 bg-white'
+                ]"
+              >
+                <input 
+                  type="radio" 
+                  name="code_approval_mode" 
+                  value="NEW_SEQUENCE" 
+                  v-model="selectedCodeMode" 
+                  class="mt-1 text-blue-600 focus:ring-blue-500"
+                />
+                <div class="flex-1">
+                  <div class="flex items-center justify-between">
+                    <span class="text-sm font-bold text-slate-900">Buat Kode Baru dari Counter Sequence</span>
+                    <span class="px-2 py-0.5 text-[11px] font-bold rounded-md bg-blue-100 text-blue-800 border border-blue-200">
+                      Sequence Baru (+1)
+                    </span>
+                  </div>
+                  <p class="text-xs text-slate-600 mt-1 leading-relaxed">
+                    Generate kode customer baru sesuai urutan counter sequence cabang terkini. Counter sequence akan <span class="font-semibold text-blue-700">dinaikkan (+1)</span>.
+                  </p>
+                </div>
+              </label>
+            </div>
+
+            <!-- Notes summary -->
+            <div v-if="edpNotesInput" class="bg-slate-50 p-2.5 rounded-lg border border-slate-200 text-xs text-slate-600">
+              <span class="font-semibold text-slate-700">Catatan EDP:</span> {{ edpNotesInput }}
+            </div>
+
+            <!-- Actions -->
+            <div class="flex items-center justify-end gap-2.5 pt-2 border-t border-slate-100">
+              <button 
+                type="button" 
+                :disabled="isProcessingApprove"
+                @click="showApproveChoiceModal = false" 
+                class="px-4 py-2 text-xs font-semibold text-slate-700 bg-slate-100 hover:bg-slate-200 rounded-lg transition cursor-pointer disabled:opacity-50"
+              >
+                Batal
+              </button>
+              <button 
+                type="button"
+                :disabled="isProcessingApprove"
+                @click="executeApproval(selectedCodeMode)"
+                class="px-5 py-2 text-xs font-semibold text-white bg-emerald-600 hover:bg-emerald-700 rounded-lg shadow-sm transition flex items-center gap-1.5 cursor-pointer disabled:opacity-50"
+              >
+                <svg v-if="isProcessingApprove" class="animate-spin h-3.5 w-3.5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                  <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                  <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                </svg>
+                <span>{{ isProcessingApprove ? 'Memproses Approval...' : 'Konfirmasi & Setujui Toko' }}</span>
+              </button>
+            </div>
+          </div>
+        </div>
+      </Teleport>
+
 
       <!-- IMAGE PREVIEW MODAL FULL SCREEN VIA TELEPORT - LEVEL 3 MODAL Z-INDEX 9999999 -->
       <Teleport to="body">

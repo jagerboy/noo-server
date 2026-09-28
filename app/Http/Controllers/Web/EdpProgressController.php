@@ -138,25 +138,67 @@ class EdpProgressController extends Controller
             });
         }
 
-        // Metrics global scope
-        $allForMetrics = (clone $baseQuery)->get();
+        // Filter Dimensi Interaktif (Region, Entity, Branch, Search) untuk Metriks & Submisi
+        $filterQuery = clone $baseQuery;
+
+        if ($request->filled('region_code')) {
+            $filterQuery->where('region_code', $request->input('region_code'));
+        }
+
+        $entityParam = $request->input('entity') ?? $request->input('entity_code_principal');
+        if (!empty($entityParam)) {
+            $matchingBranches = DB::table('master_branches')
+                ->where('entity_code_principal', $entityParam)
+                ->orWhere('principal_code', $entityParam)
+                ->pluck('branch_id')
+                ->filter()
+                ->toArray();
+
+            $filterQuery->where(function ($q) use ($entityParam, $matchingBranches) {
+                $q->where('principal', 'ILIKE', "%{$entityParam}%")
+                  ->orWhere('principal_code', 'ILIKE', "%{$entityParam}%");
+                if (!empty($matchingBranches)) {
+                    $q->orWhereIn('branch_id', $matchingBranches);
+                }
+            });
+        }
+
+        if ($request->filled('branch_id')) {
+            $filterQuery->where('branch_id', $request->input('branch_id'));
+        }
+
+        if ($request->filled('search')) {
+            $s = trim((string)$request->input('search'));
+            $filterQuery->where(function ($q) use ($s) {
+                $q->where('nama_noo', 'ILIKE', "%{$s}%")
+                  ->orWhere('salesman_name', 'ILIKE', "%{$s}%")
+                  ->orWhere('custcode_distributor', 'ILIKE', "%{$s}%")
+                  ->orWhere('code_noo_principal', 'ILIKE', "%{$s}%")
+                  ->orWhere('branch_id', 'ILIKE', "%{$s}%");
+            });
+        }
+
+        // Hitung Metriks Interaktif Secara Cepat Sesuai Filter Terpilih
+        $metricCounts = (clone $filterQuery)->selectRaw("
+            COUNT(*) as total,
+            COUNT(CASE WHEN status = 'SE_SUBMITTED' THEN 1 END) as stuck_admin,
+            COUNT(CASE WHEN status = 'PUSHED_TO_SPV' THEN 1 END) as stuck_spv,
+            COUNT(CASE WHEN status IN ('APPROVED_SPV', 'PUSHED_TO_EDP') THEN 1 END) as pending_edp,
+            COUNT(CASE WHEN status = 'APPROVED_EDP' THEN 1 END) as completed,
+            COUNT(CASE WHEN status IN ('ADMIN_REJECTED', 'SPV_REJECTED', 'REJECTED_SPV', 'EDP_REJECTED', 'REJECTED_EDP') THEN 1 END) as rejected
+        ")->first();
+
         $metrics = [
-            'total' => $allForMetrics->count(),
-            'stuckAdmin' => $allForMetrics->where('status', 'SE_SUBMITTED')->count(),
-            'stuckSpv' => $allForMetrics->where('status', 'PUSHED_TO_SPV')->count(),
-            'pendingEdp' => $allForMetrics->whereIn('status', ['APPROVED_SPV', 'PUSHED_TO_EDP'])->count(),
-            'completed' => $allForMetrics->where('status', 'APPROVED_EDP')->count(),
-            'rejected' => $allForMetrics->whereIn('status', [
-                'ADMIN_REJECTED',
-                'SPV_REJECTED',
-                'REJECTED_SPV',
-                'EDP_REJECTED',
-                'REJECTED_EDP',
-            ])->count(),
+            'total' => (int)($metricCounts->total ?? 0),
+            'stuckAdmin' => (int)($metricCounts->stuck_admin ?? 0),
+            'stuckSpv' => (int)($metricCounts->stuck_spv ?? 0),
+            'pendingEdp' => (int)($metricCounts->pending_edp ?? 0),
+            'completed' => (int)($metricCounts->completed ?? 0),
+            'rejected' => (int)($metricCounts->rejected ?? 0),
         ];
 
-        // Filter Interaktif
-        $query = clone $baseQuery;
+        // Filter Tahapan Workflow untuk Tabel NOO
+        $query = clone $filterQuery;
 
         if ($request->filled('stage')) {
             $stage = $request->input('stage');
@@ -177,23 +219,6 @@ class EdpProgressController extends Controller
                     'REJECTED_EDP',
                 ]);
             }
-        }
-
-        if ($request->filled('region_code')) {
-            $query->where('region_code', $request->input('region_code'));
-        }
-        if ($request->filled('branch_id')) {
-            $query->where('branch_id', $request->input('branch_id'));
-        }
-        if ($request->filled('search')) {
-            $s = $request->input('search');
-            $query->where(function ($q) use ($s) {
-                $q->where('nama_noo', 'ILIKE', "%{$s}%")
-                  ->orWhere('salesman_name', 'ILIKE', "%{$s}%")
-                  ->orWhere('custcode_distributor', 'ILIKE', "%{$s}%")
-                  ->orWhere('code_noo_principal', 'ILIKE', "%{$s}%")
-                  ->orWhere('branch_id', 'ILIKE', "%{$s}%");
-            });
         }
 
         $perPage = (int) $request->input('per_page', 10);
@@ -260,11 +285,14 @@ class EdpProgressController extends Controller
         });
 
         $activeFilters = array_filter(
-            $request->only(['search', 'region_code', 'branch_id', 'stage', 'sort_key', 'sort_dir', 'per_page']),
+            $request->only(['search', 'region_code', 'entity', 'entity_code_principal', 'branch_id', 'stage', 'sort_key', 'sort_dir', 'per_page']),
             fn($val) => $val !== null && $val !== ''
         );
         $activeFilters['sort_key'] = $sortKey;
         $activeFilters['sort_dir'] = $sortDir;
+        if (!empty($entityParam)) {
+            $activeFilters['entity'] = $entityParam;
+        }
         if ($request->has('per_page')) {
             $rawPerPage = (int) $request->input('per_page');
             $activeFilters['per_page'] = ($rawPerPage <= 0 || $rawPerPage >= 1000) ? -1 : $rawPerPage;
