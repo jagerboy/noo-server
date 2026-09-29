@@ -225,6 +225,13 @@ class EdpPortalController extends Controller
             return $item;
         });
 
+        // Edge case: Jika aksi approval mengurangi total data pada halaman terakhir sehingga halaman tsb out of bounds
+        if ($submissions->currentPage() > $submissions->lastPage() && $submissions->total() > 0) {
+            $params = $request->query();
+            $params['page'] = $submissions->lastPage();
+            return redirect()->route('edp.inbox', $params);
+        }
+
         $regionsQuery = DB::table('master_branches')->select('region_code', 'region_name')->distinct()->whereNotNull('region_code');
         $entitiesQuery = DB::table('master_branches')->select('entity_code_principal', 'entity_name_principal', 'region_code')->distinct()->whereNotNull('entity_code_principal');
         $branchesQuery = DB::table('master_branches')->select('branch_id', 'branch_name', 'region_code', 'entity_code_principal');
@@ -304,7 +311,7 @@ class EdpPortalController extends Controller
         }
 
         $activeFilters = array_filter(
-            $request->only(['search', 'region_code', 'principal', 'branch_id', 'status', 'is_ro', 'edp_month', 'edp_months', 'edp_year', 'sort', 'per_page']),
+            $request->only(['search', 'region_code', 'principal', 'branch_id', 'status', 'is_ro', 'edp_month', 'edp_months', 'edp_year', 'sort', 'per_page', 'page']),
             fn($val) => $val !== null && $val !== ''
         );
         $activeFilters['sort'] = $sort;
@@ -329,7 +336,43 @@ class EdpPortalController extends Controller
 
     private function redirectWithFilters(Request $request, string $flashType, string $flashMessage): RedirectResponse
     {
-        return back()->with($flashType, $flashMessage);
+        $filterKeys = [
+            'region_code',
+            'principal',
+            'branch_id',
+            'status',
+            'is_ro',
+            'edp_month',
+            'edp_months',
+            'edp_year',
+            'search',
+            'sort',
+            'per_page',
+            'page',
+        ];
+
+        // 1. Ambil filter dari request inputs / query parameters
+        $params = array_filter(
+            $request->only($filterKeys),
+            fn($val) => $val !== null && $val !== ''
+        );
+
+        // 2. Fallback: jika kosong pada request, coba parse dari header Referer
+        if (empty($params)) {
+            $referer = $request->headers->get('referer');
+            if ($referer) {
+                $queryString = parse_url($referer, PHP_URL_QUERY);
+                if ($queryString) {
+                    parse_str($queryString, $refererParams);
+                    $params = array_filter(
+                        array_intersect_key($refererParams, array_flip($filterKeys)),
+                        fn($val) => $val !== null && $val !== ''
+                    );
+                }
+            }
+        }
+
+        return redirect()->route('edp.inbox', $params)->with($flashType, $flashMessage);
     }
 
     public function updateStoreName(Request $request): RedirectResponse
