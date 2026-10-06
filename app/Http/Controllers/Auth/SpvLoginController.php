@@ -103,7 +103,8 @@ class SpvLoginController extends Controller
             'updated_at' => now(),
         ]);
 
-        return redirect()->intended(route('spv.inbox'));
+        session()->forget('url.intended');
+        return redirect()->route('spv.inbox');
     }
 
     public function destroy(Request $request): RedirectResponse

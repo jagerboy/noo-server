@@ -9,6 +9,7 @@
 import { ref, computed, watch, onMounted } from 'vue';
 import { usePage, Link } from '@inertiajs/vue3';
 import ToastNotification from '@/Components/ToastNotification.vue';
+import LoadingIndicator from '@/Components/LoadingIndicator.vue';
 
 const page = usePage();
 const user = computed(() => page.props.auth?.user || {});

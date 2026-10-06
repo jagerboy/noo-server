@@ -21,11 +21,11 @@ class AppServiceProvider extends ServiceProvider
      */
     public function boot(): void
     {
-        if (request()->getHost() !== 'localhost' && request()->getHost() !== '127.0.0.1') {
+        if (!app()->isLocal() && request()->getHost() !== 'localhost' && request()->getHost() !== '127.0.0.1') {
             URL::forceScheme('https');
-            URL::forceRootUrl('https://' . request()->getHost());
-            config(['app.url' => 'https://' . request()->getHost()]);
-            config(['app.asset_url' => 'https://' . request()->getHost()]);
+            URL::forceRootUrl('https://' . request()->getHttpHost());
+            config(['app.url' => 'https://' . request()->getHttpHost()]);
+            config(['app.asset_url' => 'https://' . request()->getHttpHost()]);
         }
 
         Vite::prefetch(concurrency: 3);

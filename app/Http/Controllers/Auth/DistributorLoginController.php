@@ -253,7 +253,8 @@ class DistributorLoginController extends Controller
             'updated_at' => now(),
         ]);
 
-        return redirect()->intended(route('admin.inbox'));
+        session()->forget('url.intended');
+        return redirect()->route('admin.inbox');
     }
 
     /**

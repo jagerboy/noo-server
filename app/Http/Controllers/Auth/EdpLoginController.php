@@ -87,7 +87,8 @@ class EdpLoginController extends Controller
             'updated_at' => now(),
         ]);
 
-        return redirect()->intended(route('edp.dashboard'));
+        session()->forget('url.intended');
+        return redirect()->route('edp.dashboard');
     }
 
     public function destroy(Request $request): RedirectResponse

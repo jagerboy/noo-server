@@ -44,19 +44,22 @@ class SecurityHeadersMiddleware
             $response->headers->set('Strict-Transport-Security', 'max-age=31536000; includeSubDomains; preload');
         }
 
-        // 7. Content Security Policy (CSP) yang kompatibel dengan Inertia.js, Vue 3, Vite, dan Google Fonts
-        $csp = [
-            "default-src 'self'",
-            "script-src 'self' 'unsafe-inline' 'unsafe-eval'",
-            "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com",
-            "font-src 'self' https://fonts.gstatic.com data:",
-            "img-src 'self' data: blob: https: https://noo.coreappl.id",
-            "connect-src 'self' https: https://noo.coreappl.id wss:",
-            "frame-src 'self' https://www.google.com https://maps.google.com",
-            "frame-ancestors 'self'",
-            "upgrade-insecure-requests",
-        ];
-        $response->headers->set('Content-Security-Policy', implode('; ', $csp));
+        // 7. Content Security Policy (CSP) - Hanya diaktifkan di Non-Lokal / Production
+        // Di lokal environment (APP_ENV=local), CSP dibebaskan agar Vite Dev Server (HMR) & IPv6 [::1] berjalan lancar.
+        if (!app()->isLocal()) {
+            $csp = [
+                "default-src 'self'",
+                "script-src 'self' 'unsafe-inline' 'unsafe-eval'",
+                "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com",
+                "font-src 'self' https://fonts.gstatic.com data:",
+                "img-src 'self' data: blob: https: https://noo.coreappl.id",
+                "connect-src 'self' https: https://noo.coreappl.id wss:",
+                "frame-src 'self' https://www.google.com https://maps.google.com",
+                "frame-ancestors 'self'",
+                "upgrade-insecure-requests",
+            ];
+            $response->headers->set('Content-Security-Policy', implode('; ', $csp));
+        }
 
         return $response;
     }

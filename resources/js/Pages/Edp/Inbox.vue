@@ -103,6 +103,17 @@ const isLocked = computed(() => {
   return activeModalSubmission.value.status === 'APPROVED_EDP' || activeModalSubmission.value.status === 'REJECTED_EDP';
 });
 
+const canEditAddress = computed(() => {
+  if (!activeModalSubmission.value) return false;
+  if (props.userRole === 'SUPERADMIN') {
+    return true;
+  }
+  if (props.userRole === 'ADMIN_PRINCIPAL') {
+    return false;
+  }
+  return !isLocked.value;
+});
+
 const regionOptions = computed(() => {
   return (props.filterOptions?.regions || []).map((r) => {
     if (typeof r === 'object' && r !== null) {
@@ -1949,7 +1960,7 @@ function getLineStyle(stepBefore, item) {
                   <div v-if="!isEditingAddress" class="flex items-start gap-2">
                     <span class="font-semibold text-[#111827] leading-[20px]">{{ activeModalSubmission.alamat_noo || '-' }}</span>
                     <button
-                      v-if="!isLocked"
+                      v-if="canEditAddress"
                       @click="isEditingAddress = true"
                       class="p-1 text-[#6B7280] hover:text-[#2563EB] hover:bg-[#EFF6FF] rounded-[8px] transition cursor-pointer flex-shrink-0"
                       title="Edit Alamat Lengkap"

@@ -254,7 +254,7 @@ class SpvPortalController extends Controller
 
         if (empty($subGroups)) {
             $subGroups = DB::table('master_outlet_types')
-                ->pluck('type_code')
+                ->pluck('code')
                 ->filter()
                 ->values()
                 ->toArray();
