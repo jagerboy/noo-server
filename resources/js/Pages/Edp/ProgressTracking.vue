@@ -515,7 +515,7 @@ const sortedSubmissions = computed(() => {
       <!-- FILTER BAR (COMPACT & SEBARIS) -->
       <div class="bg-white p-2.5 sm:p-3 rounded-xl border border-[#E5E7EB] shadow-xs space-y-2.5">
         <!-- BARIS 1: 6 DROPDOWN FILTER BERJAJAR DI SATU BARIS DESKTOP -->
-        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-6 gap-2.5">
+        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-6 gap-2.5 items-end">
           <!-- 1. REGION -->
           <div>
             <label class="block text-[11px] font-semibold text-slate-600 uppercase tracking-wider mb-1">REGION</label>
@@ -524,6 +524,7 @@ const sortedSubmissions = computed(() => {
               :options="regionOptions"
               placeholder="-- Semua Region --"
               searchPlaceholder="Cari Region..."
+              buttonClass="w-full h-9 px-2.5 text-left bg-white border border-slate-300 rounded-lg shadow-2xs flex items-center justify-between text-[12px] font-medium text-slate-800 hover:border-blue-500 focus:outline-none transition cursor-pointer"
               @change="onRegionChange"
             />
           </div>
@@ -536,6 +537,7 @@ const sortedSubmissions = computed(() => {
               :options="entityOptions"
               placeholder="-- Semua Entity --"
               searchPlaceholder="Cari Entity..."
+              buttonClass="w-full h-9 px-2.5 text-left bg-white border border-slate-300 rounded-lg shadow-2xs flex items-center justify-between text-[12px] font-medium text-slate-800 hover:border-blue-500 focus:outline-none transition cursor-pointer"
               @change="onEntityChange"
             />
           </div>
@@ -548,6 +550,7 @@ const sortedSubmissions = computed(() => {
               :options="branchOptions"
               placeholder="-- Semua Cabang --"
               searchPlaceholder="Cari Cabang..."
+              buttonClass="w-full h-9 px-2.5 text-left bg-white border border-slate-300 rounded-lg shadow-2xs flex items-center justify-between text-[12px] font-medium text-slate-800 hover:border-blue-500 focus:outline-none transition cursor-pointer"
               @change="applyFilters()"
             />
           </div>
@@ -559,7 +562,7 @@ const sortedSubmissions = computed(() => {
             <button
               type="button"
               @click="isMonthDropdownOpen = !isMonthDropdownOpen"
-              class="w-full px-2.5 py-1.5 text-[12px] border border-slate-300 rounded-lg bg-white font-medium text-slate-800 flex items-center justify-between shadow-2xs hover:border-blue-500 focus:outline-none transition cursor-pointer"
+              class="w-full h-9 px-2.5 text-[12px] border border-slate-300 rounded-lg bg-white font-medium text-slate-800 flex items-center justify-between shadow-2xs hover:border-blue-500 focus:outline-none transition cursor-pointer"
             >
               <span class="truncate pr-2">{{ selectedMonthsLabel }}</span>
               <div class="flex items-center gap-1.5 shrink-0">
@@ -622,7 +625,7 @@ const sortedSubmissions = computed(() => {
             <select
               v-model="selectedYear"
               @change="applyFilters()"
-              class="w-full px-2.5 py-1.5 text-[12px] font-medium border border-slate-300 rounded-lg bg-white text-slate-800 focus:ring-1 focus:ring-blue-500 focus:border-blue-500 transition cursor-pointer"
+              class="w-full h-9 px-2.5 text-[12px] font-medium border border-slate-300 rounded-lg bg-white text-slate-800 focus:ring-1 focus:ring-blue-500 focus:border-blue-500 transition cursor-pointer"
             >
               <option value="">-- Semua Tahun --</option>
               <option v-for="y in yearOptions" :key="y.value" :value="y.value">{{ y.label }}</option>
@@ -632,11 +635,11 @@ const sortedSubmissions = computed(() => {
           <!-- 6. URUTKAN DATA (SORT) -->
           <div>
             <label class="block text-[11px] font-semibold text-slate-600 uppercase tracking-wider mb-1">URUTKAN DATA</label>
-            <div class="inline-flex items-center w-full rounded-lg border border-slate-300 bg-white shadow-2xs overflow-hidden">
+            <div class="inline-flex items-center w-full h-9 rounded-lg border border-slate-300 bg-white shadow-2xs overflow-hidden">
               <select
                 v-model="sortKey"
                 @change="applyFilters()"
-                class="pl-2.5 pr-2 py-1.5 text-[12px] font-semibold bg-slate-50 hover:bg-white text-slate-700 focus:ring-0 border-0 cursor-pointer flex-1 min-w-0 truncate"
+                class="h-full pl-2.5 pr-2 text-[12px] font-semibold bg-slate-50 hover:bg-white text-slate-700 focus:ring-0 border-0 cursor-pointer flex-1 min-w-0 truncate"
               >
                 <option value="created_at">Waktu Submit</option>
                 <option value="nama_noo">Nama Outlet</option>
@@ -649,7 +652,7 @@ const sortedSubmissions = computed(() => {
                 type="button"
                 @click="toggleSortDir"
                 :title="sortDir === 'asc' ? 'Urutan: Ascending (A-Z / Terlama). Klik untuk ubah ke Descending' : 'Urutan: Descending (Z-A / Terbaru). Klik untuk ubah ke Ascending'"
-                class="px-2.5 py-1.5 border-l border-slate-200 bg-slate-50 hover:bg-slate-100 text-slate-700 hover:text-blue-600 transition flex items-center gap-1 text-[11px] font-bold cursor-pointer shrink-0"
+                class="h-full px-2.5 border-l border-slate-200 bg-slate-50 hover:bg-slate-100 text-slate-700 hover:text-blue-600 transition flex items-center gap-1 text-[11px] font-bold cursor-pointer shrink-0"
               >
                 <span v-if="sortDir === 'asc'" class="flex items-center gap-1 text-blue-600 font-bold">
                   <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M3 4h13M3 8h9m-9 4h6m4 0l4-4m0 0l4 4m-4-4v12"/></svg>

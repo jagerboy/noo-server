@@ -19,6 +19,10 @@ const props = defineProps({
     type: String,
     default: 'Ketik untuk mencari...',
   },
+  buttonClass: {
+    type: String,
+    default: '',
+  },
 });
 
 const emit = defineEmits(['update:modelValue', 'change']);
@@ -85,7 +89,9 @@ onUnmounted(() => {
     <button
       type="button"
       @click="toggleDropdown"
-      class="w-full px-3 py-2 text-left bg-white border border-[#D1D5DB] rounded-lg shadow-xs flex items-center justify-between focus:ring-2 focus:ring-[#10B981] transition"
+      :class="[
+        buttonClass ? buttonClass : 'w-full px-3 py-2 text-left bg-white border border-[#D1D5DB] rounded-lg shadow-xs flex items-center justify-between focus:ring-2 focus:ring-[#10B981] transition',
+      ]"
     >
       <span :class="['truncate', modelValue ? 'font-bold text-[#111827]' : 'text-gray-400']">
         {{ selectedLabel }}
