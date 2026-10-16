@@ -290,7 +290,13 @@ function saveMatrix() {
 }
 
 function submitAddAccount() {
-  if (addForm.role !== 'SUPERADMIN' && selectedSingleRegionsAdd.value.length === 0 && addForm.region_code !== '') {
+  if (
+    addForm.role !== 'SUPERADMIN' &&
+    addForm.role !== 'ASM' &&
+    addForm.role !== 'RSM' &&
+    selectedSingleRegionsAdd.value.length === 0 &&
+    addForm.region_code !== ''
+  ) {
     regionErrorAdd.value = 'Wilayah Operasional (Region Scope) wajib dipilih minimal 1 region.';
     return;
   }
