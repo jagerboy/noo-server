@@ -262,13 +262,9 @@ function onModalPrincipalChange() {
 }
 
 const statusOptions = [
-  { value: 'SE_SUBMITTED', label: '1. Pending Admin' },
-  { value: 'PUSHED_TO_SPV', label: '2. Pushed to SPV (Pending SPV)' },
-  { value: 'APPROVED_SPV', label: '3. Approved SPV (Pending EDP)' },
-  { value: 'APPROVED_EDP', label: '4. Approved EDP (Final/Completed)' },
-  { value: 'REJECTED_ADMIN', label: '5. Ditolak Admin Distributor' },
-  { value: 'REJECTED_SPV', label: '6. Ditolak SPV Area' },
-  { value: 'REJECTED_EDP', label: '7. Ditolak EDP Principal' },
+  { value: 'PENDING_EDP', label: '⏳ Belum Diproses (Pending EDP)' },
+  { value: 'APPROVED_EDP', label: '✔ Disetujui (Approved EDP)' },
+  { value: 'REJECTED_EDP', label: '✖ Ditolak (Rejected EDP)' },
 ];
 
 const dayLabels = [
@@ -3161,7 +3157,7 @@ function getLineStyle(stepBefore, item) {
 
               <!-- STATUS -->
               <div>
-                <label class="block text-xs font-bold text-slate-700 mb-1">Status Submisi NOO:</label>
+                <label class="block text-xs font-bold text-slate-700 mb-1">Status Principal:</label>
                 <SearchableSelect
                   v-model="modalStatus"
                   :options="statusOptions"
@@ -3254,7 +3250,7 @@ function getLineStyle(stepBefore, item) {
                   <div class="relative">
                     <select
                       v-model="modalSortKey"
-                      class="w-full text-xs font-semibold p-2.5 pr-8 rounded-lg border border-slate-300 bg-white text-slate-800 focus:ring-2 focus:ring-blue-500 shadow-2xs cursor-pointer appearance-none"
+                      class="w-full h-10 text-xs font-semibold px-3 pr-8 rounded-lg border border-slate-300 bg-white text-slate-800 focus:ring-2 focus:ring-blue-500 shadow-2xs cursor-pointer appearance-none"
                     >
                       <option value="created_at">📅 Waktu Submit</option>
                       <option value="nama_noo">🏪 Nama Outlet</option>
@@ -3268,24 +3264,26 @@ function getLineStyle(stepBefore, item) {
 
                 <div>
                   <label class="block text-xs font-bold text-slate-700 mb-1">Arah Urutan (Direction):</label>
-                  <div class="flex items-center h-10 border border-slate-300 rounded-lg p-1 bg-slate-50 gap-1">
+                  <div class="flex items-center h-10 border border-slate-300 rounded-lg p-1 bg-slate-100 gap-1">
                     <button
                       type="button"
                       @click="modalSortDir = 'desc'"
-                      class="flex-1 h-full rounded-md text-xs font-bold transition flex items-center justify-center gap-1.5 cursor-pointer"
-                      :class="modalSortDir === 'desc' ? 'bg-blue-600 text-white shadow-xs' : 'text-slate-600 hover:text-slate-900 hover:bg-white'"
+                      class="flex-1 h-full rounded-md text-[11.5px] font-bold transition flex items-center justify-center gap-1.5 cursor-pointer select-none"
+                      :class="modalSortDir === 'desc' ? 'bg-blue-600 text-white shadow-xs' : 'text-slate-600 hover:text-slate-900 hover:bg-white/80'"
                     >
-                      <span>⬇ DESC</span>
-                      <span class="text-[10px] font-normal opacity-80">(Z-A / Terbaru)</span>
+                      <svg class="w-3.5 h-3.5 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M3 4h13M3 8h9m-9 4h9m5-4v12m0 0l-4-4m4 4l4-4"/></svg>
+                      <span>DESC</span>
+                      <span class="text-[10px] font-normal opacity-85 hidden sm:inline">(Terbaru)</span>
                     </button>
                     <button
                       type="button"
                       @click="modalSortDir = 'asc'"
-                      class="flex-1 h-full rounded-md text-xs font-bold transition flex items-center justify-center gap-1.5 cursor-pointer"
-                      :class="modalSortDir === 'asc' ? 'bg-blue-600 text-white shadow-xs' : 'text-slate-600 hover:text-slate-900 hover:bg-white'"
+                      class="flex-1 h-full rounded-md text-[11.5px] font-bold transition flex items-center justify-center gap-1.5 cursor-pointer select-none"
+                      :class="modalSortDir === 'asc' ? 'bg-blue-600 text-white shadow-xs' : 'text-slate-600 hover:text-slate-900 hover:bg-white/80'"
                     >
-                      <span>⬆ ASC</span>
-                      <span class="text-[10px] font-normal opacity-80">(A-Z / Terlama)</span>
+                      <svg class="w-3.5 h-3.5 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M3 4h13M3 8h9m-9 4h6m4 0l4-4m0 0l4 4m-4-4v12"/></svg>
+                      <span>ASC</span>
+                      <span class="text-[10px] font-normal opacity-85 hidden sm:inline">(Terlama)</span>
                     </button>
                   </div>
                 </div>
