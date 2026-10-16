@@ -46,10 +46,6 @@ class EdpPortalController extends Controller
         $user = $request->user();
         $userRole = $user->role ?? 'EDP_REGION';
 
-        if (in_array($userRole, ['ASM', 'RSM'])) {
-            abort(403, 'Akses Ditolak. Role ASM dan RSM tidak memiliki hak akses verifikasi dan approval NOO.');
-        }
-
         $regionCode = $user->region_code ?? null;
 
         $query = DB::table('noo_submissions')
@@ -67,6 +63,28 @@ class EdpPortalController extends Controller
                         $q->orWhere('region_code', 'LIKE', "{$r}%");
                     }
                 });
+            } elseif ($userRole === 'RSM') {
+                $query->where('region_code', $user->region_code);
+            }
+        }
+        if ($userRole === 'ASM') {
+            if (!empty($user->entity_code_principal)) {
+                $matchingBranches = DB::table('master_branches')
+                    ->where('entity_code_principal', $user->entity_code_principal)
+                    ->orWhere('principal_code', $user->entity_code_principal)
+                    ->pluck('branch_id')
+                    ->filter()
+                    ->toArray();
+
+                $query->where(function ($q) use ($user, $matchingBranches) {
+                    $q->where('principal', 'ILIKE', "%{$user->entity_code_principal}%")
+                      ->orWhere('principal_code', $user->entity_code_principal);
+                    if (!empty($matchingBranches)) {
+                        $q->orWhereIn('branch_id', $matchingBranches);
+                    }
+                });
+            } elseif (!empty($user->region_code)) {
+                $query->where('region_code', $user->region_code);
             }
         }
         if ($userRole === 'ADMIN_PRINCIPAL' && !empty($user->entity_code_principal)) {
@@ -257,11 +275,24 @@ class EdpPortalController extends Controller
                         $q->orWhere('region_code', 'LIKE', "{$r}%");
                     }
                 });
-                $branchesQuery->where(function ($q) use ($regionList) {
-                    foreach ($regionList as $r) {
-                        $q->orWhere('region_code', 'LIKE', "{$r}%");
-                    }
-                });
+            } elseif ($userRole === 'RSM') {
+                $regionsQuery->whereIn('region_code', $regionList);
+                $entitiesQuery->whereIn('region_code', $regionList);
+                $branchesQuery->whereIn('region_code', $regionList);
+            }
+        }
+
+        if ($userRole === 'ASM') {
+            if (!empty($user->entity_code_principal)) {
+                $entitiesQuery->where('entity_code_principal', $user->entity_code_principal);
+                $branchesQuery->where('entity_code_principal', $user->entity_code_principal);
+                if (!empty($regionList)) {
+                    $regionsQuery->whereIn('region_code', $regionList);
+                }
+            } elseif (!empty($regionList)) {
+                $regionsQuery->whereIn('region_code', $regionList);
+                $entitiesQuery->whereIn('region_code', $regionList);
+                $branchesQuery->whereIn('region_code', $regionList);
             }
         }
 

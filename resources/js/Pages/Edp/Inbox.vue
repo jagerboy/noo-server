@@ -2333,7 +2333,7 @@ function getLineStyle(stepBefore, item) {
                     <span class="text-[13px] font-medium text-[#4B5563]">3. Foto KTP Pemilik</span>
                     <div class="flex items-center gap-1">
                       <button
-                        v-if="!activeModalSubmission.is_ktp_revised && !isLocked"
+                        v-if="!activeModalSubmission.is_ktp_revised && !isLocked && userRole !== 'ASM' && userRole !== 'RSM'"
                         @click="openKtpModal"
                         class="px-2 py-0.5 text-[11px] font-semibold text-[#1D4ED8] bg-[#DBEAFE] border border-[#93C5FD] rounded-[6px] hover:bg-[#BFDBFE] transition flex items-center gap-1 cursor-pointer"
                         title="Revisi Foto KTP Pemilik (Maks 1x)"
@@ -2475,8 +2475,9 @@ function getLineStyle(stepBefore, item) {
             <div class="flex items-center gap-3">
               <!-- JIKA BELUM APPROVED ATAU REJECTED (TERBUKA UTK APPROVAL EDP) -->
               <template v-if="activeModalSubmission.status !== 'APPROVED_EDP' && activeModalSubmission.status !== 'REJECTED_EDP'">
-                <!-- REJECT BUTTON -->
+                <!-- REJECT BUTTON (Khusus role yang punya hak eksekusi) -->
                 <button
+                  v-if="userRole !== 'ASM' && userRole !== 'RSM'"
                   :disabled="isProcessingReject || isProcessingApprove"
                   @click="handleReject"
                   class="px-5 py-2.5 text-[15px] font-semibold text-white bg-[#DC2626] hover:bg-[#B91C1C] rounded-[8px] shadow-sm transition flex items-center gap-1.5 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
@@ -2488,8 +2489,9 @@ function getLineStyle(stepBefore, item) {
                   <span>{{ isProcessingReject ? 'Memproses...' : '✖ Tolak (Reject EDP)' }}</span>
                 </button>
 
-                <!-- APPROVE BUTTON -->
+                <!-- APPROVE BUTTON (Khusus role yang punya hak eksekusi) -->
                 <button
+                  v-if="userRole !== 'ASM' && userRole !== 'RSM'"
                   :disabled="isProcessingApprove || isProcessingReject"
                   @click="handleApprove"
                   class="px-6 py-2.5 text-[15px] font-semibold text-white bg-[#16A34A] hover:bg-[#15803D] rounded-[8px] shadow-md transition flex items-center gap-1.5 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
@@ -2500,6 +2502,11 @@ function getLineStyle(stepBefore, item) {
                   </svg>
                   <span>{{ isProcessingApprove ? 'Memproses...' : '✔ Setujui (Approved EDP)' }}</span>
                 </button>
+
+                <!-- READ ONLY BADGE UNTUK ASM / RSM -->
+                <div v-if="userRole === 'ASM' || userRole === 'RSM'" class="px-4 py-2 text-[13px] font-semibold text-slate-600 bg-slate-100 border border-slate-200 rounded-[8px] flex items-center gap-1.5 shadow-2xs">
+                  <span>👀</span> Menunggu Keputusan Tim Verifikator EDP
+                </div>
               </template>
 
               <!-- JIKA SUDAH APPROVED ATAU REJECTED (STATUS TERKUNCI) -->
