@@ -111,13 +111,11 @@ const isLocked = computed(() => {
 const canEditAddress = computed(() => {
   if (isReadOnlyRole.value) return false;
   if (!activeModalSubmission.value) return false;
-  if (props.userRole === 'SUPERADMIN') {
-    return true;
-  }
+  if (isLocked.value) return false;
   if (props.userRole === 'ADMIN_PRINCIPAL') {
     return false;
   }
-  return !isLocked.value;
+  return true;
 });
 
 const regionOptions = computed(() => {

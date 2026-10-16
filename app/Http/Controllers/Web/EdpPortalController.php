@@ -436,6 +436,10 @@ class EdpPortalController extends Controller
                 return $this->redirectWithFilters($request, 'error', 'Data toko tidak ditemukan.');
             }
 
+            if (in_array($submission->status, ['APPROVED_EDP', 'REJECTED_EDP'])) {
+                return $this->redirectWithFilters($request, 'error', 'Perubahan nama ditolak karena status toko sudah terkunci (' . $submission->status . ').');
+            }
+
             $oldName = $submission->nama_noo;
             DB::table('noo_submissions')->where('request_id', $requestId)->update([
                 'nama_noo' => $newName,
@@ -465,6 +469,10 @@ class EdpPortalController extends Controller
 
             if (!$submission) {
                 return $this->redirectWithFilters($request, 'error', 'Data toko tidak ditemukan.');
+            }
+
+            if (in_array($submission->status, ['APPROVED_EDP', 'REJECTED_EDP'])) {
+                return $this->redirectWithFilters($request, 'error', 'Perubahan alamat ditolak karena status toko sudah terkunci (' . $submission->status . ').');
             }
 
             $oldAddress = $submission->alamat_noo;

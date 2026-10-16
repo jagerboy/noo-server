@@ -49,6 +49,19 @@
      - `http://172.22.1.232/admin-distributor`: Jika belum login $\rightarrow$ `/distributor-login`. Jika sudah login di device $\rightarrow$ langsung masuk ke `/admin-distributor/inbox`.
      - `http://172.22.1.232/spv`: Jika belum login $\rightarrow$ `/spv-login`. Jika sudah login di device $\rightarrow$ langsung masuk ke `/spv/inbox`.
      - `http://172.22.1.232/principal`: Jika belum login $\rightarrow$ `/principal-login`. Jika sudah login di device $\rightarrow$ langsung masuk ke `/principal/dashboard`.
+   - **Database-Driven Role Permissions Matrix**:
+     - Migrasi tabel `role_permissions` (`role`, `permission_key`, `is_allowed`).
+     - Endpoint penyimpanan matriks `POST /principal/account-management/matrix`.
+     - Dynamic navigation di `EdpLayout.vue` via `can()` dan `hasAnyMasterPermission`.
+     - Backend endpoint protection `abort(403)` di `EdpMasterController.php` & `EdpPortalController.php`.
+   - **Strict Read-Only Mode untuk Role ASM & RSM**:
+     - ASM & RSM pure monitoring/read-only tanpa aksi CRUD / Approval / Mutasi apapun.
+     - Scoping cascading filter wilayah (RSM per Region, ASM per Entity).
+     - Modal detail toko: tombol ubah nama, alamat, revisi KTP, dan tombol approve/reject disembunyikan.
+     - Label tombol tabel disesuaikan menjadi "Detail Toko".
+   - **Progress Tracking Filter Enhancement**:
+     - Penggantian filter Tahapan Workflow di dropdown menjadi Filter Bulan & Tahun Pengajuan (`se_submitted`).
+     - Pemilihan tahapan workflow dipusatkan melalui klik interaktif pada section Summary Cards tahapan workflow.
 
 ---
 

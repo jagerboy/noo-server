@@ -237,40 +237,62 @@ if ($request->has('per_page')) {
 
 ---
 
-## 7. Matriks Hak Akses & Tata Kelola Otorisasi (Permissions Matrix)
+## 7. Matriks Hak Akses & Tata Kelola Otorisasi (Database-Driven Permissions Matrix)
 
-Dikelola secara dinamis oleh Superadmin melalui menu `Manajemen Akun` (`AccountManagement.vue`):
+Sistem otorisasi telah dimigrasikan dari *hardcoded/localStorage* menjadi **Database-Driven Role Permissions** melalui tabel `role_permissions` di PostgreSQL. Dikelola secara dinamis oleh Superadmin melalui menu `Manajemen Akun` -> tab `Matriks Hak Akses` (`AccountManagement.vue`):
 
-| Fitur / Modul Portal | Admin Distributor | SPV Area | EDP Region | Admin Principal | Superadmin |
-| :--- | :---: | :---: | :---: | :---: | :---: |
-| **Mobile Android Submission** | ❌ | ❌ | ❌ | ❌ | ✅ (Testing) |
-| **Input Custcode Distributor** | ✅ | ❌ | ❌ | ❌ | ✅ |
-| **Penyusunan Rute JKS (H1-H7, M1-M4)** | ❌ | ✅ | ❌ | ❌ | ✅ |
-| **Verifikasi Final & Terbitkan Kode** | ❌ | ❌ | ✅ | ✅ | ✅ |
-| **Revisi KTP Pemilik (1x Watermark)** | ❌ | ❌ | ✅ | ✅ | ✅ |
-| **Unlock / Reset Kunci Revisi KTP** | ❌ | ❌ | ❌ | ❌ | ✅ |
-| **Reset Approval EDP / Rejection** | ❌ | ❌ | ❌ | ✅ | ✅ |
-| **Monitoring RO (Target vs Realisasi)** | ❌ | ❌ | View Only | View Only | Full Control |
-| **Progress Tracking & Reset Inputan** | ❌ | ❌ | View Only | Reset Admin/SPV | Full Control |
-| **Master Region, Entity, Branch** | ❌ | ❌ | View Only | Kelola | Full Access |
-| **Counter Sequence Setting** | ❌ | ❌ | ❌ | Setting | Full Access |
-| **User Management & Role Matrix** | ❌ | ❌ | ❌ | ❌ | ✅ |
-| **Audit Logs System** | ❌ | ❌ | ❌ | View Only | Full Access |
+### Tabel & Backend Handler:
+- **Tabel `role_permissions`**: Menyimpan pasangan `role`, `permission_key`, dan `is_allowed` (boolean).
+- **Inertia Global Share (`HandleInertiaRequests.php`)**: Membagikan dictionary permissions pengguna yang sedang login (`auth.permissions`) ke seluruh view frontend Vue.
+- **Sidebar Dinamis (`EdpLayout.vue`)**: Menggunakan helper `can(permission_key)` untuk mengontrol kemunculan menu. Menu accordion **NOO Master Data** otomatis disembunyikan secara utuh jika semua sub-menu master tidak dicentang untuk role tersebut.
+- **Backend Controller Guard**: Melindungi endpoint master di `EdpMasterController.php` dan eksekusi aksi di `EdpPortalController.php` dengan `abort(403, 'Akses ditolak...')`.
+
+### Matriks Role & Hak Akses Resmi:
+
+| Fitur / Modul Portal | Admin Distributor | SPV Area | EDP Region | ASM (Area Mgr) | RSM (Reg Mgr) | Admin Principal | Superadmin |
+| :--- | :---: | :---: | :---: | :---: | :---: | :---: | :---: |
+| **Mobile Android Submission** | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ | ✅ (Testing) |
+| **Input Custcode Distributor** | ✅ | ❌ | ❌ | ❌ | ❌ | ❌ | ✅ |
+| **Penyusunan Rute JKS (H1-H7, M1-M4)** | ❌ | ✅ | ❌ | ❌ | ❌ | ❌ | ✅ |
+| **Lihat Inbox Submisi NOO** | ✅ (Cabang) | ✅ (Binaan) | ✅ (Scope Reg) | ✅ (Scope Ent) | ✅ (Scope Reg) | ✅ (Nasional) | ✅ (Nasional) |
+| **Verifikasi Final & Terbitkan Kode** | ❌ | ❌ | ✅ | ❌ (View Only) | ❌ (View Only) | ✅ | ✅ |
+| **Revisi KTP Pemilik (1x Watermark)** | ❌ | ❌ | ✅ | ❌ (Terkunci) | ❌ (Terkunci) | ✅ | ✅ |
+| **Ubah Nama / Alamat Toko di Detail** | ✅ (Nama) | ❌ | ✅ | ❌ (Terkunci) | ❌ (Terkunci) | ✅ | ✅ |
+| **Toggle Status Registered Outlet (RO)** | ❌ | ❌ | ✅ | ❌ (Terkunci) | ❌ (Terkunci) | ✅ | ✅ |
+| **Unlock / Reset Kunci Revisi KTP** | ❌ | ❌ | ❌ | ❌ | ❌ | ❌ | ✅ |
+| **Reset Approval EDP / Rejection** | ❌ | ❌ | ❌ | ❌ | ❌ | ✅ | ✅ |
+| **Monitoring RO (Target vs Realisasi)** | ❌ | ❌ | View (Scope) | View (Scope) | View (Scope) | View (Nasional) | Full Control |
+| **Progress Tracking Submisi** | ❌ | ❌ | View (Scope) | View (Scope) | View (Scope) | Reset Admin/SPV | Full Control |
+| **Filter Tracking: Bulan & Tahun Submit** | ❌ | ❌ | ✅ | ✅ | ✅ | ✅ | ✅ |
+| **Master Region, Entity, Branch** | ❌ | ❌ | Sesuai Matriks | ❌ (Hidden) | ❌ (Hidden) | Kelola | Full Access |
+| **Counter Sequence Setting** | ❌ | ❌ | ❌ | ❌ (Hidden) | ❌ (Hidden) | Setting | Full Access |
+| **User Management & Role Matrix** | ❌ | ❌ | ❌ | ❌ (Hidden) | ❌ (Hidden) | ❌ | ✅ |
+| **Audit Logs System** | ❌ | ❌ | ❌ | ❌ (Hidden) | ❌ (Hidden) | View Only | Full Access |
+
+> [!NOTE]
+> **Kebijakan Khusus Role ASM & RSM**:
+> 1. **Pure Read-Only & Monitoring**: Role ASM (Area Sales Manager) dan RSM (Regional Sales Manager) **murni hanya memiliki hak akses melihat dan memonitor data**, tanpa ada aktivitas CRUD / approval apapun.
+> 2. **Cascading Filter Scoping**:
+>    - Akun **RSM** terisolasi hanya dapat melihat data dalam `region_code` binaannya (misal: `ASWSUM2`). Filter dropdown region otomatis terkunci dan hanya menyajikan entitas/cabang di wilayah tersebut.
+>    - Akun **ASM** terisolasi hanya dapat melihat data pada `entity_code_principal` yang ditugaskan kepadanya (misal: `ASW RIAU 1`). Filter dropdown otomatis terkunci sesuai wilayah binaannya.
+> 3. **UI Protections**: Pada modal detail toko, tombol ubah nama, tombol ubah alamat, tombol revisi KTP, dan tombol approval/reject disembunyikan. Tabel menampilkan tombol **"Detail Toko"** (bukan "Detail & Verifikasi"), dan footer modal menampilkan badge status `👀 Menunggu Keputusan Tim Verifikator EDP`.
+> 4. **Backend Hard Guard**: Method `checkReadOnlyRole()` di `EdpPortalController.php` memblokir mutasi (approve, reject, updateStoreName, updateStoreAddress, reviseKtp, toggleRoStatus, bulkToggleRoStatus) dengan kode status HTTP `403 Forbidden` apabila diakses oleh ASM/RSM.
 
 ---
 
 ## 8. Struktur Basis Data Utama (PostgreSQL 16)
 
-1. **`noo_submissions`**: Tabel induk pengajuan toko (UUID `request_id`, metadata outlet, koordinat GPS, URL 3 foto, status approval, JKS rute, kode distributor & principal).
-2. **`users`**: Tabel otentikasi portal principal (`SUPERADMIN`, `ADMIN_PRINCIPAL`, `EDP_REGION`).
-3. **`master_branches`**: Data cabang distributor beserta `pin_branch` untuk login SE mobile dan Admin Distributor.
-4. **`master_regions` & `master_entities`**: Hierarki regionalisasi dan legalitas entitas principal (ASW/INA).
-5. **`master_salesmen`**: Data sales executive lapangan.
-6. **`master_spvs`**: Data akun SPV area beserta mapping cabang binaan.
-7. **`master_outlet_types`**: Master tipe toko (`GT01`, `GT02`, `GT03`, `GT04`, `MT01`, dll.).
-8. **`counter_sequences`**: Sequence generator counter customer code per cabang.
-9. **`target_ros`**: Target bulanan Registered Outlet per salesman.
-10. **`activity_logs`**: Audit trail aktivitas sistem (login, approve, reject, edit, delete).
+1. **`noo_submissions`**: Tabel induk pengajuan toko (UUID `request_id`, metadata outlet, koordinat GPS, URL 3 foto, status approval, JKS rute, kode distributor & principal, flag revisi KTP).
+2. **`users`**: Tabel otentikasi portal principal (`SUPERADMIN`, `ADMIN_PRINCIPAL`, `EDP_REGION`, `ASM`, `RSM`).
+3. **`role_permissions`**: Konfigurasi dinamis hak akses per role (`role`, `permission_key`, `is_allowed`).
+4. **`master_branches`**: Data cabang distributor beserta `pin_branch` untuk login SE mobile dan Admin Distributor.
+5. **`master_regions` & `master_entities`**: Hierarki regionalisasi dan legalitas entitas principal (ASW/INA).
+6. **`master_salesmen`**: Data sales executive lapangan.
+7. **`master_spvs`**: Data akun SPV area beserta mapping cabang binaan.
+8. **`master_outlet_types`**: Master tipe toko (`GT01`, `GT02`, `GT03`, `GT04`, `MT01`, dll.).
+9. **`counter_sequences`**: Sequence generator counter customer code per cabang.
+10. **`target_ros`**: Target bulanan Registered Outlet per salesman.
+11. **`activity_logs`**: Audit trail aktivitas sistem (login, approve, reject, edit, delete, reset).
 
 ---
 
