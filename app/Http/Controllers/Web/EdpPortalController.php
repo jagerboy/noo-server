@@ -26,6 +26,14 @@ class EdpPortalController extends Controller
         protected ExcelExportService $excelExportService
     ) {}
 
+    private function checkReadOnlyRole(): void
+    {
+        $role = strtoupper((string) (request()->user()->role ?? ''));
+        if (in_array($role, ['ASM', 'RSM'], true)) {
+            abort(403, 'Akses ditolak: Role ' . $role . ' hanya memiliki izin melihat / monitoring (Read-Only) dan tidak diizinkan melakukan modifikasi data.');
+        }
+    }
+
     private function logAction(string $action, string $module, string $description): void
     {
         $user = request()->user();
@@ -413,6 +421,7 @@ class EdpPortalController extends Controller
 
     public function updateStoreName(Request $request): RedirectResponse
     {
+        $this->checkReadOnlyRole();
         $request->validate([
             'request_id' => 'required|uuid',
             'nama_noo' => 'required|string|max:200',
@@ -443,6 +452,7 @@ class EdpPortalController extends Controller
 
     public function updateStoreAddress(Request $request): RedirectResponse
     {
+        $this->checkReadOnlyRole();
         $request->validate([
             'request_id' => 'required|uuid',
             'alamat_noo' => 'required|string|max:500',
@@ -473,6 +483,7 @@ class EdpPortalController extends Controller
 
     public function approve(Request $request): RedirectResponse
     {
+        $this->checkReadOnlyRole();
         $request->validate([
             'request_id' => 'required|uuid',
             'edp_notes' => 'nullable|string',
@@ -528,6 +539,7 @@ class EdpPortalController extends Controller
 
     public function toggleRoStatus(Request $request): RedirectResponse
     {
+        $this->checkReadOnlyRole();
         $request->validate([
             'request_id' => 'required|uuid',
             'is_ro' => 'required|boolean',
@@ -562,6 +574,7 @@ class EdpPortalController extends Controller
 
     public function bulkToggleRoStatus(Request $request): RedirectResponse
     {
+        $this->checkReadOnlyRole();
         $request->validate([
             'request_ids' => 'required|array',
             'request_ids.*' => 'required|uuid',
@@ -595,6 +608,7 @@ class EdpPortalController extends Controller
 
     public function reject(Request $request): RedirectResponse
     {
+        $this->checkReadOnlyRole();
         $request->validate([
             'request_id' => 'required|uuid',
             'reject_reason' => 'nullable|string',
@@ -715,6 +729,7 @@ class EdpPortalController extends Controller
 
     public function reviseKtp(Request $request): RedirectResponse
     {
+        $this->checkReadOnlyRole();
         $request->validate([
             'request_id' => 'required|uuid',
             'photo_ktp' => 'required|image|max:5120',

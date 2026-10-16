@@ -98,12 +98,18 @@ const previewImageModal = ref(null);
 const ktpFile = ref(null);
 const ktpPreviewUrl = ref('');
 
+const isReadOnlyRole = computed(() => {
+  return props.userRole === 'ASM' || props.userRole === 'RSM';
+});
+
 const isLocked = computed(() => {
+  if (isReadOnlyRole.value) return true;
   if (!activeModalSubmission.value) return false;
   return activeModalSubmission.value.status === 'APPROVED_EDP' || activeModalSubmission.value.status === 'REJECTED_EDP';
 });
 
 const canEditAddress = computed(() => {
+  if (isReadOnlyRole.value) return false;
   if (!activeModalSubmission.value) return false;
   if (props.userRole === 'SUPERADMIN') {
     return true;
@@ -1834,7 +1840,7 @@ function getLineStyle(stepBefore, item) {
                     class="px-2.5 py-1 text-[11px] font-semibold text-white bg-blue-600 hover:bg-blue-700 active:bg-blue-800 rounded-lg shadow-2xs transition inline-flex items-center gap-1.5 cursor-pointer whitespace-nowrap"
                   >
                     <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"/></svg>
-                    <span>Detail & Verifikasi</span>
+                    <span>{{ (userRole === 'ASM' || userRole === 'RSM') ? 'Detail Toko' : 'Detail & Verifikasi' }}</span>
                   </button>
                 </td>
               </tr>
@@ -2343,7 +2349,7 @@ function getLineStyle(stepBefore, item) {
                       
                       <!-- Status Badge Revisi Max (Rapi Single Row) -->
                       <span
-                        v-else
+                        v-else-if="activeModalSubmission.is_ktp_revised"
                         class="px-1.5 py-0.5 text-[10px] font-semibold text-[#475569] bg-[#F1F5F9] border border-[#CBD5E1] rounded-[4px] cursor-default"
                         title="Foto KTP telah direvisi (Maksimal 1 kali)"
                       >
