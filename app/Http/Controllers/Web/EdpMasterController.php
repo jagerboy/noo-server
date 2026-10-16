@@ -86,26 +86,46 @@ class EdpMasterController extends Controller
         $cleanRegionCode = preg_replace('/^ADMIN\./i', '', $regionCode ?? '');
         $regionList = array_filter(array_map('trim', explode(',', $cleanRegionCode)));
 
-        if ($userRole === 'EDP_REGION' && !empty($regionList)) {
-            $regionsQuery->whereIn('region_code', $regionList);
-            $entitiesQuery->whereIn('region_code', $regionList);
-            $branchesQuery->whereIn('region_code', $regionList);
-        } elseif ($userRole === 'ADMIN_PRINCIPAL' && !empty($regionList)) {
-            $regionsQuery->where(function ($q) use ($regionList) {
-                foreach ($regionList as $r) {
-                    $q->orWhere('region_code', 'LIKE', "{$r}%");
+        if (!empty($regionList)) {
+            if ($userRole === 'EDP_REGION') {
+                $regionsQuery->whereIn('region_code', $regionList);
+                $entitiesQuery->whereIn('region_code', $regionList);
+                $branchesQuery->whereIn('region_code', $regionList);
+            } elseif ($userRole === 'ADMIN_PRINCIPAL') {
+                $regionsQuery->where(function ($q) use ($regionList) {
+                    foreach ($regionList as $r) {
+                        $q->orWhere('region_code', 'LIKE', "{$r}%");
+                    }
+                });
+                $entitiesQuery->where(function ($q) use ($regionList) {
+                    foreach ($regionList as $r) {
+                        $q->orWhere('region_code', 'LIKE', "{$r}%");
+                    }
+                });
+                $branchesQuery->where(function ($q) use ($regionList) {
+                    foreach ($regionList as $r) {
+                        $q->orWhere('region_code', 'LIKE', "{$r}%");
+                    }
+                });
+            } elseif ($userRole === 'RSM') {
+                $regionsQuery->whereIn('region_code', $regionList);
+                $entitiesQuery->whereIn('region_code', $regionList);
+                $branchesQuery->whereIn('region_code', $regionList);
+            }
+        }
+
+        if ($userRole === 'ASM') {
+            if (!empty($user->entity_code_principal)) {
+                $entitiesQuery->where('entity_code_principal', $user->entity_code_principal);
+                $branchesQuery->where('entity_code_principal', $user->entity_code_principal);
+                if (!empty($regionList)) {
+                    $regionsQuery->whereIn('region_code', $regionList);
                 }
-            });
-            $entitiesQuery->where(function ($q) use ($regionList) {
-                foreach ($regionList as $r) {
-                    $q->orWhere('region_code', 'LIKE', "{$r}%");
-                }
-            });
-            $branchesQuery->where(function ($q) use ($regionList) {
-                foreach ($regionList as $r) {
-                    $q->orWhere('region_code', 'LIKE', "{$r}%");
-                }
-            });
+            } elseif (!empty($regionList)) {
+                $regionsQuery->whereIn('region_code', $regionList);
+                $entitiesQuery->whereIn('region_code', $regionList);
+                $branchesQuery->whereIn('region_code', $regionList);
+            }
         }
 
         if ($userRole === 'ADMIN_PRINCIPAL' && !empty($user->entity_code_principal)) {

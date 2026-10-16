@@ -11,6 +11,7 @@ const props = defineProps({
   accounts: Object,
   regions: Array,
   principalAreas: Array,
+  entities: Array,
   filters: Object,
 });
 
@@ -58,7 +59,7 @@ const addForm = useForm({
   nama: '',
   role: 'EDP_REGION',
   region_code: '',
-  entity_code_principal: 'ASW',
+  entity_code_principal: '',
 });
 
 const editForm = useForm({
@@ -66,6 +67,7 @@ const editForm = useForm({
   password: '',
   role: 'EDP_REGION',
   region_code: '',
+  entity_code_principal: '',
   is_active: true,
 });
 
@@ -162,12 +164,14 @@ function clearRegionSelection(mode = 'edit') {
     selectedPrincipalAreaAdd.value = '';
     selectedSingleRegionsAdd.value = [];
     addForm.region_code = '';
+    addForm.entity_code_principal = '';
     regionErrorAdd.value = '';
   } else {
     isGlobalSelectedEdit.value = false;
     selectedPrincipalAreaEdit.value = '';
     selectedSingleRegions.value = [];
     editForm.region_code = '';
+    editForm.entity_code_principal = '';
     regionErrorEdit.value = '';
   }
 }
@@ -175,11 +179,15 @@ function clearRegionSelection(mode = 'edit') {
 // Computed disabled state untuk button simpan jika region scope belum terisi
 const isAddRegionEmpty = computed(() => {
   if (addForm.role === 'SUPERADMIN') return false;
+  if (addForm.role === 'ASM') return !addForm.entity_code_principal;
+  if (addForm.role === 'RSM') return !addForm.region_code;
   return !isGlobalSelectedAdd.value && !selectedPrincipalAreaAdd.value && selectedSingleRegionsAdd.value.length === 0;
 });
 
 const isEditRegionEmpty = computed(() => {
   if (editForm.role === 'SUPERADMIN') return false;
+  if (editForm.role === 'ASM') return !editForm.entity_code_principal;
+  if (editForm.role === 'RSM') return !editForm.region_code;
   return !isGlobalSelectedEdit.value && !selectedPrincipalAreaEdit.value && selectedSingleRegions.value.length === 0;
 });
 
@@ -189,69 +197,69 @@ const defaultMatrixData = [
     category: '🏠 HOME & DASHBOARD',
     categoryClass: 'bg-slate-100 font-bold text-slate-900',
     items: [
-      { id: 'dashboard_view', name: 'Home (Executive Dashboard & Summary Statistik)', edp: true, admin: true, super: true },
+      { id: 'dashboard_view', name: 'Home (Executive Dashboard & Summary Statistik)', edp: true, admin: true, asm: true, rsm: true, super: true },
     ]
   },
   {
     category: '📬 NOO VERIFICATION',
     categoryClass: 'bg-emerald-50/60 font-bold text-emerald-900',
     items: [
-      { id: 'inbox_view', name: 'Inbox Submisi NOO (Tabel & Preview Detail Toko)', edp: true, admin: true, super: true },
-      { id: 'inbox_approve', name: 'Approval Submisi NOO (Generate Kode Principal)', edp: true, admin: true, super: true },
-      { id: 'inbox_reject', name: 'Tolak / Reject Submisi Toko (dengan Alasan)', edp: true, admin: true, super: true },
-      { id: 'inbox_edit_info', name: 'Ubah Nama Outlet & Alamat Toko di Modal Detail', edp: true, admin: true, super: true },
-      { id: 'inbox_revise_ktp', name: 'Revisi Foto KTP (1x dengan Watermark Standar)', edp: true, admin: true, super: true },
-      { id: 'inbox_unlock_ktp', name: 'Buka Kunci (Unlock) Revisi KTP Toko', edp: false, admin: false, super: true },
-      { id: 'inbox_reset', name: 'Reset / Pembatalan Approval EDP & Status Reject', edp: false, admin: true, super: true },
-      { id: 'inbox_toggle_ro', name: 'Ubah Status Registered Outlet (RO) Toko', edp: true, admin: true, super: true },
-      { id: 'inbox_export', name: 'Export Data Approved & Rejected (.xlsx Excel)', edp: true, admin: true, super: true },
+      { id: 'inbox_view', name: 'Inbox Submisi NOO (Tabel & Preview Detail Toko)', edp: true, admin: true, asm: false, rsm: false, super: true },
+      { id: 'inbox_approve', name: 'Approval Submisi NOO (Generate Kode Principal)', edp: true, admin: true, asm: false, rsm: false, super: true },
+      { id: 'inbox_reject', name: 'Tolak / Reject Submisi Toko (dengan Alasan)', edp: true, admin: true, asm: false, rsm: false, super: true },
+      { id: 'inbox_edit_info', name: 'Ubah Nama Outlet & Alamat Toko di Modal Detail', edp: true, admin: true, asm: false, rsm: false, super: true },
+      { id: 'inbox_revise_ktp', name: 'Revisi Foto KTP (1x dengan Watermark Standar)', edp: true, admin: true, asm: false, rsm: false, super: true },
+      { id: 'inbox_unlock_ktp', name: 'Buka Kunci (Unlock) Revisi KTP Toko', edp: false, admin: false, asm: false, rsm: false, super: true },
+      { id: 'inbox_reset', name: 'Reset / Pembatalan Approval EDP & Status Reject', edp: false, admin: true, asm: false, rsm: false, super: true },
+      { id: 'inbox_toggle_ro', name: 'Ubah Status Registered Outlet (RO) Toko', edp: true, admin: true, asm: false, rsm: false, super: true },
+      { id: 'inbox_export', name: 'Export Data Approved & Rejected (.xlsx Excel)', edp: true, admin: true, asm: false, rsm: false, super: true },
     ]
   },
   {
     category: '📊 MONITORING RO (FINALISASI)',
     categoryClass: 'bg-amber-50/70 font-bold text-amber-950',
     items: [
-      { id: 'monitoring_ro_view', name: 'Menu Monitoring RO (Target vs Realisasi RO Salesman)', edp: false, admin: false, super: true },
-      { id: 'monitoring_ro_upload', name: 'Upload & Download Format Target RO Salesman (.xlsx)', edp: false, admin: false, super: true },
+      { id: 'monitoring_ro_view', name: 'Menu Monitoring RO (Target vs Realisasi RO Salesman)', edp: false, admin: false, asm: false, rsm: false, super: true },
+      { id: 'monitoring_ro_upload', name: 'Upload & Download Format Target RO Salesman (.xlsx)', edp: false, admin: false, asm: false, rsm: false, super: true },
     ]
   },
   {
     category: '📈 PROGRESS TRACKING NOO',
     categoryClass: 'bg-blue-50/60 font-bold text-blue-900',
     items: [
-      { id: 'progress_view', name: 'Workflow Status Progress Submisi Toko', edp: true, admin: true, super: true },
-      { id: 'progress_reset_admin', name: 'Reset Inputan Admin Distributor (Kembali ke Draft SE)', edp: false, admin: true, super: true },
-      { id: 'progress_reset_spv', name: 'Reset Keputusan SPV (Kembali ke Pushed to SPV)', edp: false, admin: true, super: true },
+      { id: 'progress_view', name: 'Workflow Status Progress Submisi Toko', edp: true, admin: true, asm: true, rsm: true, super: true },
+      { id: 'progress_reset_admin', name: 'Reset Inputan Admin Distributor (Kembali ke Draft SE)', edp: false, admin: true, asm: false, rsm: false, super: true },
+      { id: 'progress_reset_spv', name: 'Reset Keputusan SPV (Kembali ke Pushed to SPV)', edp: false, admin: true, asm: false, rsm: false, super: true },
     ]
   },
   {
     category: '🏢 NOO MASTER DATA',
     categoryClass: 'bg-purple-50/60 font-bold text-purple-900',
     items: [
-      { id: 'master_region_view', name: 'Master Region (Lihat / View Only)', edp: false, admin: true, super: true },
-      { id: 'master_region_edit', name: 'Master Region (Kelola / Tambah / Edit / Hapus)', edp: false, admin: false, super: true },
-      { id: 'master_entity_view', name: 'Master Entity (Lihat / View Only)', edp: false, admin: true, super: true },
-      { id: 'master_entity_edit', name: 'Master Entity (Kelola / Tambah / Edit / Hapus)', edp: false, admin: false, super: true },
-      { id: 'master_branch_view', name: 'Master Branch (Lihat / View Only)', edp: true, admin: true, super: true },
-      { id: 'master_branch_edit', name: 'Master Branch (Kelola / Tambah / Edit / Hapus)', edp: false, admin: true, super: true },
-      { id: 'master_salesman_view', name: 'Master Salesman (Lihat / View Only)', edp: true, admin: true, super: true },
-      { id: 'master_salesman_edit', name: 'Master Salesman (Kelola / Tambah / Edit / Hapus)', edp: false, admin: true, super: true },
-      { id: 'master_spv_view', name: 'Master SPV (Lihat / View Only)', edp: true, admin: true, super: true },
-      { id: 'master_spv_edit', name: 'Master SPV (Kelola / Tambah / Edit / Hapus)', edp: false, admin: true, super: true },
-      { id: 'master_outlet_types_view', name: 'Master Outlet Types (Lihat / View Only)', edp: true, admin: true, super: true },
-      { id: 'master_outlet_types_edit', name: 'Master Outlet Types (Kelola / Tambah / Edit / Hapus)', edp: false, admin: true, super: true },
-      { id: 'master_counter_sequence_view', name: 'Counter Sequence (Lihat / View Only)', edp: false, admin: true, super: true },
-      { id: 'master_counter_sequence_edit', name: 'Counter Sequence (Setting & Update Nomor Urut)', edp: false, admin: true, super: true },
-      { id: 'master_bulk_upload', name: 'Bulk Upload / Import Massal Master Data (CSV)', edp: false, admin: false, super: true },
+      { id: 'master_region_view', name: 'Master Region (Lihat / View Only)', edp: false, admin: true, asm: true, rsm: true, super: true },
+      { id: 'master_region_edit', name: 'Master Region (Kelola / Tambah / Edit / Hapus)', edp: false, admin: false, asm: false, rsm: false, super: true },
+      { id: 'master_entity_view', name: 'Master Entity (Lihat / View Only)', edp: false, admin: true, asm: true, rsm: true, super: true },
+      { id: 'master_entity_edit', name: 'Master Entity (Kelola / Tambah / Edit / Hapus)', edp: false, admin: false, asm: false, rsm: false, super: true },
+      { id: 'master_branch_view', name: 'Master Branch (Lihat / View Only)', edp: true, admin: true, asm: true, rsm: true, super: true },
+      { id: 'master_branch_edit', name: 'Master Branch (Kelola / Tambah / Edit / Hapus)', edp: false, admin: true, asm: false, rsm: false, super: true },
+      { id: 'master_salesman_view', name: 'Master Salesman (Lihat / View Only)', edp: true, admin: true, asm: true, rsm: true, super: true },
+      { id: 'master_salesman_edit', name: 'Master Salesman (Kelola / Tambah / Edit / Hapus)', edp: false, admin: true, asm: false, rsm: false, super: true },
+      { id: 'master_spv_view', name: 'Master SPV (Lihat / View Only)', edp: true, admin: true, asm: true, rsm: true, super: true },
+      { id: 'master_spv_edit', name: 'Master SPV (Kelola / Tambah / Edit / Hapus)', edp: false, admin: true, asm: false, rsm: false, super: true },
+      { id: 'master_outlet_types_view', name: 'Master Outlet Types (Lihat / View Only)', edp: true, admin: true, asm: true, rsm: true, super: true },
+      { id: 'master_outlet_types_edit', name: 'Master Outlet Types (Kelola / Tambah / Edit / Hapus)', edp: false, admin: true, asm: false, rsm: false, super: true },
+      { id: 'master_counter_sequence_view', name: 'Counter Sequence (Lihat / View Only)', edp: false, admin: true, asm: false, rsm: false, super: true },
+      { id: 'master_counter_sequence_edit', name: 'Counter Sequence (Setting & Update Nomor Urut)', edp: false, admin: true, asm: false, rsm: false, super: true },
+      { id: 'master_bulk_upload', name: 'Bulk Upload / Import Massal Master Data (CSV)', edp: false, admin: false, asm: false, rsm: false, super: true },
     ]
   },
   {
     category: '⚙️ MANAJEMEN AKUN & AUDIT LOGS',
     categoryClass: 'bg-gray-100 font-bold text-gray-900',
     items: [
-      { id: 'sys_users', name: 'Kelola Akun Pengguna Portal (User Management & Password)', edp: false, admin: false, super: true },
-      { id: 'sys_role_matrix', name: 'Atur Matriks Hak Akses Peran Pengguna (Role Manager)', edp: false, admin: false, super: true },
-      { id: 'sys_logs', name: 'Audit Log & Riwayat Aktivitas Seluruh Pengguna Sistem', edp: false, admin: true, super: true },
+      { id: 'sys_users', name: 'Kelola Akun Pengguna Portal (User Management & Password)', edp: false, admin: false, asm: false, rsm: false, super: true },
+      { id: 'sys_role_matrix', name: 'Atur Matriks Hak Akses Peran Pengguna (Role Manager)', edp: false, admin: false, asm: false, rsm: false, super: true },
+      { id: 'sys_logs', name: 'Audit Log & Riwayat Aktivitas Seluruh Pengguna Sistem', edp: false, admin: true, asm: false, rsm: false, super: true },
     ]
   }
 ];
@@ -301,6 +309,7 @@ function openEditModal(acc) {
   editForm.password = '';
   editForm.role = acc.role || 'EDP_REGION';
   editForm.region_code = acc.region_code || '';
+  editForm.entity_code_principal = acc.entity_code_principal || '';
   editForm.is_active = Boolean(acc.is_active);
 
   // Auto populate selected single regions checkboxes & PA single select
@@ -327,7 +336,7 @@ function openEditModal(acc) {
 
 function submitEditAccount() {
   if (!editingAccount.value) return;
-  if (editForm.role !== 'SUPERADMIN' && selectedSingleRegions.value.length === 0 && editForm.region_code !== '') {
+  if (editForm.role !== 'SUPERADMIN' && editForm.role !== 'ASM' && editForm.role !== 'RSM' && selectedSingleRegions.value.length === 0 && editForm.region_code !== '') {
     regionErrorEdit.value = 'Wilayah Operasional (Region Scope) wajib dipilih minimal 1 region.';
     return;
   }
@@ -351,6 +360,8 @@ function formatRole(role) {
     'SUPERADMIN': 'Superadmin',
     'ADMIN_PRINCIPAL': 'Admin Principal',
     'EDP_REGION': 'EDP Region',
+    'ASM': 'ASM (Area Sales Manager)',
+    'RSM': 'RSM (Regional Sales Manager)',
     'SPV_AREA': 'SPV Area',
     'ADMIN_DISTRIBUTOR': 'Admin Distributor',
   };
@@ -450,6 +461,8 @@ function formatRole(role) {
                         'px-2 py-0.5 text-[10.5px] font-semibold rounded-full uppercase tracking-wider',
                         acc.role === 'SUPERADMIN' ? 'bg-purple-100 text-purple-800 border border-purple-300' :
                         acc.role === 'ADMIN_PRINCIPAL' ? 'bg-blue-100 text-blue-800 border border-blue-300' :
+                        acc.role === 'RSM' ? 'bg-indigo-100 text-indigo-800 border border-indigo-300' :
+                        acc.role === 'ASM' ? 'bg-teal-100 text-teal-800 border border-teal-300' :
                         acc.role === 'SPV_AREA' ? 'bg-amber-100 text-amber-900 border border-amber-300' :
                         acc.role === 'ADMIN_DISTRIBUTOR' ? 'bg-emerald-100 text-emerald-900 border border-emerald-300' :
                         'bg-emerald-100 text-emerald-800 border border-emerald-300'
@@ -458,7 +471,14 @@ function formatRole(role) {
                       {{ formatRole(acc.role || 'EDP_REGION') }}
                     </span>
                   </td>
-                  <td class="px-3 py-2.5 font-bold text-[#059669] text-[12px]">{{ acc.region_code || 'ALL REGIONS (GLOBAL)' }}</td>
+                  <td class="px-3 py-2.5 font-bold text-[#059669] text-[12px]">
+                    <span v-if="acc.role === 'ASM' && acc.entity_code_principal" class="text-teal-700">
+                      Entity: {{ acc.entity_code_principal }} <span v-if="acc.region_code" class="text-gray-400 font-normal">({{ acc.region_code }})</span>
+                    </span>
+                    <span v-else>
+                      {{ acc.region_code || 'ALL REGIONS (GLOBAL)' }}
+                    </span>
+                  </td>
                   <td class="px-3 py-2.5">
                     <span v-if="acc.is_active" class="px-2 py-0.5 text-[10.5px] font-semibold text-emerald-700 bg-emerald-100 rounded-full border border-emerald-300">AKTIF</span>
                     <span v-else class="px-2 py-0.5 text-[10.5px] font-semibold text-red-700 bg-red-100 rounded-full border border-red-300">NON-AKTIF</span>
@@ -538,16 +558,18 @@ function formatRole(role) {
           <table class="w-full text-left text-xs border-collapse">
             <thead class="bg-gray-100 border-b border-gray-200 text-gray-700 font-bold uppercase">
               <tr>
-                <th class="px-5 py-3 w-1/2">Menu & Fitur Portal</th>
-                <th class="px-4 py-3 text-center">Operator Verifikator<br/><span class="text-[10px] text-emerald-700 font-normal">(EDP Region)</span></th>
-                <th class="px-4 py-3 text-center">Admin Principal<br/><span class="text-[10px] text-blue-700 font-normal">(Master Data)</span></th>
-                <th class="px-4 py-3 text-center">Superadmin<br/><span class="text-[10px] text-purple-700 font-normal">(Full Access)</span></th>
+                <th class="px-5 py-3 w-2/5">Menu & Fitur Portal</th>
+                <th class="px-3 py-3 text-center">Operator Verifikator<br/><span class="text-[10px] text-emerald-700 font-normal">(EDP Region)</span></th>
+                <th class="px-3 py-3 text-center">Admin Principal<br/><span class="text-[10px] text-blue-700 font-normal">(Master Data)</span></th>
+                <th class="px-3 py-3 text-center">ASM<br/><span class="text-[10px] text-teal-700 font-normal">(Area Manager)</span></th>
+                <th class="px-3 py-3 text-center">RSM<br/><span class="text-[10px] text-indigo-700 font-normal">(Regional Manager)</span></th>
+                <th class="px-3 py-3 text-center">Superadmin<br/><span class="text-[10px] text-purple-700 font-normal">(Full Access)</span></th>
               </tr>
             </thead>
             <tbody class="divide-y divide-gray-200">
               <template v-for="cat in permissionMatrix" :key="cat.category">
                 <tr :class="[cat.categoryClass, 'font-bold']">
-                  <td colspan="4" class="px-5 py-2 uppercase tracking-wider text-[11px]">{{ cat.category }}</td>
+                  <td colspan="6" class="px-5 py-2 uppercase tracking-wider text-[11px]">{{ cat.category }}</td>
                 </tr>
                 <tr v-for="item in cat.items" :key="item.id" class="hover:bg-gray-50/80 transition">
                   <td class="px-5 py-2.5 pl-8 text-gray-800 font-medium">{{ item.name }}</td>
@@ -565,6 +587,22 @@ function formatRole(role) {
                       v-model="item.admin"
                       :disabled="!isEditingMatrix"
                       class="w-4 h-4 text-blue-600 rounded focus:ring-blue-500 disabled:opacity-70 disabled:cursor-not-allowed cursor-pointer"
+                    />
+                  </td>
+                  <td class="text-center py-2.5">
+                    <input
+                      type="checkbox"
+                      v-model="item.asm"
+                      :disabled="!isEditingMatrix"
+                      class="w-4 h-4 text-teal-600 rounded focus:ring-teal-500 disabled:opacity-70 disabled:cursor-not-allowed cursor-pointer"
+                    />
+                  </td>
+                  <td class="text-center py-2.5">
+                    <input
+                      type="checkbox"
+                      v-model="item.rsm"
+                      :disabled="!isEditingMatrix"
+                      class="w-4 h-4 text-indigo-600 rounded focus:ring-indigo-500 disabled:opacity-70 disabled:cursor-not-allowed cursor-pointer"
                     />
                   </td>
                   <td class="text-center py-2.5">
@@ -615,24 +653,72 @@ function formatRole(role) {
               <!-- PERAN AKSES (ROLE) RADIO BUTTONS -->
               <div class="pt-2">
                 <label class="block text-xs font-bold uppercase tracking-wider text-gray-700 mb-2">PERAN AKSES (ROLE)</label>
-                <div class="space-y-2 border border-gray-200 p-3 rounded-xl bg-gray-50/60">
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-2 border border-gray-200 p-3 rounded-xl bg-gray-50/60">
                   <label class="flex items-center gap-2.5 text-xs text-gray-800 font-semibold cursor-pointer">
                     <input type="radio" v-model="addForm.role" value="EDP_REGION" class="w-4 h-4 text-emerald-600 focus:ring-emerald-500" />
-                    <span>Operator Verifikator (EDP Region)</span>
+                    <span>Operator (EDP Region)</span>
                   </label>
                   <label class="flex items-center gap-2.5 text-xs text-gray-800 font-semibold cursor-pointer">
                     <input type="radio" v-model="addForm.role" value="ADMIN_PRINCIPAL" class="w-4 h-4 text-blue-600 focus:ring-blue-500" />
                     <span>Admin Principal</span>
                   </label>
                   <label class="flex items-center gap-2.5 text-xs text-gray-800 font-semibold cursor-pointer">
+                    <input type="radio" v-model="addForm.role" value="ASM" class="w-4 h-4 text-teal-600 focus:ring-teal-500" />
+                    <span>ASM (Area Sales Manager)</span>
+                  </label>
+                  <label class="flex items-center gap-2.5 text-xs text-gray-800 font-semibold cursor-pointer">
+                    <input type="radio" v-model="addForm.role" value="RSM" class="w-4 h-4 text-indigo-600 focus:ring-indigo-500" />
+                    <span>RSM (Regional Sales Manager)</span>
+                  </label>
+                  <label class="flex items-center gap-2.5 text-xs text-gray-800 font-semibold cursor-pointer sm:col-span-2">
                     <input type="radio" v-model="addForm.role" value="SUPERADMIN" class="w-4 h-4 text-purple-600 focus:ring-purple-500" />
-                    <span>Superadmin</span>
+                    <span>Superadmin (Full Access)</span>
                   </label>
                 </div>
               </div>
 
-              <!-- REGION SCOPE / WILAYAH OPERASIONAL -->
-              <div class="pt-2">
+              <!-- WILAYAH SCOPE KHUSUS ASM: 1 ENTITY -->
+              <div v-if="addForm.role === 'ASM'" class="pt-2">
+                <label class="block text-xs font-bold uppercase tracking-wider text-teal-800 mb-1.5">
+                  CAKUPAN ENTITY ASM (1 ENTITY) <span class="text-rose-500">*</span>
+                </label>
+                <div class="p-3 bg-teal-50/60 border border-teal-200 rounded-xl space-y-2">
+                  <p class="text-[11px] text-teal-700">Pilih 1 Entity binaan untuk ASM. Semua cabang distributor di bawah entity ini otomatis terlingkup.</p>
+                  <select 
+                    v-model="addForm.entity_code_principal" 
+                    class="w-full px-3.5 py-2 text-xs bg-white border border-teal-300 rounded-xl focus:ring-2 focus:ring-teal-500 font-medium"
+                    required
+                  >
+                    <option value="" disabled>-- Pilih Entity Principal ASM --</option>
+                    <option v-for="ent in entities" :key="ent.entity_code_principal" :value="ent.entity_code_principal">
+                      {{ ent.entity_code_principal }} - {{ ent.entity_name_principal }} ({{ ent.region_code }})
+                    </option>
+                  </select>
+                </div>
+              </div>
+
+              <!-- WILAYAH SCOPE KHUSUS RSM: 1 REGION -->
+              <div v-else-if="addForm.role === 'RSM'" class="pt-2">
+                <label class="block text-xs font-bold uppercase tracking-wider text-indigo-800 mb-1.5">
+                  CAKUPAN REGION RSM (1 REGION) <span class="text-rose-500">*</span>
+                </label>
+                <div class="p-3 bg-indigo-50/60 border border-indigo-200 rounded-xl space-y-2">
+                  <p class="text-[11px] text-indigo-700">Pilih 1 Region operasional untuk RSM. Semua entity dan cabang distributor di region ini otomatis terlingkup.</p>
+                  <select 
+                    v-model="addForm.region_code" 
+                    class="w-full px-3.5 py-2 text-xs bg-white border border-indigo-300 rounded-xl focus:ring-2 focus:ring-indigo-500 font-medium"
+                    required
+                  >
+                    <option value="" disabled>-- Pilih Region RSM --</option>
+                    <option v-for="r in regions" :key="r.region_code || r" :value="r.region_code || r">
+                      {{ r.region_code ? `${r.region_code} - ${r.region_name}` : r }}
+                    </option>
+                  </select>
+                </div>
+              </div>
+
+              <!-- REGION SCOPE STANDAR (EDP REGION / ADMIN PRINCIPAL) -->
+              <div v-else-if="addForm.role !== 'SUPERADMIN'" class="pt-2">
                 <div class="flex items-center justify-between mb-1.5">
                   <label class="block text-xs font-bold uppercase tracking-wider text-gray-700">REGION SCOPE / WILAYAH OPERASIONAL <span class="text-rose-500">*</span></label>
                   <button type="button" v-if="isGlobalSelectedAdd || selectedPrincipalAreaAdd || selectedSingleRegionsAdd.length > 0" @click="clearRegionSelection('add')" class="text-[11px] font-bold text-rose-600 hover:text-rose-800 underline cursor-pointer">Unselect / Reset Pilihan</button>
@@ -738,24 +824,72 @@ function formatRole(role) {
               <!-- PERAN AKSES (ROLE) RADIO BUTTONS -->
               <div class="pt-2">
                 <label class="block text-xs font-bold uppercase tracking-wider text-gray-700 mb-2">PERAN AKSES (ROLE)</label>
-                <div class="space-y-2 border border-gray-200 p-3 rounded-xl bg-gray-50/60">
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-2 border border-gray-200 p-3 rounded-xl bg-gray-50/60">
                   <label class="flex items-center gap-2.5 text-xs text-gray-800 font-semibold cursor-pointer">
                     <input type="radio" v-model="editForm.role" value="EDP_REGION" class="w-4 h-4 text-emerald-600 focus:ring-emerald-500" />
-                    <span>Operator Verifikator (EDP Region)</span>
+                    <span>Operator (EDP Region)</span>
                   </label>
                   <label class="flex items-center gap-2.5 text-xs text-gray-800 font-semibold cursor-pointer">
                     <input type="radio" v-model="editForm.role" value="ADMIN_PRINCIPAL" class="w-4 h-4 text-blue-600 focus:ring-blue-500" />
                     <span>Admin Principal</span>
                   </label>
                   <label class="flex items-center gap-2.5 text-xs text-gray-800 font-semibold cursor-pointer">
+                    <input type="radio" v-model="editForm.role" value="ASM" class="w-4 h-4 text-teal-600 focus:ring-teal-500" />
+                    <span>ASM (Area Sales Manager)</span>
+                  </label>
+                  <label class="flex items-center gap-2.5 text-xs text-gray-800 font-semibold cursor-pointer">
+                    <input type="radio" v-model="editForm.role" value="RSM" class="w-4 h-4 text-indigo-600 focus:ring-indigo-500" />
+                    <span>RSM (Regional Sales Manager)</span>
+                  </label>
+                  <label class="flex items-center gap-2.5 text-xs text-gray-800 font-semibold cursor-pointer sm:col-span-2">
                     <input type="radio" v-model="editForm.role" value="SUPERADMIN" class="w-4 h-4 text-purple-600 focus:ring-purple-500" />
-                    <span>Superadmin</span>
+                    <span>Superadmin (Full Access)</span>
                   </label>
                 </div>
               </div>
 
-              <!-- REGION SCOPE / WILAYAH OPERASIONAL -->
-              <div class="pt-2">
+              <!-- WILAYAH SCOPE KHUSUS ASM: 1 ENTITY -->
+              <div v-if="editForm.role === 'ASM'" class="pt-2">
+                <label class="block text-xs font-bold uppercase tracking-wider text-teal-800 mb-1.5">
+                  CAKUPAN ENTITY ASM (1 ENTITY) <span class="text-rose-500">*</span>
+                </label>
+                <div class="p-3 bg-teal-50/60 border border-teal-200 rounded-xl space-y-2">
+                  <p class="text-[11px] text-teal-700">Pilih 1 Entity binaan untuk ASM. Semua cabang distributor di bawah entity ini otomatis terlingkup.</p>
+                  <select 
+                    v-model="editForm.entity_code_principal" 
+                    class="w-full px-3.5 py-2 text-xs bg-white border border-teal-300 rounded-xl focus:ring-2 focus:ring-teal-500 font-medium"
+                    required
+                  >
+                    <option value="" disabled>-- Pilih Entity Principal ASM --</option>
+                    <option v-for="ent in entities" :key="ent.entity_code_principal" :value="ent.entity_code_principal">
+                      {{ ent.entity_code_principal }} - {{ ent.entity_name_principal }} ({{ ent.region_code }})
+                    </option>
+                  </select>
+                </div>
+              </div>
+
+              <!-- WILAYAH SCOPE KHUSUS RSM: 1 REGION -->
+              <div v-else-if="editForm.role === 'RSM'" class="pt-2">
+                <label class="block text-xs font-bold uppercase tracking-wider text-indigo-800 mb-1.5">
+                  CAKUPAN REGION RSM (1 REGION) <span class="text-rose-500">*</span>
+                </label>
+                <div class="p-3 bg-indigo-50/60 border border-indigo-200 rounded-xl space-y-2">
+                  <p class="text-[11px] text-indigo-700">Pilih 1 Region operasional untuk RSM. Semua entity dan cabang distributor di region ini otomatis terlingkup.</p>
+                  <select 
+                    v-model="editForm.region_code" 
+                    class="w-full px-3.5 py-2 text-xs bg-white border border-indigo-300 rounded-xl focus:ring-2 focus:ring-indigo-500 font-medium"
+                    required
+                  >
+                    <option value="" disabled>-- Pilih Region RSM --</option>
+                    <option v-for="r in regions" :key="r.region_code || r" :value="r.region_code || r">
+                      {{ r.region_code ? `${r.region_code} - ${r.region_name}` : r }}
+                    </option>
+                  </select>
+                </div>
+              </div>
+
+              <!-- REGION SCOPE STANDAR (EDP REGION / ADMIN PRINCIPAL) -->
+              <div v-else-if="editForm.role !== 'SUPERADMIN'" class="pt-2">
                 <div class="flex items-center justify-between mb-1.5">
                   <label class="block text-xs font-bold uppercase tracking-wider text-gray-700">REGION SCOPE / WILAYAH OPERASIONAL <span class="text-rose-500">*</span></label>
                   <button type="button" v-if="isGlobalSelectedEdit || selectedPrincipalAreaEdit || selectedSingleRegions.length > 0" @click="clearRegionSelection('edit')" class="text-[11px] font-bold text-rose-600 hover:text-rose-800 underline cursor-pointer">Unselect / Reset Pilihan</button>

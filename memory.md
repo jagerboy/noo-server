@@ -308,4 +308,35 @@ docker compose exec app php artisan optimize:clear
 ```
 
 ---
+
+## 10. Riwayat Migrasi Data Legacy (Google Drive/Apps Script) & Database Refresh (Oktober 2026)
+
+### Latar Belakang & Alasan Database Refresh:
+Pada migrasi awal sistem legacy ke PostgreSQL v2, terdapat 1.613 baris data yang masuk namun sebagian sel kolom tidak terisi lengkap, serta terdapat beberapa baris sampah tanpa nama toko/cabang. Setelah penggabungan menyeluruh 82 file cabang ASW, pengayaan approval SPV (`NOO_SPV_JKS.xlsx`), dan review keputusan EDP (`NOO_EDP_REVIEW.xlsx`) di project `gabung-excel`, tersusun file master final `migrate_noo_submission_ready_prod.xlsx` dengan total **2.443 baris data valid**.
+
+Untuk menjamin konsistensi data 100%, dilakukan prosedur **Clean Import**:
+1. **Safety Backup**: Tabel `noo_submissions` lama (data sebelum 16 September 2026 sebanyak 1.613 baris) di-backup ke file `backup_noo_submissions_pre_sep16.sql` (3,97 MB).
+2. **Pembersihan Data Lama**: Seluruh data lama sebelum 16 September 2026 dihapus dari tabel `noo_submissions`.
+3. **Sinkronisasi Berkas Foto Fisik**: Menggabungkan foto dari `gabung-excel/noo_photos` dan `05_PHOTOS` ke `storage/app/public/noo_photos`.
+   - Total foto terkumpul di storage: **10.285 berkas**.
+   - Toko dengan 3 foto lengkap (Depan, Dalam, KTP): **2.396 toko (98,1%)**.
+   - Foto Depan tersedia: **2.406 toko (98,5%)**.
+   - Foto Dalam tersedia: **2.414 toko (98,8%)**.
+   - Foto KTP tersedia: **2.400 toko (98,2%)**.
+   - Toko tanpa berkas foto: Hanya **26 toko (1,1%)** (dari cabang asal memang tidak dilampirkan).
+4. **Clean Import 2.443 Data**:
+   - Memasukkan seluruh 2.443 baris dengan 92 kolom standar.
+   - Status foto otomatis diset `COMPLETED` untuk 2.404 toko yang foto depan & dalamnya valid di storage.
+   - Sequence ID Postgres diperbarui ke counter ID tertinggi (`MAX(id)`).
+5. **Ekspor SQL Production-Ready**:
+   - File `noo_v2_migrated.sql` (13,87 MB) memuat skema dan data 86 cabang master serta 2.443 data toko `noo_submissions`.
+
+### File Referensi & Artefak Terkait:
+- `migrate_noo_submission_ready_prod.xlsx`: File Excel master final 2.443 baris.
+- `backup_noo_submissions_pre_sep16.sql`: Backup data legacy sebelum refresh.
+- `noo_v2_migrated.sql`: SQL dump siap restore ke server production.
+- `storage/app/public/noo_photos/`: Direktori fisik foto toko terstandar per cabang & tanggal.
+
+---
 *Dokumen ini merupakan panduan arsitektur resmi sistem informasi NOO+ ASWFOODS & INAFOODS.*
+

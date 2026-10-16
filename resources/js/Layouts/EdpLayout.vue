@@ -33,6 +33,13 @@ const displayUserRole = computed(() => {
     if (reg.includes('INASUM') || username.includes('inasum')) return 'Admin Principal INA Sumatera';
     return user.value.region_code ? `Admin Principal (${user.value.region_code})` : 'Admin Principal';
   }
+  if (role === 'RSM') {
+    return user.value.region_code ? `RSM (${user.value.region_code})` : 'Regional Sales Manager (RSM)';
+  }
+  if (role === 'ASM') {
+    const ent = user.value.entity_code_principal || '';
+    return ent ? `ASM (${ent})` : 'Area Sales Manager (ASM)';
+  }
   return (role || '').replace(/_/g, ' ');
 });
 

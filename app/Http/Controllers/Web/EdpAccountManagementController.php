@@ -117,6 +117,12 @@ class EdpAccountManagementController extends Controller
 
         $regions = collect($regionsArray);
 
+        $entities = DB::table('master_entities')
+            ->select('entity_code_principal', 'entity_name_principal', 'region_code')
+            ->where('is_active', true)
+            ->orderBy('entity_code_principal')
+            ->get();
+
         $activeFilters = $request->only(['search']);
         if ($request->has('per_page')) {
             $rawPerPage = (int) $request->input('per_page');
@@ -127,6 +133,7 @@ class EdpAccountManagementController extends Controller
             'accounts' => $accounts,
             'regions' => $regions,
             'principalAreas' => $principalAreas,
+            'entities' => $entities,
             'filters' => $activeFilters,
         ]);
     }
@@ -143,7 +150,7 @@ class EdpAccountManagementController extends Controller
             'username' => 'required|string|unique:users,username',
             'password' => 'required|string|min:4',
             'nama' => 'required|string',
-            'role' => 'required|string|in:SUPERADMIN,ADMIN_PRINCIPAL,EDP_REGION',
+            'role' => 'required|string|in:SUPERADMIN,ADMIN_PRINCIPAL,EDP_REGION,ASM,RSM',
             'region_code' => 'nullable|string',
             'entity_code_principal' => 'nullable|string',
         ]);
@@ -151,14 +158,25 @@ class EdpAccountManagementController extends Controller
         $username = strtolower(trim($request->username));
         $this->syncSequence();
 
+        $regionCode = $request->region_code ? strtoupper(trim($request->region_code)) : null;
+        $entityCode = $request->entity_code_principal ? strtoupper(trim($request->entity_code_principal)) : null;
+
+        // Jika ASM, otomatis pastikan region_code terisi dari master_entities jika kosong
+        if ($request->role === 'ASM' && !empty($entityCode) && empty($regionCode)) {
+            $ent = DB::table('master_entities')->where('entity_code_principal', $entityCode)->first();
+            if ($ent && !empty($ent->region_code)) {
+                $regionCode = $ent->region_code;
+            }
+        }
+
         DB::table('users')->insert([
             'username' => $username,
             'name' => $request->nama,
             'email' => "{$username}@noo.portal",
             'password' => Hash::make(trim($request->password)),
             'role' => $request->role,
-            'region_code' => $request->region_code ? strtoupper($request->region_code) : null,
-            'entity_code_principal' => $request->entity_code_principal ? strtoupper($request->entity_code_principal) : null,
+            'region_code' => $regionCode,
+            'entity_code_principal' => $entityCode,
             'is_active' => true,
             'created_at' => now(),
             'updated_at' => now(),
@@ -187,15 +205,27 @@ class EdpAccountManagementController extends Controller
 
         $request->validate([
             'nama' => 'required|string',
-            'role' => 'required|string|in:SUPERADMIN,ADMIN_PRINCIPAL,EDP_REGION',
+            'role' => 'required|string|in:SUPERADMIN,ADMIN_PRINCIPAL,EDP_REGION,ASM,RSM',
             'region_code' => 'nullable|string',
+            'entity_code_principal' => 'nullable|string',
             'is_active' => 'required|boolean',
         ]);
+
+        $regionCode = $request->region_code ? strtoupper(trim($request->region_code)) : null;
+        $entityCode = $request->entity_code_principal ? strtoupper(trim($request->entity_code_principal)) : null;
+
+        if ($request->role === 'ASM' && !empty($entityCode) && empty($regionCode)) {
+            $ent = DB::table('master_entities')->where('entity_code_principal', $entityCode)->first();
+            if ($ent && !empty($ent->region_code)) {
+                $regionCode = $ent->region_code;
+            }
+        }
 
         $data = [
             'name' => $request->nama,
             'role' => $request->role,
-            'region_code' => $request->region_code ? strtoupper($request->region_code) : null,
+            'region_code' => $regionCode,
+            'entity_code_principal' => $entityCode,
             'is_active' => $request->is_active,
             'updated_at' => now(),
         ];

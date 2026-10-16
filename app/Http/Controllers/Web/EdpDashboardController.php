@@ -39,15 +39,38 @@ class EdpDashboardController extends Controller
         $query = DB::table('noo_submissions');
 
         // Apply Data Isolation based on Role
-        if ($userRole !== 'SUPERADMIN' && !empty($regionList)) {
-            if ($userRole === 'EDP_REGION') {
+        if ($userRole !== 'SUPERADMIN') {
+            if ($userRole === 'EDP_REGION' && !empty($regionList)) {
                 $query->whereIn('region_code', $regionList);
-            } elseif ($userRole === 'ADMIN_PRINCIPAL') {
+            } elseif ($userRole === 'ADMIN_PRINCIPAL' && !empty($regionList)) {
                 $query->where(function ($q) use ($regionList) {
                     foreach ($regionList as $r) {
                         $q->orWhere('region_code', 'LIKE', "{$r}%");
                     }
                 });
+            } elseif ($userRole === 'RSM') {
+                if (!empty($userRegion)) {
+                    $query->where('region_code', $userRegion);
+                }
+            } elseif ($userRole === 'ASM') {
+                if (!empty($userEntity)) {
+                    $matchingBranchIds = DB::table('master_branches')
+                        ->where('entity_code_principal', $userEntity)
+                        ->orWhere('principal_code', $userEntity)
+                        ->pluck('branch_id')
+                        ->filter()
+                        ->toArray();
+
+                    $query->where(function ($q) use ($userEntity, $matchingBranchIds) {
+                        $q->where('principal', 'ILIKE', "%{$userEntity}%")
+                          ->orWhere('principal_code', $userEntity);
+                        if (!empty($matchingBranchIds)) {
+                            $q->orWhereIn('branch_id', $matchingBranchIds);
+                        }
+                    });
+                } elseif (!empty($userRegion)) {
+                    $query->where('region_code', $userRegion);
+                }
             }
         }
         if ($userRole === 'ADMIN_PRINCIPAL' && !empty($userEntity)) {
@@ -194,19 +217,38 @@ class EdpDashboardController extends Controller
             )
             ->where('master_salesmen.is_active', true);
 
-        if ($userRole !== 'SUPERADMIN' && !empty($regionList)) {
-            if ($userRole === 'EDP_REGION') {
+        if ($userRole !== 'SUPERADMIN') {
+            if ($userRole === 'EDP_REGION' && !empty($regionList)) {
                 $salesmenQuery->where(function ($q) use ($regionList) {
                     $q->whereIn('master_branches.region_code', $regionList)
                       ->orWhereIn('master_salesmen.region_code', $regionList);
                 });
-            } elseif ($userRole === 'ADMIN_PRINCIPAL') {
+            } elseif ($userRole === 'ADMIN_PRINCIPAL' && !empty($regionList)) {
                 $salesmenQuery->where(function ($q) use ($regionList) {
                     foreach ($regionList as $r) {
                         $q->orWhere('master_branches.region_code', 'LIKE', "{$r}%")
                           ->orWhere('master_salesmen.region_code', 'LIKE', "{$r}%");
                     }
                 });
+            } elseif ($userRole === 'RSM') {
+                if (!empty($userRegion)) {
+                    $salesmenQuery->where(function ($q) use ($userRegion) {
+                        $q->where('master_branches.region_code', $userRegion)
+                          ->orWhere('master_salesmen.region_code', $userRegion);
+                    });
+                }
+            } elseif ($userRole === 'ASM') {
+                if (!empty($userEntity)) {
+                    $salesmenQuery->where(function ($q) use ($userEntity) {
+                        $q->where('master_branches.entity_code_principal', $userEntity)
+                          ->orWhere('master_salesmen.entity_code_principal', $userEntity);
+                    });
+                } elseif (!empty($userRegion)) {
+                    $salesmenQuery->where(function ($q) use ($userRegion) {
+                        $q->where('master_branches.region_code', $userRegion)
+                          ->orWhere('master_salesmen.region_code', $userRegion);
+                    });
+                }
             }
         }
         if ($userRole === 'ADMIN_PRINCIPAL' && !empty($userEntity)) {
@@ -508,15 +550,38 @@ class EdpDashboardController extends Controller
         $query = DB::table('noo_submissions')
             ->leftJoin('master_branches', 'noo_submissions.branch_id', '=', 'master_branches.branch_id');
 
-        if ($userRole !== 'SUPERADMIN' && !empty($regionList)) {
-            if ($userRole === 'EDP_REGION') {
+        if ($userRole !== 'SUPERADMIN') {
+            if ($userRole === 'EDP_REGION' && !empty($regionList)) {
                 $query->whereIn('noo_submissions.region_code', $regionList);
-            } elseif ($userRole === 'ADMIN_PRINCIPAL') {
+            } elseif ($userRole === 'ADMIN_PRINCIPAL' && !empty($regionList)) {
                 $query->where(function ($q) use ($regionList) {
                     foreach ($regionList as $r) {
                         $q->orWhere('noo_submissions.region_code', 'LIKE', "{$r}%");
                     }
                 });
+            } elseif ($userRole === 'RSM') {
+                if (!empty($userRegion)) {
+                    $query->where('noo_submissions.region_code', $userRegion);
+                }
+            } elseif ($userRole === 'ASM') {
+                if (!empty($userEntity)) {
+                    $matchingBranchIds = DB::table('master_branches')
+                        ->where('entity_code_principal', $userEntity)
+                        ->orWhere('principal_code', $userEntity)
+                        ->pluck('branch_id')
+                        ->filter()
+                        ->toArray();
+
+                    $query->where(function ($q) use ($userEntity, $matchingBranchIds) {
+                        $q->where('noo_submissions.principal', 'ILIKE', "%{$userEntity}%")
+                          ->orWhere('noo_submissions.principal_code', $userEntity);
+                        if (!empty($matchingBranchIds)) {
+                            $q->orWhereIn('noo_submissions.branch_id', $matchingBranchIds);
+                        }
+                    });
+                } elseif (!empty($userRegion)) {
+                    $query->where('noo_submissions.region_code', $userRegion);
+                }
             }
         }
         if ($userRole === 'ADMIN_PRINCIPAL' && !empty($userEntity)) {
