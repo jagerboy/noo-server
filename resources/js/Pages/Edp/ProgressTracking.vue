@@ -26,6 +26,83 @@ const selectedStage = ref(props.filters?.stage || 'all');
 const sortKey = ref(props.filters?.sort_key || 'created_at');
 const sortDir = ref(props.filters?.sort_dir || 'desc');
 
+const initMonths = () => {
+  if (props.filters?.months) {
+    return String(props.filters.months).split(',').filter(Boolean);
+  }
+  if (props.filters?.month) {
+    return [String(props.filters.month)];
+  }
+  return [];
+};
+const selectedMonths = ref(initMonths());
+const isMonthDropdownOpen = ref(false);
+const monthDropdownRef = ref(null);
+
+const selectedYear = ref(props.filters?.year || '');
+
+const monthOptions = [
+  { value: '1', label: 'Januari', short: 'Jan' },
+  { value: '2', label: 'Februari', short: 'Feb' },
+  { value: '3', label: 'Maret', short: 'Mar' },
+  { value: '4', label: 'April', short: 'Apr' },
+  { value: '5', label: 'Mei', short: 'Mei' },
+  { value: '6', label: 'Juni', short: 'Jun' },
+  { value: '7', label: 'Juli', short: 'Jul' },
+  { value: '8', label: 'Agustus', short: 'Agu' },
+  { value: '9', label: 'September', short: 'Sep' },
+  { value: '10', label: 'Oktober', short: 'Okt' },
+  { value: '11', label: 'November', short: 'Nov' },
+  { value: '12', label: 'Desember', short: 'Des' },
+];
+
+const selectedMonthsLabel = computed(() => {
+  const len = selectedMonths.value.length;
+  if (len === 0) return '-- Semua Bulan --';
+  if (len === 12) return 'Semua Bulan (12 Bulan)';
+  if (len === 1) {
+    const found = monthOptions.find((m) => m.value === selectedMonths.value[0]);
+    return found ? found.label : '1 Bulan';
+  }
+  const shorts = monthOptions
+    .filter((m) => selectedMonths.value.includes(m.value))
+    .map((m) => m.short)
+    .join(', ');
+  return `${len} Bulan (${shorts})`;
+});
+
+const yearOptions = computed(() => {
+  const years = props.filterOptions?.years || [new Date().getFullYear()];
+  return years.map((y) => ({
+    value: String(y),
+    label: String(y),
+  }));
+});
+
+function handleClickOutsideMonth(event) {
+  if (monthDropdownRef.value && !monthDropdownRef.value.contains(event.target)) {
+    isMonthDropdownOpen.value = false;
+  }
+}
+
+onMounted(() => {
+  document.addEventListener('click', handleClickOutsideMonth);
+});
+
+onUnmounted(() => {
+  document.removeEventListener('click', handleClickOutsideMonth);
+});
+
+function selectAllMonths() {
+  selectedMonths.value = monthOptions.map((m) => m.value);
+  applyFilters();
+}
+
+function clearAllMonths() {
+  selectedMonths.value = [];
+  applyFilters();
+}
+
 watch(
   () => props.filters,
   (newFilters) => {
@@ -35,6 +112,8 @@ watch(
     selectedEntity.value = newFilters.entity || newFilters.entity_code_principal || '';
     selectedBranch.value = newFilters.branch_id || '';
     selectedStage.value = newFilters.stage || 'all';
+    selectedMonths.value = initMonths();
+    selectedYear.value = newFilters.year || '';
     sortKey.value = newFilters.sort_key || 'created_at';
     sortDir.value = newFilters.sort_dir || 'desc';
   },
@@ -122,6 +201,10 @@ function getActiveQueryParams() {
   if (selectedEntity.value) queryParams.entity = selectedEntity.value;
   if (selectedBranch.value) queryParams.branch_id = selectedBranch.value;
   if (selectedStage.value && selectedStage.value !== 'all') queryParams.stage = selectedStage.value;
+  if (selectedMonths.value && selectedMonths.value.length > 0) {
+    queryParams.months = selectedMonths.value.join(',');
+  }
+  if (selectedYear.value) queryParams.year = selectedYear.value;
   if (sortKey.value) queryParams.sort_key = sortKey.value;
   if (sortDir.value) queryParams.sort_dir = sortDir.value;
 
@@ -165,6 +248,8 @@ function resetFilters() {
   selectedEntity.value = '';
   selectedBranch.value = '';
   selectedStage.value = 'all';
+  selectedMonths.value = [];
+  selectedYear.value = '';
   sortKey.value = 'created_at';
   sortDir.value = 'desc';
   applyFilters();
@@ -429,8 +514,8 @@ const sortedSubmissions = computed(() => {
 
       <!-- FILTER BAR (COMPACT & SEBARIS) -->
       <div class="bg-white p-2.5 sm:p-3 rounded-xl border border-[#E5E7EB] shadow-xs space-y-2.5">
-        <!-- BARIS 1: 5 DROPDOWN FILTER BERJAJAR DI SATU BARIS DESKTOP -->
-        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-2.5">
+        <!-- BARIS 1: 6 DROPDOWN FILTER BERJAJAR DI SATU BARIS DESKTOP -->
+        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-6 gap-2.5">
           <!-- 1. REGION -->
           <div>
             <label class="block text-[11px] font-semibold text-slate-600 uppercase tracking-wider mb-1">REGION</label>
@@ -467,20 +552,84 @@ const sortedSubmissions = computed(() => {
             />
           </div>
 
-          <!-- 4. TAHAPAN WORKFLOW -->
+          <!-- 4. BULAN PENGAJUAN (MULTISELECT CHECKBOX DROPDOWN) -->
+          <div class="relative" ref="monthDropdownRef">
+            <label class="block text-[11px] font-semibold text-slate-600 uppercase tracking-wider mb-1">BULAN PENGAJUAN</label>
+
+            <button
+              type="button"
+              @click="isMonthDropdownOpen = !isMonthDropdownOpen"
+              class="w-full px-2.5 py-1.5 text-[12px] border border-slate-300 rounded-lg bg-white font-medium text-slate-800 flex items-center justify-between shadow-2xs hover:border-blue-500 focus:outline-none transition cursor-pointer"
+            >
+              <span class="truncate pr-2">{{ selectedMonthsLabel }}</span>
+              <div class="flex items-center gap-1.5 shrink-0">
+                <span
+                  v-if="selectedMonths.length > 0 && selectedMonths.length < 12"
+                  class="w-4 h-4 rounded-full bg-blue-600 text-white text-[9.5px] font-bold flex items-center justify-center"
+                >
+                  {{ selectedMonths.length }}
+                </span>
+                <span class="text-[9px] text-slate-500">▼</span>
+              </div>
+            </button>
+
+            <!-- DROPDOWN OVERLAY WITH CHECKBOXES -->
+            <div
+              v-if="isMonthDropdownOpen"
+              class="absolute left-0 top-full mt-1.5 w-72 bg-white rounded-xl border border-slate-200 shadow-xl z-50 p-2.5 space-y-2 text-xs"
+            >
+              <div class="flex items-center justify-between pb-1.5 border-b border-slate-100 text-[11px]">
+                <span class="font-bold text-slate-700">Pilih Bulan</span>
+                <div class="flex items-center gap-2">
+                  <button type="button" @click="selectAllMonths" class="text-blue-600 hover:underline font-semibold cursor-pointer">Semua</button>
+                  <span class="text-slate-300">|</span>
+                  <button type="button" @click="clearAllMonths" class="text-slate-500 hover:underline cursor-pointer">Reset</button>
+                </div>
+              </div>
+
+              <div class="grid grid-cols-2 gap-1 max-h-48 overflow-y-auto pt-1">
+                <label
+                  v-for="m in monthOptions"
+                  :key="m.value"
+                  class="flex items-center gap-2 p-1.5 rounded-lg hover:bg-slate-50 cursor-pointer select-none text-slate-700"
+                >
+                  <input
+                    type="checkbox"
+                    :value="m.value"
+                    v-model="selectedMonths"
+                    class="w-3.5 h-3.5 text-blue-600 rounded border-slate-300 focus:ring-blue-500"
+                  />
+                  <span class="font-medium text-[11.5px]">{{ m.label }}</span>
+                </label>
+              </div>
+
+              <div class="pt-2 border-t border-slate-100 flex justify-between items-center text-[11px]">
+                <span class="text-slate-500 font-semibold">{{ selectedMonths.length }} bulan terpilih</span>
+                <button
+                  type="button"
+                  @click="isMonthDropdownOpen = false; applyFilters();"
+                  class="text-blue-600 font-bold hover:underline cursor-pointer"
+                >
+                  Selesai
+                </button>
+              </div>
+            </div>
+          </div>
+
+          <!-- 5. TAHUN PENGAJUAN -->
           <div>
-            <label class="block text-[11px] font-semibold text-slate-600 uppercase tracking-wider mb-1">TAHAPAN WORKFLOW</label>
-            <select v-model="selectedStage" @change="applyFilters()" class="w-full px-2.5 py-1.5 text-[12px] font-medium border border-slate-300 rounded-lg bg-white text-slate-800 focus:ring-1 focus:ring-blue-500 focus:border-blue-500">
-              <option value="all">-- Semua Tahapan --</option>
-              <option value="stuck_admin">Admin Belum Memproses Kode Cust</option>
-              <option value="stuck_spv">SPV Belum Memproses Rute JKS</option>
-              <option value="pending_edp">Pending Verifikasi EDP</option>
-              <option value="completed">Selesai / Approved EDP</option>
-              <option value="rejected">Ditolak / Rejected</option>
+            <label class="block text-[11px] font-semibold text-slate-600 uppercase tracking-wider mb-1">TAHUN PENGAJUAN</label>
+            <select
+              v-model="selectedYear"
+              @change="applyFilters()"
+              class="w-full px-2.5 py-1.5 text-[12px] font-medium border border-slate-300 rounded-lg bg-white text-slate-800 focus:ring-1 focus:ring-blue-500 focus:border-blue-500 transition cursor-pointer"
+            >
+              <option value="">-- Semua Tahun --</option>
+              <option v-for="y in yearOptions" :key="y.value" :value="y.value">{{ y.label }}</option>
             </select>
           </div>
 
-          <!-- 5. URUTKAN DATA (SORT) -->
+          <!-- 6. URUTKAN DATA (SORT) -->
           <div>
             <label class="block text-[11px] font-semibold text-slate-600 uppercase tracking-wider mb-1">URUTKAN DATA</label>
             <div class="inline-flex items-center w-full rounded-lg border border-slate-300 bg-white shadow-2xs overflow-hidden">

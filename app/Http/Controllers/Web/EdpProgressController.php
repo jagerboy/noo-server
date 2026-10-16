@@ -106,10 +106,25 @@ class EdpProgressController extends Controller
             $branchesQuery->where('entity_code_principal', 'LIKE', "{$user->entity_code_principal}%");
         }
 
+        $availableYears = DB::table('noo_submissions')
+            ->selectRaw("DISTINCT EXTRACT(YEAR FROM COALESCE(submitted_at, created_at)) as yr")
+            ->whereNotNull('created_at')
+            ->pluck('yr')
+            ->map(fn($y) => (int)$y)
+            ->filter()
+            ->sortDesc()
+            ->values()
+            ->toArray();
+
+        if (empty($availableYears)) {
+            $availableYears = [(int)date('Y')];
+        }
+
         return [
             'regions' => $regionsQuery->orderBy('region_code')->get(),
             'entities' => $entitiesQuery->orderBy('entity_code_principal')->get(),
             'branches' => $branchesQuery->orderBy('branch_id', 'asc')->get(),
+            'years' => $availableYears,
         ];
     }
 
@@ -206,6 +221,23 @@ class EdpProgressController extends Controller
 
         if ($request->filled('branch_id')) {
             $filterQuery->where('branch_id', $request->input('branch_id'));
+        }
+
+        // Filter Tahun & Bulan Pengajuan (Berdasarkan submitted_at / created_at SE Submission)
+        $globalYear = $request->input('year');
+        $globalMonth = $request->input('month');
+
+        if ($request->filled('year')) {
+            $filterQuery->whereYear(DB::raw("COALESCE(submitted_at, created_at)"), $globalYear);
+        }
+        if ($request->filled('months')) {
+            $rawMonths = explode(',', (string) $request->input('months'));
+            $monthsArray = array_values(array_filter(array_map('intval', $rawMonths)));
+            if (!empty($monthsArray)) {
+                $filterQuery->whereRaw("EXTRACT(MONTH FROM COALESCE(submitted_at, created_at)) IN (" . implode(',', $monthsArray) . ")");
+            }
+        } elseif ($request->filled('month')) {
+            $filterQuery->whereMonth(DB::raw("COALESCE(submitted_at, created_at)"), (int)$globalMonth);
         }
 
         if ($request->filled('search')) {
@@ -326,7 +358,7 @@ class EdpProgressController extends Controller
         });
 
         $activeFilters = array_filter(
-            $request->only(['search', 'region_code', 'entity', 'entity_code_principal', 'branch_id', 'stage', 'sort_key', 'sort_dir', 'per_page']),
+            $request->only(['search', 'region_code', 'entity', 'entity_code_principal', 'branch_id', 'stage', 'month', 'months', 'year', 'sort_key', 'sort_dir', 'per_page']),
             fn($val) => $val !== null && $val !== ''
         );
         $activeFilters['sort_key'] = $sortKey;
