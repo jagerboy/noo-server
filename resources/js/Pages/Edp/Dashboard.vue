@@ -48,8 +48,24 @@ function formatRole(role) {
   return roleMap[role] || role.replace(/_/g, ' ');
 }
 
-const selectedRegion = ref(props.filters?.region_code || '');
-const selectedPrincipal = ref(props.filters?.principal || '');
+const authUser = page.props.auth?.user || {};
+const initRegion = () => {
+  if (props.filters?.region_code) return props.filters.region_code;
+  if (props.userRole === 'RSM' && authUser.region_code) return authUser.region_code;
+  if (props.userRole === 'ASM' && authUser.region_code) return authUser.region_code;
+  if (props.filterOptions?.regions?.length === 1) return props.filterOptions.regions[0].region_code || props.filterOptions.regions[0].value || '';
+  return '';
+};
+
+const initPrincipal = () => {
+  if (props.filters?.principal) return props.filters.principal;
+  if (props.userRole === 'ASM' && authUser.entity_code_principal) return authUser.entity_code_principal;
+  if (props.filterOptions?.entities?.length === 1) return props.filterOptions.entities[0].entity_code_principal || props.filterOptions.entities[0].value || '';
+  return '';
+};
+
+const selectedRegion = ref(initRegion());
+const selectedPrincipal = ref(initPrincipal());
 const selectedBranch = ref(props.filters?.branch_id || '');
 
 const initMonths = () => {

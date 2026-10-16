@@ -381,12 +381,12 @@ class EdpDashboardController extends Controller
         $entitiesQuery = DB::table('master_branches')->select('entity_code_principal', 'entity_name_principal', 'region_code')->distinct()->whereNotNull('entity_code_principal');
         $branchesQuery = DB::table('master_branches')->select('branch_id', 'branch_name', 'region_code', 'entity_code_principal');
 
-        if ($userRole !== 'SUPERADMIN' && !empty($regionList)) {
-            if ($userRole === 'EDP_REGION') {
+        if ($userRole !== 'SUPERADMIN') {
+            if ($userRole === 'EDP_REGION' && !empty($regionList)) {
                 $regionsQuery->whereIn('region_code', $regionList);
                 $entitiesQuery->whereIn('region_code', $regionList);
                 $branchesQuery->whereIn('region_code', $regionList);
-            } elseif ($userRole === 'ADMIN_PRINCIPAL') {
+            } elseif ($userRole === 'ADMIN_PRINCIPAL' && !empty($regionList)) {
                 $regionsQuery->where(function ($q) use ($regionList) {
                     foreach ($regionList as $r) {
                         $q->orWhere('region_code', 'LIKE', "{$r}%");
@@ -402,6 +402,29 @@ class EdpDashboardController extends Controller
                         $q->orWhere('region_code', 'LIKE', "{$r}%");
                     }
                 });
+            } elseif ($userRole === 'RSM') {
+                if (!empty($userRegion)) {
+                    $regionsQuery->where('region_code', $userRegion);
+                    $entitiesQuery->where('region_code', $userRegion);
+                    $branchesQuery->where('region_code', $userRegion);
+                }
+            } elseif ($userRole === 'ASM') {
+                if (!empty($userEntity)) {
+                    $entitiesQuery->where('entity_code_principal', $userEntity);
+                    $branchesQuery->where('entity_code_principal', $userEntity);
+                    if (!empty($userRegion)) {
+                        $regionsQuery->where('region_code', $userRegion);
+                    } else {
+                        $entRegion = DB::table('master_entities')->where('entity_code_principal', $userEntity)->value('region_code');
+                        if ($entRegion) {
+                            $regionsQuery->where('region_code', $entRegion);
+                        }
+                    }
+                } elseif (!empty($userRegion)) {
+                    $regionsQuery->where('region_code', $userRegion);
+                    $entitiesQuery->where('region_code', $userRegion);
+                    $branchesQuery->where('region_code', $userRegion);
+                }
             }
         }
 
@@ -426,15 +449,23 @@ class EdpDashboardController extends Controller
                 ->select('entity_code_principal', 'entity_name_principal', 'region_code')
                 ->distinct()
                 ->whereNotNull('entity_code_principal');
-            if ($userRole !== 'SUPERADMIN' && !empty($regionList)) {
-                if ($userRole === 'EDP_REGION') {
+            if ($userRole !== 'SUPERADMIN') {
+                if ($userRole === 'EDP_REGION' && !empty($regionList)) {
                     $fallbackEntities->whereIn('region_code', $regionList);
-                } elseif ($userRole === 'ADMIN_PRINCIPAL') {
+                } elseif ($userRole === 'ADMIN_PRINCIPAL' && !empty($regionList)) {
                     $fallbackEntities->where(function ($q) use ($regionList) {
                         foreach ($regionList as $r) {
                             $q->orWhere('region_code', 'LIKE', "{$r}%");
                         }
                     });
+                } elseif ($userRole === 'RSM' && !empty($userRegion)) {
+                    $fallbackEntities->where('region_code', $userRegion);
+                } elseif ($userRole === 'ASM') {
+                    if (!empty($userEntity)) {
+                        $fallbackEntities->where('entity_code_principal', $userEntity);
+                    } elseif (!empty($userRegion)) {
+                        $fallbackEntities->where('region_code', $userRegion);
+                    }
                 }
             }
             $entities = $fallbackEntities->orderBy('entity_code_principal')->get();
@@ -443,15 +474,23 @@ class EdpDashboardController extends Controller
         if ($branches->isEmpty()) {
             $fallbackBranches = DB::table('master_branches')
                 ->select('branch_id', 'branch_name', 'region_code', 'entity_code_principal');
-            if ($userRole !== 'SUPERADMIN' && !empty($regionList)) {
-                if ($userRole === 'EDP_REGION') {
+            if ($userRole !== 'SUPERADMIN') {
+                if ($userRole === 'EDP_REGION' && !empty($regionList)) {
                     $fallbackBranches->whereIn('region_code', $regionList);
-                } elseif ($userRole === 'ADMIN_PRINCIPAL') {
+                } elseif ($userRole === 'ADMIN_PRINCIPAL' && !empty($regionList)) {
                     $fallbackBranches->where(function ($q) use ($regionList) {
                         foreach ($regionList as $r) {
                             $q->orWhere('region_code', 'LIKE', "{$r}%");
                         }
                     });
+                } elseif ($userRole === 'RSM' && !empty($userRegion)) {
+                    $fallbackBranches->where('region_code', $userRegion);
+                } elseif ($userRole === 'ASM') {
+                    if (!empty($userEntity)) {
+                        $fallbackBranches->where('entity_code_principal', $userEntity);
+                    } elseif (!empty($userRegion)) {
+                        $fallbackBranches->where('region_code', $userRegion);
+                    }
                 }
             }
             $branches = $fallbackBranches->orderBy('branch_id', 'asc')->get();
