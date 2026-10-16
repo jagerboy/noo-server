@@ -197,8 +197,8 @@ function toggleMasterMenu() {
             </div>
           </div>
 
-          <!-- MENU 2: NOO VERIFICATION -->
-          <div class="relative group">
+          <!-- MENU 2: NOO VERIFICATION (Hanya untuk EDP Region, Admin Principal, dan Superadmin) -->
+          <div v-if="userRole !== 'ASM' && userRole !== 'RSM'" class="relative group">
             <Link
               :href="route('edp.inbox')"
               :class="[

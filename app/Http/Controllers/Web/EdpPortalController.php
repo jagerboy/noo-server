@@ -44,8 +44,13 @@ class EdpPortalController extends Controller
     public function index(Request $request): Response
     {
         $user = $request->user();
-        $regionCode = $user->region_code ?? null;
         $userRole = $user->role ?? 'EDP_REGION';
+
+        if (in_array($userRole, ['ASM', 'RSM'])) {
+            abort(403, 'Akses Ditolak. Role ASM dan RSM tidak memiliki hak akses verifikasi dan approval NOO.');
+        }
+
+        $regionCode = $user->region_code ?? null;
 
         $query = DB::table('noo_submissions')
             ->whereNotNull('pushed_to_edp_at');
