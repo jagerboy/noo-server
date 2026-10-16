@@ -93,10 +93,10 @@ onUnmounted(() => {
         buttonClass ? buttonClass : 'w-full px-3 py-2 text-left bg-white border border-[#D1D5DB] rounded-lg shadow-xs flex items-center justify-between focus:ring-2 focus:ring-[#10B981] transition',
       ]"
     >
-      <span :class="['truncate', modelValue ? 'font-bold text-[#111827]' : 'text-gray-400']">
+      <span :class="['truncate leading-none', modelValue ? 'font-medium text-slate-800' : 'text-slate-400 font-normal']">
         {{ selectedLabel }}
       </span>
-      <svg :class="['w-4 h-4 text-gray-400 transition-transform ml-2 flex-shrink-0', isOpen ? 'rotate-180' : '']" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+      <svg :class="['w-3.5 h-3.5 text-slate-400 transition-transform ml-1.5 shrink-0', isOpen ? 'rotate-180' : '']" fill="none" stroke="currentColor" viewBox="0 0 24 24">
         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/>
       </svg>
     </button>

@@ -564,15 +564,19 @@ const sortedSubmissions = computed(() => {
               @click="isMonthDropdownOpen = !isMonthDropdownOpen"
               class="w-full h-9 px-2.5 text-[12px] border border-slate-300 rounded-lg bg-white font-medium text-slate-800 flex items-center justify-between shadow-2xs hover:border-blue-500 focus:outline-none transition cursor-pointer"
             >
-              <span class="truncate pr-2">{{ selectedMonthsLabel }}</span>
-              <div class="flex items-center gap-1.5 shrink-0">
+              <span :class="['truncate leading-none', selectedMonths.length > 0 ? 'text-slate-800 font-medium' : 'text-slate-400 font-normal']">
+                {{ selectedMonthsLabel }}
+              </span>
+              <div class="flex items-center gap-1.5 shrink-0 ml-1.5">
                 <span
                   v-if="selectedMonths.length > 0 && selectedMonths.length < 12"
                   class="w-4 h-4 rounded-full bg-blue-600 text-white text-[9.5px] font-bold flex items-center justify-center"
                 >
                   {{ selectedMonths.length }}
                 </span>
-                <span class="text-[9px] text-slate-500">▼</span>
+                <svg :class="['w-3.5 h-3.5 text-slate-400 transition-transform', isMonthDropdownOpen ? 'rotate-180' : '']" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/>
+                </svg>
               </div>
             </button>
 
@@ -625,10 +629,13 @@ const sortedSubmissions = computed(() => {
             <select
               v-model="selectedYear"
               @change="applyFilters()"
-              class="w-full h-9 px-2.5 text-[12px] font-medium border border-slate-300 rounded-lg bg-white text-slate-800 focus:ring-1 focus:ring-blue-500 focus:border-blue-500 transition cursor-pointer"
+              :class="[
+                'w-full h-9 px-2.5 py-0 text-[12px] border border-slate-300 rounded-lg bg-white focus:ring-1 focus:ring-blue-500 focus:border-blue-500 transition cursor-pointer',
+                selectedYear ? 'text-slate-800 font-medium' : 'text-slate-400 font-normal'
+              ]"
             >
               <option value="">-- Semua Tahun --</option>
-              <option v-for="y in yearOptions" :key="y.value" :value="y.value">{{ y.label }}</option>
+              <option v-for="y in yearOptions" :key="y.value" :value="y.value" class="text-slate-800 font-medium">{{ y.label }}</option>
             </select>
           </div>
 
@@ -639,7 +646,7 @@ const sortedSubmissions = computed(() => {
               <select
                 v-model="sortKey"
                 @change="applyFilters()"
-                class="h-full pl-2.5 pr-2 text-[12px] font-semibold bg-slate-50 hover:bg-white text-slate-700 focus:ring-0 border-0 cursor-pointer flex-1 min-w-0 truncate"
+                class="h-full pl-2.5 pr-2 py-0 text-[12px] font-medium bg-slate-50 hover:bg-white text-slate-800 focus:ring-0 border-0 cursor-pointer flex-1 min-w-0 truncate"
               >
                 <option value="created_at">Waktu Submit</option>
                 <option value="nama_noo">Nama Outlet</option>
