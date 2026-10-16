@@ -109,10 +109,23 @@ class HandleInertiaRequests extends Middleware
             $authUser = $request->user();
         }
 
+        $userPermissions = [];
+        if ($authUser && isset($authUser->role)) {
+            try {
+                if (\Illuminate\Support\Facades\Schema::hasTable('role_permissions')) {
+                    $userPermissions = DB::table('role_permissions')
+                        ->where('role', $authUser->role)
+                        ->pluck('is_allowed', 'permission_key')
+                        ->toArray();
+                }
+            } catch (\Throwable $e) {}
+        }
+
         return [
             ...parent::share($request),
             'auth' => [
                 'user' => $authUser,
+                'permissions' => $userPermissions,
             ],
             'flash' => [
                 'success' => session('success'),

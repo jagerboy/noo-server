@@ -78,6 +78,39 @@ const isMasterMenuOpen = ref(
 function toggleMasterMenu() {
   isMasterMenuOpen.value = !isMasterMenuOpen.value;
 }
+
+const permissions = computed(() => page.props.auth?.permissions || {});
+
+function can(permKey) {
+  if (userRole.value === 'SUPERADMIN') return true;
+  if (permissions.value && permKey in permissions.value) {
+    return Boolean(permissions.value[permKey]);
+  }
+  // Default fallbacks jika permission belum di-seed
+  if (permKey === 'inbox_view') return userRole.value !== 'ASM' && userRole.value !== 'RSM';
+  if (permKey === 'dashboard_view' || permKey === 'progress_view') return true;
+  if (permKey.startsWith('master_')) {
+    if (userRole.value === 'ASM' || userRole.value === 'RSM') return false;
+    if (userRole.value === 'ADMIN_PRINCIPAL') return true;
+    if (userRole.value === 'EDP_REGION') {
+      return ['master_branch_view', 'master_salesman_view', 'master_spv_view', 'master_outlet_types_view'].includes(permKey);
+    }
+  }
+  return false;
+}
+
+const hasAnyMasterPermission = computed(() => {
+  if (userRole.value === 'SUPERADMIN') return true;
+  return (
+    can('master_region_view') ||
+    can('master_entity_view') ||
+    can('master_branch_view') ||
+    can('master_salesman_view') ||
+    can('master_spv_view') ||
+    can('master_outlet_types_view') ||
+    can('master_counter_sequence_view')
+  );
+});
 </script>
 
 <template>
@@ -198,7 +231,7 @@ function toggleMasterMenu() {
           </div>
 
           <!-- MENU 2: NOO VERIFICATION -->
-          <div class="relative group">
+          <div v-if="can('inbox_view')" class="relative group">
             <Link
               :href="route('edp.inbox')"
               :class="[
@@ -224,7 +257,7 @@ function toggleMasterMenu() {
           </div>
 
           <!-- MENU 3: MONITORING RO (KHUSUS SUPERADMIN KARENA DALAM TAHAP FINALISASI) -->
-          <div v-if="userRole === 'SUPERADMIN'" class="relative group">
+          <div v-if="can('monitoring_ro_view')" class="relative group">
             <Link
               :href="route('edp.monitoring_ro')"
               :class="[
@@ -250,7 +283,7 @@ function toggleMasterMenu() {
           </div>
 
           <!-- MENU 4: PROGRESS TRACKING NOO -->
-          <div class="relative group">
+          <div v-if="can('progress_view')" class="relative group">
             <Link
               :href="route('edp.progress_tracking')"
               :class="[
@@ -276,7 +309,7 @@ function toggleMasterMenu() {
           </div>
 
           <!-- MENU 5: NOO MASTER DATA ACCORDION / POPOVER -->
-          <div class="relative group">
+          <div v-if="hasAnyMasterPermission" class="relative group">
             <button
               type="button"
               @click="toggleMasterMenu"
@@ -302,13 +335,13 @@ function toggleMasterMenu() {
                   NOO Master Data
                 </div>
                 <div class="space-y-1">
-                  <Link :href="route('edp.master_region')" class="block px-2.5 py-1.5 text-xs text-slate-200 hover:text-white hover:bg-slate-800 rounded-lg transition">Master Region</Link>
-                  <Link :href="route('edp.master_entity')" class="block px-2.5 py-1.5 text-xs text-slate-200 hover:text-white hover:bg-slate-800 rounded-lg transition">Master Entity</Link>
-                  <Link :href="route('edp.master_branch')" class="block px-2.5 py-1.5 text-xs text-slate-200 hover:text-white hover:bg-slate-800 rounded-lg transition">Master Branch</Link>
-                  <Link :href="route('edp.master_salesman')" class="block px-2.5 py-1.5 text-xs text-slate-200 hover:text-white hover:bg-slate-800 rounded-lg transition">Master Salesman</Link>
-                  <Link :href="route('edp.master_spv')" class="block px-2.5 py-1.5 text-xs text-slate-200 hover:text-white hover:bg-slate-800 rounded-lg transition">Master SPV</Link>
-                  <Link :href="route('edp.master_outlet_types')" class="block px-2.5 py-1.5 text-xs text-slate-200 hover:text-white hover:bg-slate-800 rounded-lg transition">Master Outlet Types</Link>
-                  <Link :href="route('edp.counter_sequence')" class="block px-2.5 py-1.5 text-xs text-slate-200 hover:text-white hover:bg-slate-800 rounded-lg transition">Counter Sequence</Link>
+                  <Link v-if="can('master_region_view')" :href="route('edp.master_region')" class="block px-2.5 py-1.5 text-xs text-slate-200 hover:text-white hover:bg-slate-800 rounded-lg transition">Master Region</Link>
+                  <Link v-if="can('master_entity_view')" :href="route('edp.master_entity')" class="block px-2.5 py-1.5 text-xs text-slate-200 hover:text-white hover:bg-slate-800 rounded-lg transition">Master Entity</Link>
+                  <Link v-if="can('master_branch_view')" :href="route('edp.master_branch')" class="block px-2.5 py-1.5 text-xs text-slate-200 hover:text-white hover:bg-slate-800 rounded-lg transition">Master Branch</Link>
+                  <Link v-if="can('master_salesman_view')" :href="route('edp.master_salesman')" class="block px-2.5 py-1.5 text-xs text-slate-200 hover:text-white hover:bg-slate-800 rounded-lg transition">Master Salesman</Link>
+                  <Link v-if="can('master_spv_view')" :href="route('edp.master_spv')" class="block px-2.5 py-1.5 text-xs text-slate-200 hover:text-white hover:bg-slate-800 rounded-lg transition">Master SPV</Link>
+                  <Link v-if="can('master_outlet_types_view')" :href="route('edp.master_outlet_types')" class="block px-2.5 py-1.5 text-xs text-slate-200 hover:text-white hover:bg-slate-800 rounded-lg transition">Master Outlet Types</Link>
+                  <Link v-if="can('master_counter_sequence_view')" :href="route('edp.counter_sequence')" class="block px-2.5 py-1.5 text-xs text-slate-200 hover:text-white hover:bg-slate-800 rounded-lg transition">Counter Sequence</Link>
                 </div>
               </div>
             </div>
@@ -324,6 +357,7 @@ function toggleMasterMenu() {
             >
               <div v-show="isMasterMenuOpen && isSidebarPinned" class="mt-1 ml-4 pl-4 border-l-2 border-[#2563EB] space-y-1">
                 <Link
+                  v-if="can('master_region_view')"
                   :href="route('edp.master_region')"
                   :class="[
                     'block px-3 py-2 rounded-[6px] text-[13px] font-medium transition duration-150',
@@ -333,6 +367,7 @@ function toggleMasterMenu() {
                   Master Region
                 </Link>
                 <Link
+                  v-if="can('master_entity_view')"
                   :href="route('edp.master_entity')"
                   :class="[
                     'block px-3 py-2 rounded-[6px] text-[13px] font-medium transition duration-150',
@@ -342,6 +377,7 @@ function toggleMasterMenu() {
                   Master Entity
                 </Link>
                 <Link
+                  v-if="can('master_branch_view')"
                   :href="route('edp.master_branch')"
                   :class="[
                     'block px-3 py-2 rounded-[6px] text-[13px] font-medium transition duration-150',
@@ -351,6 +387,7 @@ function toggleMasterMenu() {
                   Master Branch
                 </Link>
                 <Link
+                  v-if="can('master_salesman_view')"
                   :href="route('edp.master_salesman')"
                   :class="[
                     'block px-3 py-2 rounded-[6px] text-[13px] font-medium transition duration-150',
@@ -360,6 +397,7 @@ function toggleMasterMenu() {
                   Master Salesman
                 </Link>
                 <Link
+                  v-if="can('master_spv_view')"
                   :href="route('edp.master_spv')"
                   :class="[
                     'block px-3 py-2 rounded-[6px] text-[13px] font-medium transition duration-150',
@@ -369,6 +407,7 @@ function toggleMasterMenu() {
                   Master SPV
                 </Link>
                 <Link
+                  v-if="can('master_outlet_types_view')"
                   :href="route('edp.master_outlet_types')"
                   :class="[
                     'block px-3 py-2 rounded-[6px] text-[13px] font-medium transition duration-150',
@@ -378,6 +417,7 @@ function toggleMasterMenu() {
                   Master Outlet Types
                 </Link>
                 <Link
+                  v-if="can('master_counter_sequence_view')"
                   :href="route('edp.counter_sequence')"
                   :class="[
                     'block px-3 py-2 rounded-[6px] text-[13px] font-medium transition duration-150',
@@ -391,7 +431,7 @@ function toggleMasterMenu() {
           </div>
 
           <!-- MENU 6: MANAJEMEN AKUN (KHUSUS SUPERADMIN) -->
-          <div v-if="userRole === 'SUPERADMIN'" class="relative group">
+          <div v-if="can('sys_users')" class="relative group">
             <Link
               :href="route('edp.account_management')"
               :class="[
@@ -417,7 +457,7 @@ function toggleMasterMenu() {
           </div>
 
           <!-- MENU 5: AUDIT LOGS -->
-          <div v-if="userRole === 'SUPERADMIN' || userRole === 'ADMIN_PRINCIPAL'" class="relative group">
+          <div v-if="can('sys_logs')" class="relative group">
             <Link
               :href="route('edp.logs')"
               :class="[

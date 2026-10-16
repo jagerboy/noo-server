@@ -129,13 +129,71 @@ class EdpAccountManagementController extends Controller
             $activeFilters['per_page'] = ($rawPerPage <= 0 || $rawPerPage >= 1000) ? -1 : $rawPerPage;
         }
 
+        $rolePermissions = [];
+        if (Schema::hasTable('role_permissions')) {
+            $rolePermissions = DB::table('role_permissions')->get();
+        }
+
         return Inertia::render('Edp/AccountManagement', [
             'accounts' => $accounts,
             'regions' => $regions,
             'principalAreas' => $principalAreas,
             'entities' => $entities,
             'filters' => $activeFilters,
+            'dbPermissions' => $rolePermissions,
         ]);
+    }
+
+    public function updateMatrix(Request $request): RedirectResponse
+    {
+        $currentUser = Auth::user();
+        if (($currentUser->role ?? '') !== 'SUPERADMIN') {
+            return back()->withErrors(['error' => 'Akses ditolak. Hanya Superadmin yang dapat mengatur matriks hak akses.']);
+        }
+
+        $matrix = $request->input('matrix', []);
+        if (!is_array($matrix)) {
+            return back()->withErrors(['error' => 'Format data matriks tidak valid.']);
+        }
+
+        $roleMap = [
+            'edp' => 'EDP_REGION',
+            'admin' => 'ADMIN_PRINCIPAL',
+            'asm' => 'ASM',
+            'rsm' => 'RSM',
+            'super' => 'SUPERADMIN',
+        ];
+
+        DB::beginTransaction();
+        try {
+            foreach ($matrix as $cat) {
+                $items = $cat['items'] ?? [];
+                foreach ($items as $item) {
+                    $permKey = $item['id'] ?? null;
+                    if (!$permKey) continue;
+
+                    foreach ($roleMap as $shortRole => $fullRole) {
+                        if (isset($item[$shortRole])) {
+                            DB::table('role_permissions')->updateOrInsert(
+                                [
+                                    'role' => $fullRole,
+                                    'permission_key' => $permKey,
+                                ],
+                                [
+                                    'is_allowed' => (bool) $item[$shortRole],
+                                    'updated_at' => now(),
+                                ]
+                            );
+                        }
+                    }
+                }
+            }
+            DB::commit();
+            return back()->with('success', 'Matriks Hak Akses Peran Pengguna berhasil disimpan ke database!');
+        } catch (Throwable $e) {
+            DB::rollBack();
+            return back()->withErrors(['error' => 'Gagal menyimpan matriks hak akses: ' . $e->getMessage()]);
+        }
     }
 
     public function store(Request $request): RedirectResponse

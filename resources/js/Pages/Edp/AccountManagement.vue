@@ -13,6 +13,7 @@ const props = defineProps({
   principalAreas: Array,
   entities: Array,
   filters: Object,
+  dbPermissions: Array,
 });
 
 const search = ref(props.filters?.search || '');
@@ -264,11 +265,52 @@ const defaultMatrixData = [
   }
 ];
 
-const savedMatrix = localStorage.getItem('noo_permission_matrix_v3');
-const permissionMatrix = ref(savedMatrix ? JSON.parse(savedMatrix) : defaultMatrixData);
+function buildMatrixFromDb(dbList) {
+  const clone = JSON.parse(JSON.stringify(defaultMatrixData));
+  if (!dbList || dbList.length === 0) return clone;
+
+  const roleKeyMap = {
+    'EDP_REGION': 'edp',
+    'ADMIN_PRINCIPAL': 'admin',
+    'ASM': 'asm',
+    'RSM': 'rsm',
+    'SUPERADMIN': 'super',
+  };
+
+  const lookup = {};
+  for (const row of dbList) {
+    const k = `${row.role}:${row.permission_key}`;
+    lookup[k] = Boolean(row.is_allowed);
+  }
+
+  for (const cat of clone) {
+    for (const item of cat.items) {
+      for (const [fullRole, shortRole] of Object.entries(roleKeyMap)) {
+        const key = `${fullRole}:${item.id}`;
+        if (key in lookup) {
+          item[shortRole] = lookup[key];
+        }
+      }
+    }
+  }
+  return clone;
+}
+
+const permissionMatrix = ref(buildMatrixFromDb(props.dbPermissions));
 const isEditingMatrix = ref(false);
+const isSavingMatrix = ref(false);
 const matrixSuccessBanner = ref('');
 let matrixBackup = null;
+
+watch(
+  () => props.dbPermissions,
+  (newVal) => {
+    if (newVal && newVal.length > 0 && !isEditingMatrix.value) {
+      permissionMatrix.value = buildMatrixFromDb(newVal);
+    }
+  },
+  { deep: true }
+);
 
 function startEditMatrix() {
   matrixBackup = JSON.parse(JSON.stringify(permissionMatrix.value));
@@ -284,9 +326,24 @@ function cancelEditMatrix() {
 }
 
 function saveMatrix() {
-  localStorage.setItem('noo_permission_matrix_v3', JSON.stringify(permissionMatrix.value));
-  isEditingMatrix.value = false;
-  matrixSuccessBanner.value = 'Matriks Hak Akses Peran Pengguna berhasil diperbarui dan disimpan!';
+  isSavingMatrix.value = true;
+  router.post(
+    route('edp.account_management.update_matrix'),
+    { matrix: permissionMatrix.value },
+    {
+      preserveScroll: true,
+      onSuccess: () => {
+        isEditingMatrix.value = false;
+        isSavingMatrix.value = false;
+        matrixSuccessBanner.value = 'Matriks Hak Akses Peran Pengguna berhasil disimpan ke database!';
+        localStorage.setItem('noo_permission_matrix_v3', JSON.stringify(permissionMatrix.value));
+      },
+      onError: (err) => {
+        isSavingMatrix.value = false;
+        alert('Gagal menyimpan matriks: ' + (err.error || 'Terjadi kesalahan sistem.'));
+      },
+    }
+  );
 }
 
 function submitAddAccount() {

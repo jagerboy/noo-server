@@ -382,9 +382,10 @@ Route::middleware('auth')->group(function () {
         Route::get('/master-bulk-template/{type}', [EdpMasterController::class, 'downloadTemplate'])->name('master.download_template');
         Route::post('/master-bulk-upload/{type}', [EdpMasterController::class, 'bulkUpload'])->name('master.bulk_upload');
 
-        // Manajemen Akun
+        // Manajemen Akun & Matriks Hak Akses
         Route::get('/account-management', [EdpAccountManagementController::class, 'index'])->name('account_management');
         Route::post('/account-management', [EdpAccountManagementController::class, 'store'])->name('account_management.store');
+        Route::post('/account-management/matrix', [EdpAccountManagementController::class, 'updateMatrix'])->name('account_management.update_matrix');
         Route::put('/account-management/{id}', [EdpAccountManagementController::class, 'update'])->name('account_management.update');
         Route::delete('/account-management/{id}', [EdpAccountManagementController::class, 'destroy'])->name('account_management.destroy');
 

@@ -16,8 +16,41 @@ use Throwable;
 
 class EdpMasterController extends Controller
 {
-    private function checkCanWrite(): bool
+    private function checkPermission(string $permKey): bool
     {
+        $user = Auth::user();
+        $role = $user->role ?? 'EDP_REGION';
+        if ($role === 'SUPERADMIN') return true;
+
+        try {
+            if (Schema::hasTable('role_permissions')) {
+                $row = DB::table('role_permissions')
+                    ->where('role', $role)
+                    ->where('permission_key', $permKey)
+                    ->first();
+                if ($row !== null) {
+                    return (bool) $row->is_allowed;
+                }
+            }
+        } catch (\Throwable $e) {}
+
+        // Fallback default
+        if (str_ends_with($permKey, '_edit')) {
+            return in_array($role, ['SUPERADMIN', 'ADMIN_PRINCIPAL']);
+        }
+        if ($role === 'ASM' || $role === 'RSM') return false;
+        if ($role === 'ADMIN_PRINCIPAL') return true;
+        if ($role === 'EDP_REGION') {
+            return in_array($permKey, ['master_branch_view', 'master_salesman_view', 'master_spv_view', 'master_outlet_types_view']);
+        }
+        return false;
+    }
+
+    private function checkCanWrite(string $permKey = ''): bool
+    {
+        if (!empty($permKey)) {
+            return $this->checkPermission($permKey);
+        }
         $user = Auth::user();
         $role = $user->role ?? 'EDP_REGION';
         return in_array($role, ['SUPERADMIN', 'ADMIN_PRINCIPAL']);
@@ -149,6 +182,10 @@ class EdpMasterController extends Controller
     // 0.A MASTER REGION
     public function masterRegion(Request $request): Response
     {
+        if (!$this->checkPermission('master_region_view')) {
+            abort(403, 'Akses Ditolak. Anda tidak memiliki izin untuk melihat Master Region.');
+        }
+
         $query = DB::table('master_regions');
 
         if ($request->filled('search')) {
@@ -165,13 +202,13 @@ class EdpMasterController extends Controller
         return Inertia::render('Edp/Master/MasterRegion', [
             'regions' => $regions,
             'filters' => $request->only(['search']),
-            'canWrite' => $this->checkCanWrite(),
+            'canWrite' => $this->checkCanWrite('master_region_edit'),
         ]);
     }
 
     public function storeRegion(Request $request): RedirectResponse
     {
-        if (!$this->checkCanWrite()) {
+        if (!$this->checkCanWrite('master_region_edit')) {
             return back()->withErrors(['error' => 'Akses ditolak. Anda tidak memiliki izin untuk menambah data Master Region.']);
         }
 
@@ -257,6 +294,10 @@ class EdpMasterController extends Controller
     // 0.B MASTER ENTITY
     public function masterEntity(Request $request): Response
     {
+        if (!$this->checkPermission('master_entity_view')) {
+            abort(403, 'Akses Ditolak. Anda tidak memiliki izin untuk melihat Master Entity.');
+        }
+
         $query = DB::table('master_entities');
 
         if ($request->filled('region_code')) {
@@ -280,13 +321,13 @@ class EdpMasterController extends Controller
             'entities' => $entities,
             'regions' => $regions,
             'filters' => $request->only(['search', 'region_code']),
-            'canWrite' => $this->checkCanWrite(),
+            'canWrite' => $this->checkCanWrite('master_entity_edit'),
         ]);
     }
 
     public function storeEntity(Request $request): RedirectResponse
     {
-        if (!$this->checkCanWrite()) {
+        if (!$this->checkCanWrite('master_entity_edit')) {
             return back()->withErrors(['error' => 'Akses ditolak. Anda tidak memiliki izin untuk menambah data Master Entity.']);
         }
 
@@ -382,6 +423,10 @@ class EdpMasterController extends Controller
     // 1. MASTER BRANCH
     public function masterBranch(Request $request): Response
     {
+        if (!$this->checkPermission('master_branch_view')) {
+            abort(403, 'Akses Ditolak. Anda tidak memiliki izin untuk melihat Master Branch.');
+        }
+
         $user = Auth::user();
         $query = DB::table('master_branches');
 
@@ -397,7 +442,13 @@ class EdpMasterController extends Controller
                         $q->orWhere('region_code', 'LIKE', "{$r}%");
                     }
                 });
+            } elseif ($user->role === 'RSM') {
+                $query->whereIn('region_code', $regionList);
             }
+        }
+
+        if ($user->role === 'ASM' && !empty($user->entity_code_principal)) {
+            $query->where('entity_code_principal', $user->entity_code_principal);
         }
 
         if ($user->role === 'ADMIN_PRINCIPAL' && !empty($user->entity_code_principal)) {
@@ -408,7 +459,7 @@ class EdpMasterController extends Controller
 
         return Inertia::render('Edp/Master/MasterBranch', [
             'branches' => $branches,
-            'canWrite' => $this->checkCanWrite(),
+            'canWrite' => $this->checkCanWrite('master_branch_edit'),
             'filters' => $request->only(['search', 'region_code', 'entity']),
             'filterOptions' => $this->getFilterOptions($user),
         ]);
@@ -416,7 +467,7 @@ class EdpMasterController extends Controller
 
     public function storeBranch(Request $request): RedirectResponse
     {
-        if (!$this->checkCanWrite()) {
+        if (!$this->checkCanWrite('master_branch_edit')) {
             return back()->withErrors(['error' => 'Akses ditolak. Peran Anda hanya Read-Only.']);
         }
 
@@ -545,6 +596,10 @@ class EdpMasterController extends Controller
     // 2. MASTER SALESMAN
     public function masterSalesman(Request $request): Response
     {
+        if (!$this->checkPermission('master_salesman_view')) {
+            abort(403, 'Akses Ditolak. Anda tidak memiliki izin untuk melihat Master Salesman.');
+        }
+
         $user = Auth::user();
         $query = DB::table('master_salesmen')
             ->leftJoin('master_branches', 'master_salesmen.branch_id', '=', 'master_branches.branch_id')
@@ -577,7 +632,16 @@ class EdpMasterController extends Controller
                           ->orWhere('master_salesmen.region_code', 'LIKE', "{$r}%");
                     }
                 });
+            } elseif ($user->role === 'RSM') {
+                $query->where(function ($q) use ($regionList) {
+                    $q->whereIn('master_branches.region_code', $regionList)
+                      ->orWhereIn('master_salesmen.region_code', $regionList);
+                });
             }
+        }
+
+        if ($user->role === 'ASM' && !empty($user->entity_code_principal)) {
+            $query->where('master_branches.entity_code_principal', $user->entity_code_principal);
         }
 
         if ($user->role === 'ADMIN_PRINCIPAL' && !empty($user->entity_code_principal)) {
@@ -588,7 +652,7 @@ class EdpMasterController extends Controller
 
         return Inertia::render('Edp/Master/MasterSalesman', [
             'salesmen' => $salesmen,
-            'canWrite' => $this->checkCanWrite(),
+            'canWrite' => $this->checkCanWrite('master_salesman_edit'),
             'filters' => $request->only(['search', 'region_code', 'entity', 'branch_id']),
             'filterOptions' => $this->getFilterOptions($user),
         ]);
@@ -596,7 +660,7 @@ class EdpMasterController extends Controller
 
     public function storeSalesman(Request $request): RedirectResponse
     {
-        if (!$this->checkCanWrite()) {
+        if (!$this->checkCanWrite('master_salesman_edit')) {
             return back()->withErrors(['error' => 'Akses ditolak.']);
         }
 
@@ -668,6 +732,10 @@ class EdpMasterController extends Controller
     // 3. MASTER SPV
     public function masterSpv(Request $request): Response
     {
+        if (!$this->checkPermission('master_spv_view')) {
+            abort(403, 'Akses Ditolak. Anda tidak memiliki izin untuk melihat Master SPV.');
+        }
+
         $user = Auth::user();
         $query = DB::table('master_spvs')
             ->leftJoin('master_branches', 'master_spvs.branch_id', '=', 'master_branches.branch_id')
@@ -698,7 +766,13 @@ class EdpMasterController extends Controller
                         $q->orWhere('master_branches.region_code', 'LIKE', "{$r}%");
                     }
                 });
+            } elseif ($user->role === 'RSM') {
+                $query->whereIn('master_branches.region_code', $regionList);
             }
+        }
+
+        if ($user->role === 'ASM' && !empty($user->entity_code_principal)) {
+            $query->where('master_branches.entity_code_principal', $user->entity_code_principal);
         }
 
         if ($user->role === 'ADMIN_PRINCIPAL' && !empty($user->entity_code_principal)) {
@@ -737,7 +811,7 @@ class EdpMasterController extends Controller
 
         return Inertia::render('Edp/Master/MasterSpv', [
             'spvs' => $groupedSpvs,
-            'canWrite' => $this->checkCanWrite(),
+            'canWrite' => $this->checkCanWrite('master_spv_edit'),
             'filters' => $request->only(['search', 'region_code', 'entity', 'branch_id']),
             'filterOptions' => $this->getFilterOptions($user),
         ]);
@@ -745,7 +819,7 @@ class EdpMasterController extends Controller
 
     public function storeSpv(Request $request): RedirectResponse
     {
-        if (!$this->checkCanWrite()) {
+        if (!$this->checkCanWrite('master_spv_edit')) {
             return back()->withErrors(['error' => 'Akses ditolak.']);
         }
 
@@ -1013,6 +1087,10 @@ class EdpMasterController extends Controller
     // 5. MASTER OUTLET TYPES
     public function masterOutletTypes(Request $request): Response
     {
+        if (!$this->checkPermission('master_outlet_types_view')) {
+            abort(403, 'Akses Ditolak. Anda tidak memiliki izin untuk melihat Master Outlet Types.');
+        }
+
         $query = DB::table('master_outlet_types');
 
         if ($request->filled('search')) {
@@ -1027,14 +1105,14 @@ class EdpMasterController extends Controller
 
         return Inertia::render('Edp/Master/MasterOutletTypes', [
             'outletTypes' => $outletTypes,
-            'canWrite' => $this->checkCanWrite(),
+            'canWrite' => $this->checkCanWrite('master_outlet_types_edit'),
             'filters' => $request->only(['search']),
         ]);
     }
 
     public function storeOutletType(Request $request): RedirectResponse
     {
-        if (!$this->checkCanWrite()) {
+        if (!$this->checkCanWrite('master_outlet_types_edit')) {
             return back()->withErrors(['error' => 'Akses ditolak.']);
         }
 
@@ -1098,6 +1176,10 @@ class EdpMasterController extends Controller
     // 6. COUNTER SEQUENCE
     public function counterSequence(Request $request): Response
     {
+        if (!$this->checkPermission('master_counter_sequence_view')) {
+            abort(403, 'Akses Ditolak. Anda tidak memiliki izin untuk melihat Counter Sequence.');
+        }
+
         $user = Auth::user();
 
         // Auto-sync cabang master_branches yang belum memiliki record counter_sequences
@@ -1151,7 +1233,13 @@ class EdpMasterController extends Controller
                         $q->orWhere('master_branches.region_code', 'LIKE', "{$r}%");
                     }
                 });
+            } elseif ($user->role === 'RSM') {
+                $query->whereIn('master_branches.region_code', $regionList);
             }
+        }
+
+        if ($user->role === 'ASM' && !empty($user->entity_code_principal)) {
+            $query->where('master_branches.entity_code_principal', $user->entity_code_principal);
         }
 
         if ($user->role === 'ADMIN_PRINCIPAL' && !empty($user->entity_code_principal)) {
@@ -1205,8 +1293,8 @@ class EdpMasterController extends Controller
 
         return Inertia::render('Edp/Master/CounterSequence', [
             'sequences' => $sequences,
-            'canEditSequence' => true,
-            'canWriteFull' => $this->checkCanWrite(),
+            'canEditSequence' => $this->checkCanWrite('master_counter_sequence_edit'),
+            'canWriteFull' => $this->checkCanWrite('master_counter_sequence_edit'),
             'filters' => $activeFilters,
             'filterOptions' => $this->getFilterOptions($user),
         ]);
@@ -1214,7 +1302,7 @@ class EdpMasterController extends Controller
 
     public function storeCounterSequence(Request $request): RedirectResponse
     {
-        if (!$this->checkCanWrite()) {
+        if (!$this->checkCanWrite('master_counter_sequence_edit')) {
             return back()->withErrors(['error' => 'Akses ditolak. Peran Anda hanya Read-Only.']);
         }
 
