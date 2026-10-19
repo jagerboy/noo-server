@@ -22,7 +22,7 @@ class AppServiceProvider extends ServiceProvider
     public function boot(): void
     {
         if (!$this->app->runningInConsole()) {
-            if ($this->app->isLocal()) {
+            if ($this->app->isLocal() || request()->getHost() === 'localhost' || request()->getHost() === '127.0.0.1') {
                 URL::forceScheme('http');
             } else {
                 URL::forceScheme('https');
