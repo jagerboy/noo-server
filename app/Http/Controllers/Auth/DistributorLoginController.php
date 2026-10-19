@@ -45,6 +45,8 @@ class DistributorLoginController extends Controller
         try {
             $branches = DB::table('master_branches')
                 ->where('is_active', true)
+                ->whereNotNull('branch_id')
+                ->where('branch_id', '!=', '')
                 ->get();
 
             // Daftar 6 Opsi Principal Group (Sub-Grup Daerah Principal)
@@ -70,12 +72,16 @@ class DistributorLoginController extends Controller
             $branchesByRegionEntity = [];
 
             foreach ($branches as $b) {
-                $regionCode = trim($b->region_code);
+                $regionCode = trim($b->region_code ?? '');
                 $regionName = trim($b->region_name ?? $regionCode);
-                $entityCode = trim($b->entity_code_principal);
+                $entityCode = trim($b->entity_code_principal ?? '');
                 $entityName = trim($b->entity_name_principal ?? $entityCode);
-                $branchId = trim($b->branch_id);
+                $branchId = trim($b->branch_id ?? '');
                 $branchName = trim($b->branch_name ?? $branchId);
+
+                if ($branchId === '' || $regionCode === '') {
+                    continue;
+                }
 
                 // Tentukan Principal Group berdasarkan prefix & substring region_code (misal ASWJWA1 -> ASW_JAWA)
                 $cleanRegion = strtoupper($regionCode);

@@ -377,9 +377,14 @@ class EdpDashboardController extends Controller
         }
 
         // Filter Options List (< 3ms)
-        $regionsQuery = DB::table('master_branches')->select('region_code', 'region_name')->distinct()->whereNotNull('region_code');
-        $entitiesQuery = DB::table('master_branches')->select('entity_code_principal', 'entity_name_principal', 'region_code')->distinct()->whereNotNull('entity_code_principal');
-        $branchesQuery = DB::table('master_branches')->select('branch_id', 'branch_name', 'region_code', 'entity_code_principal');
+        $hasRegionsTable = Schema::hasTable('master_regions') && DB::table('master_regions')->exists();
+        if ($hasRegionsTable) {
+            $regionsQuery = DB::table('master_regions')->select('region_code', 'region_name')->where('is_active', true);
+        } else {
+            $regionsQuery = DB::table('master_branches')->select('region_code', 'region_name')->distinct()->whereNotNull('region_code')->whereNotNull('branch_id')->where('branch_id', '!=', '');
+        }
+        $entitiesQuery = DB::table('master_branches')->select('entity_code_principal', 'entity_name_principal', 'region_code')->distinct()->whereNotNull('entity_code_principal')->whereNotNull('branch_id')->where('branch_id', '!=', '');
+        $branchesQuery = DB::table('master_branches')->select('branch_id', 'branch_name', 'region_code', 'entity_code_principal')->whereNotNull('branch_id')->where('branch_id', '!=', '');
 
         if ($userRole !== 'SUPERADMIN') {
             if ($userRole === 'EDP_REGION' && !empty($regionList)) {
@@ -1508,11 +1513,18 @@ class EdpDashboardController extends Controller
         }
 
         // Filter Options List (Active Only)
-        $regionsQuery = DB::table('master_branches')->select('region_code', 'region_name')->distinct()->where('is_active', 1)->whereNotNull('region_code');
-        $entitiesQuery = DB::table('master_branches')->select('entity_code_principal', 'entity_name_principal', 'region_code')->distinct()->where('is_active', 1)->whereNotNull('entity_code_principal');
+        $hasRegionsTable = Schema::hasTable('master_regions') && DB::table('master_regions')->exists();
+        if ($hasRegionsTable) {
+            $regionsQuery = DB::table('master_regions')->select('region_code', 'region_name')->where('is_active', true);
+        } else {
+            $regionsQuery = DB::table('master_branches')->select('region_code', 'region_name')->distinct()->where('is_active', 1)->whereNotNull('region_code')->whereNotNull('branch_id')->where('branch_id', '!=', '');
+        }
+        $entitiesQuery = DB::table('master_branches')->select('entity_code_principal', 'entity_name_principal', 'region_code')->distinct()->where('is_active', 1)->whereNotNull('entity_code_principal')->whereNotNull('branch_id')->where('branch_id', '!=', '');
         $branchesFilterQuery = DB::table('master_branches')
             ->select('branch_id', 'branch_name', 'region_code', 'entity_code_principal')
             ->where('is_active', 1)
+            ->whereNotNull('branch_id')
+            ->where('branch_id', '!=', '')
             ->where(function ($q) {
                 $q->whereNull('branch_name')
                   ->orWhere('branch_name', 'NOT LIKE', '%(NON ACTIVE)%');

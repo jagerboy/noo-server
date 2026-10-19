@@ -10,6 +10,7 @@ use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Schema;
 use Inertia\Inertia;
 use Inertia\Response;
 use Throwable;
@@ -42,19 +43,31 @@ class EdpProgressController extends Controller
         $userRole = $user->role ?? 'EDP_REGION';
         $regionCode = $user->region_code ?? null;
 
-        $regionsQuery = DB::table('master_branches')
-            ->select('region_code', 'region_name')
-            ->distinct()
-            ->whereNotNull('region_code');
+        $hasRegionsTable = Schema::hasTable('master_regions') && DB::table('master_regions')->exists();
+        if ($hasRegionsTable) {
+            $regionsQuery = DB::table('master_regions')
+                ->select('region_code', 'region_name')
+                ->where('is_active', true);
+        } else {
+            $regionsQuery = DB::table('master_branches')
+                ->select('region_code', 'region_name')
+                ->distinct()
+                ->whereNotNull('region_code')
+                ->whereNotNull('branch_id')
+                ->where('branch_id', '!=', '');
+        }
 
         $entitiesQuery = DB::table('master_branches')
             ->select('entity_code_principal', 'entity_name_principal', 'region_code')
             ->distinct()
-            ->whereNotNull('entity_code_principal');
+            ->whereNotNull('entity_code_principal')
+            ->whereNotNull('branch_id')
+            ->where('branch_id', '!=', '');
 
         $branchesQuery = DB::table('master_branches')
             ->select('region_code', 'entity_code_principal', 'branch_id', 'branch_name')
-            ->whereNotNull('branch_id');
+            ->whereNotNull('branch_id')
+            ->where('branch_id', '!=', '');
 
         $cleanRegionCode = preg_replace('/^ADMIN\./i', '', $regionCode ?? '');
         $regionList = array_filter(array_map('trim', explode(',', $cleanRegionCode)));
