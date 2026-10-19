@@ -265,7 +265,10 @@ class EdpPortalController extends Controller
 
         $regionsQuery = DB::table('master_branches')->select('region_code', 'region_name')->distinct()->whereNotNull('region_code');
         $entitiesQuery = DB::table('master_branches')->select('entity_code_principal', 'entity_name_principal', 'region_code')->distinct()->whereNotNull('entity_code_principal');
-        $branchesQuery = DB::table('master_branches')->select('branch_id', 'branch_name', 'region_code', 'entity_code_principal');
+        $branchesQuery = DB::table('master_branches')
+            ->select('branch_id', 'branch_name', 'region_code', 'entity_code_principal')
+            ->whereNotNull('branch_id')
+            ->where('branch_id', '!=', '');
 
         if ($userRole !== 'SUPERADMIN' && !empty($regionList)) {
             if ($userRole === 'EDP_REGION') {
@@ -279,6 +282,11 @@ class EdpPortalController extends Controller
                     }
                 });
                 $entitiesQuery->where(function ($q) use ($regionList) {
+                    foreach ($regionList as $r) {
+                        $q->orWhere('region_code', 'LIKE', "{$r}%");
+                    }
+                });
+                $branchesQuery->where(function ($q) use ($regionList) {
                     foreach ($regionList as $r) {
                         $q->orWhere('region_code', 'LIKE', "{$r}%");
                     }
@@ -307,13 +315,13 @@ class EdpPortalController extends Controller
         if ($userRole === 'ADMIN_PRINCIPAL' && !empty($user->entity_code_principal)) {
             $uEntity = $user->entity_code_principal;
             $entitiesQuery->where(function ($q) use ($uEntity) {
-                $q->where('entity_code_principal', $uEntity)
-                  ->orWhere('entity_name_principal', 'ILIKE', "%{$uEntity}%")
-                  ->orWhereRaw("? ILIKE '%' || entity_code_principal || '%'", [$uEntity]);
+                $q->where('entity_code_principal', 'ILIKE', "%{$uEntity}%")
+                  ->orWhere('entity_name_principal', 'ILIKE', "%{$uEntity}%");
             });
             $branchesQuery->where(function ($q) use ($uEntity) {
-                $q->where('entity_code_principal', $uEntity)
-                  ->orWhereRaw("? ILIKE '%' || entity_code_principal || '%'", [$uEntity]);
+                $q->where('entity_code_principal', 'ILIKE', "%{$uEntity}%")
+                  ->orWhere('principal_code', $uEntity)
+                  ->orWhere('principal_name', 'ILIKE', "%{$uEntity}%");
             });
         }
 
@@ -334,7 +342,9 @@ class EdpPortalController extends Controller
 
         if ($branches->isEmpty()) {
             $fallbackBranches = DB::table('master_branches')
-                ->select('branch_id', 'branch_name', 'region_code', 'entity_code_principal');
+                ->select('branch_id', 'branch_name', 'region_code', 'entity_code_principal')
+                ->whereNotNull('branch_id')
+                ->where('branch_id', '!=', '');
             if ($userRole !== 'SUPERADMIN' && !empty($regionCode)) {
                 $fallbackBranches->where('region_code', 'LIKE', "{$regionCode}%");
             }

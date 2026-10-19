@@ -430,13 +430,13 @@ class EdpDashboardController extends Controller
 
         if ($userRole === 'ADMIN_PRINCIPAL' && !empty($userEntity)) {
             $entitiesQuery->where(function ($q) use ($userEntity) {
-                $q->where('entity_code_principal', $userEntity)
-                  ->orWhere('entity_name_principal', 'ILIKE', "%{$userEntity}%")
-                  ->orWhereRaw("? ILIKE '%' || entity_code_principal || '%'", [$userEntity]);
+                $q->where('entity_code_principal', 'ILIKE', "%{$userEntity}%")
+                  ->orWhere('entity_name_principal', 'ILIKE', "%{$userEntity}%");
             });
             $branchesQuery->where(function ($q) use ($userEntity) {
-                $q->where('entity_code_principal', $userEntity)
-                  ->orWhereRaw("? ILIKE '%' || entity_code_principal || '%'", [$userEntity]);
+                $q->where('entity_code_principal', 'ILIKE', "%{$userEntity}%")
+                  ->orWhere('principal_code', $userEntity)
+                  ->orWhere('principal_name', 'ILIKE', "%{$userEntity}%");
             });
         }
 

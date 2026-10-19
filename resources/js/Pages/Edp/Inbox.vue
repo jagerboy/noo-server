@@ -226,15 +226,17 @@ const branchOptionsModal = computed(() => {
   if (modalPrincipal.value) {
     list = list.filter((b) => (b.entity_code_principal || b.entity_name_principal) === modalPrincipal.value);
   }
-  return list.map((b) => {
-    if (typeof b === 'object' && b !== null) {
-      return {
-        value: b.branch_id || b.value,
-        label: b.branch_name ? `${b.branch_id} - ${b.branch_name}` : String(b.value || b),
-      };
-    }
-    return { value: b, label: String(b) };
-  });
+  return list
+    .filter((b) => b && (b.branch_id || b.value))
+    .map((b) => {
+      if (typeof b === 'object' && b !== null) {
+        return {
+          value: b.branch_id || b.value,
+          label: b.branch_name ? `${b.branch_id} - ${b.branch_name}` : String(b.branch_id || b.value),
+        };
+      }
+      return { value: b, label: String(b) };
+    });
 });
 
 function onModalRegionChange() {
