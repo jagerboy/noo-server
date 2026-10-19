@@ -152,7 +152,8 @@ class AdminDistributorController extends Controller
                 return back()->with('error', 'Data toko tidak ditemukan.');
             }
 
-            if ($submission->photo_status !== 'READY') {
+            $hasAllPhotos = !empty($submission->photo_depan_path) && !empty($submission->photo_dalam_path) && !empty($submission->photo_ktp_path);
+            if (!in_array($submission->photo_status, ['READY', 'COMPLETED']) && !$hasAllPhotos) {
                 return back()->with('error', 'Foto toko belum lengkap (minimal 3/3 foto terupload).');
             }
 

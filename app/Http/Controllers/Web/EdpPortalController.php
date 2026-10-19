@@ -380,6 +380,42 @@ class EdpPortalController extends Controller
 
     private function redirectWithFilters(Request $request, string $flashType, string $flashMessage): RedirectResponse
     {
+        $referer = $request->headers->get('referer');
+        $isFromProgressTracking = $request->input('source') === 'progress_tracking' 
+            || ($referer && str_contains($referer, 'progress-tracking'));
+
+        if ($isFromProgressTracking) {
+            $trackingKeys = [
+                'search',
+                'region_code',
+                'entity',
+                'branch_id',
+                'stage',
+                'months',
+                'month',
+                'year',
+                'sort_key',
+                'sort_dir',
+                'per_page',
+                'page',
+            ];
+            $trackingParams = array_filter(
+                $request->only($trackingKeys),
+                fn($val) => $val !== null && $val !== ''
+            );
+            if (empty($trackingParams) && $referer) {
+                $queryString = parse_url($referer, PHP_URL_QUERY);
+                if ($queryString) {
+                    parse_str($queryString, $refererParams);
+                    $trackingParams = array_filter(
+                        array_intersect_key($refererParams, array_flip($trackingKeys)),
+                        fn($val) => $val !== null && $val !== ''
+                    );
+                }
+            }
+            return redirect()->route('edp.progress_tracking', $trackingParams)->with($flashType, $flashMessage);
+        }
+
         $filterKeys = [
             'region_code',
             'principal',
@@ -403,7 +439,6 @@ class EdpPortalController extends Controller
 
         // 2. Fallback: jika kosong pada request, coba parse dari header Referer
         if (empty($params)) {
-            $referer = $request->headers->get('referer');
             if ($referer) {
                 $queryString = parse_url($referer, PHP_URL_QUERY);
                 if ($queryString) {
@@ -418,6 +453,7 @@ class EdpPortalController extends Controller
 
         return redirect()->route('edp.inbox', $params)->with($flashType, $flashMessage);
     }
+
 
     public function updateStoreName(Request $request): RedirectResponse
     {

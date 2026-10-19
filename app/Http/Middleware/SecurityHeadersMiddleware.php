@@ -39,8 +39,8 @@ class SecurityHeadersMiddleware
         // 5. Pembatasan akses fitur browser (Kamera, Mikrofon, dll)
         $response->headers->set('Permissions-Policy', 'camera=(), microphone=(), geolocation=(self)');
 
-        // 6. Strict Transport Security (HSTS) - Enforce HTTPS untuk domain noo.coreappl.id
-        if ($request->isSecure() || $request->header('X-Forwarded-Proto') === 'https' || app()->isProduction()) {
+        // 6. Strict Transport Security (HSTS) - Enforce HTTPS hanya di Production
+        if (!app()->isLocal() && ($request->isSecure() || $request->header('X-Forwarded-Proto') === 'https' || app()->isProduction())) {
             $response->headers->set('Strict-Transport-Security', 'max-age=31536000; includeSubDomains; preload');
         }
 

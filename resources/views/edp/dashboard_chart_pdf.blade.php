@@ -153,6 +153,7 @@
     .status-approved { background-color: #dcfce7; color: #166534; border: 1px solid #bbf7d0; }
     .status-rejected { background-color: #ffe4e6; color: #9f1239; border: 1px solid #fecdd3; }
     .status-pending { background-color: #fef3c7; color: #92400e; border: 1px solid #fde68a; }
+    .status-pending-nofill { background-color: transparent !important; color: #475569; border: 1px solid #cbd5e1; font-weight: 500; }
 
     @media print {
       body {
@@ -337,12 +338,41 @@
           @endforeach
         </div>
       </div>
+    @elseif(in_array($chartType, ['admin_distributor', 'spv_area', 'principal_edp']))
+      @php
+        $tot = $summaryRows[0]['count'] ?? 0;
+        $pen = $summaryRows[1]['count'] ?? 0;
+        $app = $summaryRows[2]['count'] ?? 0;
+        $rej = $summaryRows[3]['count'] ?? 0;
+      @endphp
+      <div style="display: flex; gap: 12px; margin-bottom: 14px; background: #f8fafc; border: 1px solid #cbd5e1; border-radius: 8px; padding: 14px;">
+        <div style="flex: 1; background: #eff6ff; border: 1px solid #bfdbfe; border-radius: 6px; padding: 8px 12px;">
+          <div style="font-size: 6.5pt; font-weight: 700; color: #1d4ed8; text-transform: uppercase;">Total Masuk</div>
+          <div style="font-size: 15pt; font-weight: 900; color: #1e3a8a; margin: 2px 0;">{{ number_format($tot) }}</div>
+          <div style="font-size: 6.5pt; color: #2563eb; font-weight: 600;">100% Volume</div>
+        </div>
+        <div style="flex: 1; background: #fffbeb; border: 1px solid #fde68a; border-radius: 6px; padding: 8px 12px;">
+          <div style="font-size: 6.5pt; font-weight: 700; color: #b45309; text-transform: uppercase;">Belum Diproses</div>
+          <div style="font-size: 15pt; font-weight: 900; color: #78350f; margin: 2px 0;">{{ number_format($pen) }}</div>
+          <div style="font-size: 6.5pt; color: #d97706; font-weight: 600;">{{ $summaryRows[1]['percentage'] ?? 0 }}% Pending</div>
+        </div>
+        <div style="flex: 1; background: #ecfdf5; border: 1px solid #a7f3d0; border-radius: 6px; padding: 8px 12px;">
+          <div style="font-size: 6.5pt; font-weight: 700; color: #047857; text-transform: uppercase;">Disetujui (Approved)</div>
+          <div style="font-size: 15pt; font-weight: 900; color: #065f46; margin: 2px 0;">{{ number_format($app) }}</div>
+          <div style="font-size: 6.5pt; color: #059669; font-weight: 600;">{{ $summaryRows[2]['percentage'] ?? 0 }}% Approved</div>
+        </div>
+        <div style="flex: 1; background: #fff1f2; border: 1px solid #fecdd3; border-radius: 6px; padding: 8px 12px;">
+          <div style="font-size: 6.5pt; font-weight: 700; color: #be123c; text-transform: uppercase;">Ditolak (Rejected)</div>
+          <div style="font-size: 15pt; font-weight: 900; color: #881337; margin: 2px 0;">{{ number_format($rej) }}</div>
+          <div style="font-size: 6.5pt; color: #e11d48; font-weight: 600;">{{ $summaryRows[3]['percentage'] ?? 0 }}% Rejected</div>
+        </div>
+      </div>
     @endif
   @endif
 
   <!-- TABEL RINGKASAN GRAFIK -->
   <div class="section-heading">Ringkasan Statistik Angka</div>
-  @if($chartType === 'comparison')
+  @if($chartType === 'comparison' || in_array($chartType, ['admin_distributor', 'spv_area', 'principal_edp']))
     <table>
       <thead>
         <tr>
@@ -416,20 +446,34 @@
   @endif
 
   <!-- TABEL DETAIL DATA PENGAJUAN NOO (FIT TO WIDTH) -->
+  @php
+    $isStageChart = in_array($chartType, ['admin_distributor', 'spv_area', 'principal_edp']);
+    $stageColHeader = match ($chartType) {
+        'admin_distributor' => 'Status Verifikasi Admin',
+        'spv_area' => 'Status Verifikasi SPV',
+        'principal_edp' => 'Status Verifikasi Principal (EDP)',
+        default => 'Status',
+    };
+  @endphp
   <div class="section-heading">Tabel Detail Data Pengajuan NOO</div>
   <table>
     <thead>
       <tr>
         <th style="width: 4%;">No</th>
-        <th style="width: 9%;">Region</th>
-        <th style="width: 8%;">Entity</th>
-        <th style="width: 18%; text-align: left;">Cabang Distributor</th>
-        <th style="width: 22%; text-align: left;">Nama Toko (NOO)</th>
-        <th style="width: 15%; text-align: left;">Salesman</th>
-        <th style="width: 11%;">Tanggal</th>
-        <th style="width: {{ $chartType === 'outlet_types' ? '8%' : '13%' }};">Status</th>
-        @if($chartType === 'outlet_types')
-          <th style="width: 10%; text-align: left;">Tipe Outlet</th>
+        <th style="width: 8%;">Region</th>
+        <th style="width: 7%;">Entity</th>
+        <th style="width: 17%; text-align: left;">Cabang Distributor</th>
+        <th style="width: 19%; text-align: left;">Nama Toko (NOO)</th>
+        <th style="width: 14%; text-align: left;">Salesman</th>
+        <th style="width: 10%;">Tanggal</th>
+        @if($isStageChart)
+          <th style="width: 10%;">{{ $stageColHeader }}</th>
+          <th style="width: 11%; text-align: left;">Status Terkini</th>
+        @else
+          <th style="width: {{ $chartType === 'outlet_types' ? '8%' : '11%' }};">Status</th>
+          @if($chartType === 'outlet_types')
+            <th style="width: 10%; text-align: left;">Tipe Outlet</th>
+          @endif
         @endif
       </tr>
     </thead>
@@ -440,8 +484,18 @@
           $salesmanDisplay = trim(($row['salesman_name'] ?? '') . ' (' . ($row['salesman_code'] ?? '-') . ')');
           if ($salesmanDisplay === '(-)') $salesmanDisplay = '-';
           $branchDisplay = trim(($row['branch_id'] ?? '') . ' - ' . ($row['branch_name'] ?? ''));
-          $statusClass = str_contains($row['status'] ?? '', 'APPROVED') ? 'status-approved' : (str_contains($row['status'] ?? '', 'REJECTED') ? 'status-rejected' : 'status-pending');
+          $stageStatus = $row['stage_status'] ?? ($row['status'] ?? '-');
+          $statusUpper = strtoupper($stageStatus);
+
+          if ($statusUpper === 'APPROVED' || str_contains($statusUpper, 'SETUJU')) {
+              $statusClass = 'status-approved';
+          } elseif ($statusUpper === 'REJECTED' || str_contains($statusUpper, 'TOLAK')) {
+              $statusClass = 'status-rejected';
+          } else {
+              $statusClass = 'status-pending-nofill';
+          }
         @endphp
+
         <tr>
           <td class="text-center font-mono">{{ $idx + 1 }}</td>
           <td class="text-center font-mono font-bold">{{ $row['region_code'] ?? '-' }}</td>
@@ -451,15 +505,17 @@
           <td class="text-left">{{ $salesmanDisplay }}</td>
           <td class="text-center font-mono">{{ $subDate }}</td>
           <td class="text-center">
-            <span class="status-badge {{ $statusClass }}">{{ $row['status'] ?? '-' }}</span>
+            <span class="status-badge {{ $statusClass }}">{{ $stageStatus }}</span>
           </td>
-          @if($chartType === 'outlet_types')
+          @if($isStageChart)
+            <td class="text-left font-mono" style="font-size: 6.8pt; color: #334155;">{{ $row['current_status'] ?? '-' }}</td>
+          @elseif($chartType === 'outlet_types')
             <td class="text-left">{{ $row['type_outlet'] ?? '-' }}</td>
           @endif
         </tr>
       @empty
         <tr>
-          <td colspan="{{ $chartType === 'outlet_types' ? 9 : 8 }}" class="text-center" style="padding: 16px; color: #94a3b8; font-style: italic;">
+          <td colspan="{{ ($isStageChart || $chartType === 'outlet_types') ? 9 : 8 }}" class="text-center" style="padding: 16px; color: #94a3b8; font-style: italic;">
             Tidak ada data pengajuan NOO yang cocok dengan filter yang dipilih.
           </td>
         </tr>

@@ -381,6 +381,45 @@ class EdpProgressController extends Controller
         ]);
     }
 
+    private function redirectWithTrackingFilters(Request $request, string $flashType, string $flashMessage): RedirectResponse
+    {
+        $filterKeys = [
+            'search',
+            'region_code',
+            'entity',
+            'branch_id',
+            'stage',
+            'months',
+            'month',
+            'year',
+            'sort_key',
+            'sort_dir',
+            'per_page',
+            'page',
+        ];
+
+        $params = array_filter(
+            $request->only($filterKeys),
+            fn($val) => $val !== null && $val !== ''
+        );
+
+        if (empty($params)) {
+            $referer = $request->headers->get('referer');
+            if ($referer) {
+                $queryString = parse_url($referer, PHP_URL_QUERY);
+                if ($queryString) {
+                    parse_str($queryString, $refererParams);
+                    $params = array_filter(
+                        array_intersect_key($refererParams, array_flip($filterKeys)),
+                        fn($val) => $val !== null && $val !== ''
+                    );
+                }
+            }
+        }
+
+        return redirect()->route('edp.progress_tracking', $params)->with($flashType, $flashMessage);
+    }
+
     /**
      * Resets / Cancels inputan Admin Distributor (Reverts status to SE_SUBMITTED).
      * Melakukan CASCADING RESET: Mereset inputan Admin Distributor DAN inputan SPV Area (Rute JKS)
@@ -393,7 +432,7 @@ class EdpProgressController extends Controller
         $userRole = $user->role ?? 'EDP_REGION';
 
         if (!in_array($userRole, ['SUPERADMIN', 'ADMIN_PRINCIPAL'])) {
-            return back()->with('error', 'Akses Ditolak. Hanya Superadmin dan Admin Principal yang berhak mereset inputan Admin Distributor.');
+            return $this->redirectWithTrackingFilters($request, 'error', 'Akses Ditolak. Hanya Superadmin dan Admin Principal yang berhak mereset inputan Admin Distributor.');
         }
 
         $request->validate([
@@ -406,11 +445,11 @@ class EdpProgressController extends Controller
             $submission = DB::table('noo_submissions')->where('request_id', $requestId)->first();
 
             if (!$submission) {
-                return back()->with('error', 'Data toko tidak ditemukan.');
+                return $this->redirectWithTrackingFilters($request, 'error', 'Data toko tidak ditemukan.');
             }
 
             if ($submission->status === 'APPROVED_EDP') {
-                return back()->with('error', 'Toko sudah di-approve oleh EDP Principal. Lakukan Reset Approval EDP terlebih dahulu sebelum mereset inputan Admin/SPV.');
+                return $this->redirectWithTrackingFilters($request, 'error', 'Toko sudah di-approve oleh EDP Principal. Lakukan Reset Approval EDP terlebih dahulu sebelum mereset inputan Admin/SPV.');
             }
 
             $actorName = $user->name ?? $user->username ?? $user->email;
@@ -440,9 +479,9 @@ class EdpProgressController extends Controller
 
             $this->logAction('RESET_ADMIN_INPUT', 'PROGRESS_TRACKING', "Mereset inputan Admin Distributor & SPV untuk toko: {$submission->nama_noo} ({$requestId})");
 
-            return back()->with('success', "Inputan Admin Distributor & SPV Area untuk toko \"{$submission->nama_noo}\" berhasil di-cancel / di-reset ke status SE_SUBMITTED.");
+            return $this->redirectWithTrackingFilters($request, 'success', "Inputan Admin Distributor & SPV Area untuk toko \"{$submission->nama_noo}\" berhasil di-cancel / di-reset ke status SE_SUBMITTED.");
         } catch (Throwable $e) {
-            return back()->with('error', "Gagal mereset inputan Admin Distributor: {$e->getMessage()}");
+            return $this->redirectWithTrackingFilters($request, 'error', "Gagal mereset inputan Admin Distributor: {$e->getMessage()}");
         }
     }
 
@@ -456,7 +495,7 @@ class EdpProgressController extends Controller
         $userRole = $user->role ?? 'EDP_REGION';
 
         if (!in_array($userRole, ['SUPERADMIN', 'ADMIN_PRINCIPAL'])) {
-            return back()->with('error', 'Akses Ditolak. Hanya Superadmin dan Admin Principal yang berhak mereset inputan SPV Area.');
+            return $this->redirectWithTrackingFilters($request, 'error', 'Akses Ditolak. Hanya Superadmin dan Admin Principal yang berhak mereset inputan SPV Area.');
         }
 
         $request->validate([
@@ -469,11 +508,11 @@ class EdpProgressController extends Controller
             $submission = DB::table('noo_submissions')->where('request_id', $requestId)->first();
 
             if (!$submission) {
-                return back()->with('error', 'Data toko tidak ditemukan.');
+                return $this->redirectWithTrackingFilters($request, 'error', 'Data toko tidak ditemukan.');
             }
 
             if ($submission->status === 'APPROVED_EDP') {
-                return back()->with('error', 'Toko sudah di-approve oleh EDP Principal. Lakukan Reset Approval EDP terlebih dahulu sebelum mereset inputan SPV.');
+                return $this->redirectWithTrackingFilters($request, 'error', 'Toko sudah di-approve oleh EDP Principal. Lakukan Reset Approval EDP terlebih dahulu sebelum mereset inputan SPV.');
             }
 
             $actorName = $user->name ?? $user->username ?? $user->email;
@@ -497,9 +536,10 @@ class EdpProgressController extends Controller
 
             $this->logAction('RESET_SPV_INPUT', 'PROGRESS_TRACKING', "Mereset rute JKS & inputan SPV Area untuk toko: {$submission->nama_noo} ({$requestId})");
 
-            return back()->with('success', "Inputan SPV Area (Rute JKS) untuk toko \"{$submission->nama_noo}\" berhasil di-cancel / di-reset ke status PUSHED_TO_SPV.");
+            return $this->redirectWithTrackingFilters($request, 'success', "Inputan SPV Area (Rute JKS) untuk toko \"{$submission->nama_noo}\" berhasil di-cancel / di-reset ke status PUSHED_TO_SPV.");
         } catch (Throwable $e) {
-            return back()->with('error', "Gagal mereset inputan SPV Area: {$e->getMessage()}");
+            return $this->redirectWithTrackingFilters($request, 'error', "Gagal mereset inputan SPV Area: {$e->getMessage()}");
         }
     }
 }
+

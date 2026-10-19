@@ -468,6 +468,9 @@ function generateChartCanvas(chartKey, isStandalone = false) {
     ctx.fillText('PORTAL PRINCIPAL NOO+ - LAPORAN GRAFIK EKSEKUTIF', 50, 46);
 
     let title = 'Perbandingan Status Submisi NOO';
+    if (chartKey === 'admin_distributor') title = 'Verifikasi Tahap 1: Admin Distributor';
+    if (chartKey === 'spv_area') title = 'Verifikasi Tahap 2: SPV Area';
+    if (chartKey === 'principal_edp') title = 'Verifikasi Tahap Final: Principal (EDP)';
     if (chartKey === 'areas') title = 'Analisis Submisi vs Approval per Region Area';
     if (chartKey === 'outlet_types') title = 'Sebaran Submisi per Tipe Outlet / Channel';
 
@@ -600,6 +603,122 @@ function generateChartCanvas(chartKey, isStandalone = false) {
       legY += 60;
       drawLegendItem(ctx, legX, legY, '#94A3B8', 'Sedang Dalam Proses', `${pen} Toko`);
     }
+  } else if (['admin_distributor', 'spv_area', 'principal_edp'].includes(chartKey)) {
+    let pendingVal = 0;
+    let approvedVal = 0;
+    let rejectedVal = 0;
+    let stageName = '';
+
+    if (chartKey === 'admin_distributor') {
+      stageName = 'Admin Distributor';
+      pendingVal = Number(props.metrics?.pending_admin || 0);
+      approvedVal = Number(props.metrics?.approved_admin || 0);
+      rejectedVal = Number(props.metrics?.rejected_admin || 0);
+    } else if (chartKey === 'spv_area') {
+      stageName = 'SPV Area';
+      pendingVal = Number(props.metrics?.pending_spv || 0);
+      approvedVal = Number(props.metrics?.approved_spv || 0);
+      rejectedVal = Number(props.metrics?.rejected_spv || 0);
+    } else if (chartKey === 'principal_edp') {
+      stageName = 'Principal (EDP)';
+      pendingVal = Number(props.metrics?.pending_principal || 0);
+      approvedVal = Number(props.metrics?.approved_principal || 0);
+      rejectedVal = Number(props.metrics?.rejected_principal || 0);
+    }
+
+    const totalVal = pendingVal + approvedVal + rejectedVal;
+    const appRate = totalVal > 0 ? Math.round((approvedVal / totalVal) * 100) : 0;
+    const rejRate = totalVal > 0 ? Math.round((rejectedVal / totalVal) * 100) : 0;
+    const penRate = totalVal > 0 ? Math.round((pendingVal / totalVal) * 100) : 0;
+
+    if (isStandalone) {
+      const cardY = startY;
+      const cardW = 340;
+      const cardH = 125;
+
+      drawMetricCard(ctx, 50, cardY, cardW, cardH, '#FFFBEB', '#D97706', '#FDE68A', 'BELUM DIPROSES', String(pendingVal), `${penRate}% Menunggu Verifikasi`);
+      drawMetricCard(ctx, 430, cardY, cardW, cardH, '#ECFDF5', '#059669', '#A7F3D0', 'DISETUJUI (APPROVED)', String(approvedVal), `${appRate}% Tingkat Disetujui`);
+      drawMetricCard(ctx, 810, cardY, cardW, cardH, '#FFF1F2', '#E11D48', '#FECDD3', 'DITOLAK (REJECTED)', String(rejectedVal), `${rejRate}% Tingkat Penolakan`);
+
+      const centerX = 260;
+      const centerY = 470;
+      const radius = 110;
+      const innerRadius = 70;
+
+      let startAngle = -Math.PI / 2;
+      const appAngle = totalVal > 0 ? (approvedVal / totalVal) * 2 * Math.PI : 0;
+      const rejAngle = totalVal > 0 ? (rejectedVal / totalVal) * 2 * Math.PI : 0;
+      const penAngle = Math.max(0, 2 * Math.PI - appAngle - rejAngle);
+
+      drawDonutSlice(ctx, centerX, centerY, radius, innerRadius, startAngle, startAngle + appAngle, '#10B981');
+      startAngle += appAngle;
+      drawDonutSlice(ctx, centerX, centerY, radius, innerRadius, startAngle, startAngle + rejAngle, '#F43F5E');
+      startAngle += rejAngle;
+      if (penAngle > 0) {
+        drawDonutSlice(ctx, centerX, centerY, radius, innerRadius, startAngle, startAngle + penAngle, '#F59E0B');
+      }
+
+      ctx.fillStyle = '#0F172A';
+      ctx.font = 'bold 32px "Segoe UI", Roboto, sans-serif';
+      ctx.textAlign = 'center';
+      ctx.fillText(String(totalVal), centerX, centerY + 6);
+      ctx.fillStyle = '#64748B';
+      ctx.font = 'bold 11px "Segoe UI", Roboto, sans-serif';
+      ctx.fillText('TOTAL NOO', centerX, centerY + 26);
+      ctx.textAlign = 'left';
+
+      const legX = 460;
+      let legY = 390;
+      drawLegendItem(ctx, legX, legY, '#10B981', `Disetujui ${stageName}`, `${approvedVal} Toko (${appRate}%)`);
+      legY += 56;
+      drawLegendItem(ctx, legX, legY, '#F43F5E', `Ditolak ${stageName}`, `${rejectedVal} Toko (${rejRate}%)`);
+      legY += 56;
+      drawLegendItem(ctx, legX, legY, '#F59E0B', `Belum Diproses`, `${pendingVal} Toko (${penRate}%)`);
+    } else {
+      // Embedded for Excel / PDF
+      const cardY = 15;
+      const cardW = 285;
+      const cardH = 92;
+
+      drawMetricCard(ctx, 25, cardY, cardW, cardH, '#FFFBEB', '#D97706', '#FDE68A', 'BELUM DIPROSES', String(pendingVal), `${penRate}% Pending`, true);
+      drawMetricCard(ctx, 335, cardY, cardW, cardH, '#ECFDF5', '#059669', '#A7F3D0', 'DISETUJUI', String(approvedVal), `${appRate}% Approved`, true);
+      drawMetricCard(ctx, 645, cardY, cardW, cardH, '#FFF1F2', '#E11D48', '#FECDD3', 'DITOLAK', String(rejectedVal), `${rejRate}% Rejected`, true);
+
+      const centerX = 210;
+      const centerY = 235;
+      const radius = 90;
+      const innerRadius = 55;
+
+      let startAngle = -Math.PI / 2;
+      const appAngle = totalVal > 0 ? (approvedVal / totalVal) * 2 * Math.PI : 0;
+      const rejAngle = totalVal > 0 ? (rejectedVal / totalVal) * 2 * Math.PI : 0;
+      const penAngle = Math.max(0, 2 * Math.PI - appAngle - rejAngle);
+
+      drawDonutSlice(ctx, centerX, centerY, radius, innerRadius, startAngle, startAngle + appAngle, '#10B981');
+      startAngle += appAngle;
+      drawDonutSlice(ctx, centerX, centerY, radius, innerRadius, startAngle, startAngle + rejAngle, '#F43F5E');
+      startAngle += rejAngle;
+      if (penAngle > 0) {
+        drawDonutSlice(ctx, centerX, centerY, radius, innerRadius, startAngle, startAngle + penAngle, '#F59E0B');
+      }
+
+      ctx.fillStyle = '#0F172A';
+      ctx.font = 'bold 26px "Segoe UI", Roboto, sans-serif';
+      ctx.textAlign = 'center';
+      ctx.fillText(String(totalVal), centerX, centerY + 6);
+      ctx.fillStyle = '#64748B';
+      ctx.font = 'bold 10px "Segoe UI", Roboto, sans-serif';
+      ctx.fillText('TOTAL NOO', centerX, centerY + 24);
+      ctx.textAlign = 'left';
+
+      const legX = 420;
+      let legY = 150;
+      drawLegendItem(ctx, legX, legY, '#10B981', `Disetujui ${stageName}`, `${approvedVal} Toko (${appRate}%)`);
+      legY += 60;
+      drawLegendItem(ctx, legX, legY, '#F43F5E', `Ditolak ${stageName}`, `${rejectedVal} Toko (${rejRate}%)`);
+      legY += 60;
+      drawLegendItem(ctx, legX, legY, '#F59E0B', `Belum Diproses`, `${pendingVal} Toko (${penRate}%)`);
+    }
   } else if (chartKey === 'areas') {
     const areas = props.charts?.top_principal_areas || [];
     let y = isStandalone ? startY : 25;
@@ -725,10 +844,12 @@ function exportToJpg(chartKey) {
   activeExportDropdown.value = null;
   const canvas = generateChartCanvas(chartKey, true);
   const link = document.createElement('a');
-  link.download = `GRAFIK_${chartKey.toUpperCase()}_${new Date().toISOString().slice(0, 10)}.jpg`;
+  const prefix = ['admin_distributor', 'spv_area', 'principal_edp'].includes(chartKey) ? 'LAPORAN_VERIFIKASI' : 'GRAFIK';
+  link.download = `${prefix}_${chartKey.toUpperCase()}_${new Date().toISOString().slice(0, 10)}.jpg`;
   link.href = canvas.toDataURL('image/jpeg', 0.95);
   link.click();
 }
+
 
 function formatDate(dateStr) {
   if (!dateStr) return '-';
@@ -963,7 +1084,31 @@ function formatActionLabel(action) {
               <span class="text-[11.5px] font-bold text-slate-800 uppercase tracking-wider flex items-center gap-1.5">
                 <span>Admin Distributor</span>
               </span>
-              <span class="text-[10px] font-bold px-2 py-0.5 rounded-full bg-slate-100 text-slate-600">Tahap 1</span>
+              <div class="flex items-center gap-1.5">
+                <!-- Dropdown Export Admin Distributor -->
+                <div class="relative export-dropdown-container">
+                  <button
+                    type="button"
+                    @click="toggleExportDropdown('admin_distributor')"
+                    class="px-2 py-0.5 text-[11px] font-medium text-slate-600 bg-slate-50 hover:bg-slate-100 hover:text-slate-900 border border-slate-200 rounded-md transition flex items-center gap-1 cursor-pointer"
+                  >
+                    <span>Export</span>
+                    <svg class="w-2.5 h-2.5 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/></svg>
+                  </button>
+                  <div v-if="activeExportDropdown === 'admin_distributor'" class="absolute right-0 top-full mt-1 w-36 bg-white rounded-lg border border-slate-200 shadow-lg z-50 py-1 text-xs divide-y divide-slate-100">
+                    <button @click="exportToExcel('admin_distributor')" class="w-full text-left px-3 py-1.5 text-slate-700 hover:bg-slate-50 font-medium transition cursor-pointer">
+                      Excel (.xlsx)
+                    </button>
+                    <button @click="exportToPdf('admin_distributor')" class="w-full text-left px-3 py-1.5 text-slate-700 hover:bg-slate-50 font-medium transition cursor-pointer">
+                      PDF Document
+                    </button>
+                    <button @click="exportToJpg('admin_distributor')" class="w-full text-left px-3 py-1.5 text-slate-700 hover:bg-slate-50 font-medium transition cursor-pointer">
+                      Gambar JPG (.jpg)
+                    </button>
+                  </div>
+                </div>
+                <span class="text-[10px] font-bold px-2 py-0.5 rounded-full bg-slate-100 text-slate-600">Tahap 1</span>
+              </div>
             </div>
             
             <div class="grid grid-cols-3 gap-2 mt-2.5">
@@ -994,7 +1139,31 @@ function formatActionLabel(action) {
               <span class="text-[11.5px] font-bold text-slate-800 uppercase tracking-wider flex items-center gap-1.5">
                 <span>SPV Area</span>
               </span>
-              <span class="text-[10px] font-bold px-2 py-0.5 rounded-full bg-slate-100 text-slate-600">Tahap 2</span>
+              <div class="flex items-center gap-1.5">
+                <!-- Dropdown Export SPV Area -->
+                <div class="relative export-dropdown-container">
+                  <button
+                    type="button"
+                    @click="toggleExportDropdown('spv_area')"
+                    class="px-2 py-0.5 text-[11px] font-medium text-slate-600 bg-slate-50 hover:bg-slate-100 hover:text-slate-900 border border-slate-200 rounded-md transition flex items-center gap-1 cursor-pointer"
+                  >
+                    <span>Export</span>
+                    <svg class="w-2.5 h-2.5 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/></svg>
+                  </button>
+                  <div v-if="activeExportDropdown === 'spv_area'" class="absolute right-0 top-full mt-1 w-36 bg-white rounded-lg border border-slate-200 shadow-lg z-50 py-1 text-xs divide-y divide-slate-100">
+                    <button @click="exportToExcel('spv_area')" class="w-full text-left px-3 py-1.5 text-slate-700 hover:bg-slate-50 font-medium transition cursor-pointer">
+                      Excel (.xlsx)
+                    </button>
+                    <button @click="exportToPdf('spv_area')" class="w-full text-left px-3 py-1.5 text-slate-700 hover:bg-slate-50 font-medium transition cursor-pointer">
+                      PDF Document
+                    </button>
+                    <button @click="exportToJpg('spv_area')" class="w-full text-left px-3 py-1.5 text-slate-700 hover:bg-slate-50 font-medium transition cursor-pointer">
+                      Gambar JPG (.jpg)
+                    </button>
+                  </div>
+                </div>
+                <span class="text-[10px] font-bold px-2 py-0.5 rounded-full bg-slate-100 text-slate-600">Tahap 2</span>
+              </div>
             </div>
             
             <div class="grid grid-cols-3 gap-2 mt-2.5">
@@ -1025,7 +1194,31 @@ function formatActionLabel(action) {
               <span class="text-[11.5px] font-bold text-[#065F46] uppercase tracking-wider flex items-center gap-1.5">
                 <span>Principal (EDP)</span>
               </span>
-              <span class="text-[10px] font-bold px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-800">Final Verification</span>
+              <div class="flex items-center gap-1.5">
+                <!-- Dropdown Export Principal (EDP) -->
+                <div class="relative export-dropdown-container">
+                  <button
+                    type="button"
+                    @click="toggleExportDropdown('principal_edp')"
+                    class="px-2 py-0.5 text-[11px] font-medium text-emerald-800 bg-white hover:bg-emerald-50 border border-emerald-300 rounded-md transition flex items-center gap-1 cursor-pointer"
+                  >
+                    <span>Export</span>
+                    <svg class="w-2.5 h-2.5 text-emerald-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/></svg>
+                  </button>
+                  <div v-if="activeExportDropdown === 'principal_edp'" class="absolute right-0 top-full mt-1 w-36 bg-white rounded-lg border border-slate-200 shadow-lg z-50 py-1 text-xs divide-y divide-slate-100">
+                    <button @click="exportToExcel('principal_edp')" class="w-full text-left px-3 py-1.5 text-slate-700 hover:bg-slate-50 font-medium transition cursor-pointer">
+                      Excel (.xlsx)
+                    </button>
+                    <button @click="exportToPdf('principal_edp')" class="w-full text-left px-3 py-1.5 text-slate-700 hover:bg-slate-50 font-medium transition cursor-pointer">
+                      PDF Document
+                    </button>
+                    <button @click="exportToJpg('principal_edp')" class="w-full text-left px-3 py-1.5 text-slate-700 hover:bg-slate-50 font-medium transition cursor-pointer">
+                      Gambar JPG (.jpg)
+                    </button>
+                  </div>
+                </div>
+                <span class="text-[10px] font-bold px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-800">Final Verification</span>
+              </div>
             </div>
             
             <div class="grid grid-cols-3 gap-2 mt-2.5">

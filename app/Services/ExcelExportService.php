@@ -688,8 +688,8 @@ class ExcelExportService
         $sheet->getStyle("A{$currentRow}")->getFont()->setBold(true)->setSize(11)->getColor()->setRGB('0F172A');
         $currentRow++;
 
-        if ($chartType === 'comparison') {
-            $sumHeaders = ['Metrik Ringkasan', 'Jumlah Toko (NOO)', 'Persentase'];
+        if ($chartType === 'comparison' || in_array($chartType, ['admin_distributor', 'spv_area', 'principal_edp'])) {
+            $sumHeaders = ['Metrik Ringkasan Status', 'Jumlah Toko (NOO)', 'Persentase'];
             $sheet->fromArray($sumHeaders, null, "A{$currentRow}");
             $sheet->getStyle("A{$currentRow}:C{$currentRow}")->getFont()->setBold(true)->getColor()->setRGB('FFFFFF');
             $sheet->getStyle("A{$currentRow}:C{$currentRow}")->getFill()->setFillType(Fill::FILL_SOLID)->getStartColor()->setRGB('1E3A8A');
@@ -748,6 +748,14 @@ class ExcelExportService
         $sheet->getStyle("A{$currentRow}")->getFont()->setBold(true)->setSize(11)->getColor()->setRGB('0F172A');
         $currentRow++;
 
+        $isStageChart = in_array($chartType, ['admin_distributor', 'spv_area', 'principal_edp']);
+        $stageColHeader = match ($chartType) {
+            'admin_distributor' => 'Status Verifikasi Admin',
+            'spv_area' => 'Status Verifikasi SPV',
+            'principal_edp' => 'Status Verifikasi Principal (EDP)',
+            default => 'Status',
+        };
+
         $detailHeaders = [
             'No',
             'Region',
@@ -756,13 +764,15 @@ class ExcelExportService
             'Nama Toko (NOO)',
             'Salesman',
             'Tanggal Submisi',
-            'Status',
+            $stageColHeader,
         ];
-        if ($chartType === 'outlet_types') {
+        if ($isStageChart) {
+            $detailHeaders[] = 'Status Terkini';
+        } elseif ($chartType === 'outlet_types') {
             $detailHeaders[] = 'Tipe Outlet';
         }
 
-        $lastColLetter = ($chartType === 'outlet_types') ? 'I' : 'H';
+        $lastColLetter = ($isStageChart || $chartType === 'outlet_types') ? 'I' : 'H';
 
         $sheet->fromArray($detailHeaders, null, "A{$currentRow}");
         $sheet->getStyle("A{$currentRow}:{$lastColLetter}{$currentRow}")->getFont()->setBold(true)->getColor()->setRGB('FFFFFF');
@@ -779,13 +789,21 @@ class ExcelExportService
             $sheet->getRowDimension($currentRow)->setRowHeight(22);
             $currentRow++;
         } else {
+            $allRowsData = [];
+            $approvedRowNumbers = [];
+            $rejectedRowNumbers = [];
+            $startDataRow = $currentRow;
+
             foreach ($details as $idx => $row) {
                 $subDate = !empty($row['submitted_at']) ? date('d/m/Y H:i', strtotime((string)$row['submitted_at'])) : '-';
                 $salesmanDisplay = trim(($row['salesman_name'] ?? '') . ' (' . ($row['salesman_code'] ?? '-') . ')');
                 if ($salesmanDisplay === '(-)') $salesmanDisplay = '-';
                 $branchDisplay = trim(($row['branch_id'] ?? '') . ' - ' . ($row['branch_name'] ?? ''));
 
-                $rowData = [
+                $stageStatus = $row['stage_status'] ?? ($row['status'] ?? '-');
+                $currentStatus = $row['current_status'] ?? ($row['status'] ?? '-');
+
+                $rData = [
                     $idx + 1,
                     $row['region_code'] ?? '-',
                     $row['entity_code'] ?? ($row['principal'] ?? '-'),
@@ -793,54 +811,88 @@ class ExcelExportService
                     $row['nama_noo'] ?? '-',
                     $salesmanDisplay,
                     $subDate,
-                    $row['status'] ?? '-',
+                    $stageStatus,
                 ];
 
-                if ($chartType === 'outlet_types') {
-                    $rowData[] = $row['type_outlet'] ?? '-';
+                if ($isStageChart) {
+                    $rData[] = $currentStatus;
+                } elseif ($chartType === 'outlet_types') {
+                    $rData[] = $row['type_outlet'] ?? '-';
                 }
 
-                $sheet->fromArray($rowData, null, "A{$currentRow}");
+                $allRowsData[] = $rData;
 
-                // Zebra striping
-                if ($idx % 2 === 1) {
-                    $sheet->getStyle("A{$currentRow}:{$lastColLetter}{$currentRow}")->getFill()
-                        ->setFillType(Fill::FILL_SOLID)->getStartColor()->setRGB('F8FAFC');
+                $actualRowNum = $startDataRow + $idx;
+                $statusUpper = strtoupper(trim((string)$stageStatus));
+                if ($statusUpper === 'APPROVED' || str_contains($statusUpper, 'SETUJU')) {
+                    $approvedRowNumbers[] = $actualRowNum;
+                } elseif ($statusUpper === 'REJECTED' || str_contains($statusUpper, 'TOLAK')) {
+                    $rejectedRowNumbers[] = $actualRowNum;
                 }
-
-                $sheet->getRowDimension($currentRow)->setRowHeight(20);
-
-                // Alignments
-                $sheet->getStyle("A{$currentRow}")->getAlignment()->setHorizontal(Alignment::HORIZONTAL_CENTER)->setVertical(Alignment::VERTICAL_CENTER);
-                $sheet->getStyle("B{$currentRow}")->getAlignment()->setHorizontal(Alignment::HORIZONTAL_CENTER)->setVertical(Alignment::VERTICAL_CENTER);
-                $sheet->getStyle("C{$currentRow}")->getAlignment()->setHorizontal(Alignment::HORIZONTAL_CENTER)->setVertical(Alignment::VERTICAL_CENTER);
-                $sheet->getStyle("D{$currentRow}")->getAlignment()->setHorizontal(Alignment::HORIZONTAL_LEFT)->setVertical(Alignment::VERTICAL_CENTER);
-                $sheet->getStyle("E{$currentRow}")->getAlignment()->setHorizontal(Alignment::HORIZONTAL_LEFT)->setVertical(Alignment::VERTICAL_CENTER);
-                $sheet->getStyle("F{$currentRow}")->getAlignment()->setHorizontal(Alignment::HORIZONTAL_LEFT)->setVertical(Alignment::VERTICAL_CENTER);
-                $sheet->getStyle("G{$currentRow}")->getAlignment()->setHorizontal(Alignment::HORIZONTAL_CENTER)->setVertical(Alignment::VERTICAL_CENTER);
-                $sheet->getStyle("H{$currentRow}")->getAlignment()->setHorizontal(Alignment::HORIZONTAL_CENTER)->setVertical(Alignment::VERTICAL_CENTER);
-
-                if ($chartType === 'outlet_types') {
-                    $sheet->getStyle("I{$currentRow}")->getAlignment()->setHorizontal(Alignment::HORIZONTAL_LEFT)->setVertical(Alignment::VERTICAL_CENTER);
-                }
-
-                $sheet->getStyle("A{$currentRow}:{$lastColLetter}{$currentRow}")->getBorders()->getAllBorders()
-                    ->setBorderStyle(Border::BORDER_THIN)->getColor()->setRGB('E2E8F0');
-
-                $currentRow++;
             }
+
+            // 1. Bulk insert seluruh baris data sekaligus (menghemat 95% waktu proses)
+            $sheet->fromArray($allRowsData, null, "A{$startDataRow}");
+            $endDataRow = $startDataRow + count($allRowsData) - 1;
+
+            // 2. Format alignment & border per range blok (bukan per sel individu)
+            $sheet->getStyle("A{$startDataRow}:C{$endDataRow}")->getAlignment()->setHorizontal(Alignment::HORIZONTAL_CENTER)->setVertical(Alignment::VERTICAL_CENTER);
+            $sheet->getStyle("D{$startDataRow}:F{$endDataRow}")->getAlignment()->setHorizontal(Alignment::HORIZONTAL_LEFT)->setVertical(Alignment::VERTICAL_CENTER);
+            $sheet->getStyle("G{$startDataRow}:H{$endDataRow}")->getAlignment()->setHorizontal(Alignment::HORIZONTAL_CENTER)->setVertical(Alignment::VERTICAL_CENTER);
+
+            if ($isStageChart || $chartType === 'outlet_types') {
+                $sheet->getStyle("I{$startDataRow}:I{$endDataRow}")->getAlignment()->setHorizontal(Alignment::HORIZONTAL_LEFT)->setVertical(Alignment::VERTICAL_CENTER);
+            }
+
+            $sheet->getStyle("A{$startDataRow}:{$lastColLetter}{$endDataRow}")->getBorders()->getAllBorders()
+                ->setBorderStyle(Border::BORDER_THIN)->getColor()->setRGB('E2E8F0');
+
+            // 3. Set row height & zebra striping secara efisien
+            for ($r = $startDataRow; $r <= $endDataRow; $r++) {
+                $sheet->getRowDimension($r)->setRowHeight(20);
+                if (($r - $startDataRow) % 2 === 1) {
+                    $sheet->getStyle("A{$r}:G{$r}")->getFill()
+                        ->setFillType(Fill::FILL_SOLID)->getStartColor()->setRGB('F8FAFC');
+                    if ($isStageChart || $chartType === 'outlet_types') {
+                        $sheet->getStyle("I{$r}")->getFill()
+                            ->setFillType(Fill::FILL_SOLID)->getStartColor()->setRGB('F8FAFC');
+                    }
+                }
+            }
+
+            // 4. Pewarnaan sel Status Verifikasi:
+            // Approved = Hijau (#DCFCE7 / teks #166534), Rejected = Merah (#FEE2E2 / teks #991B1B), Pending = No Fill
+            foreach ($approvedRowNumbers as $ar) {
+                $sheet->getStyle("H{$ar}")->getFill()
+                    ->setFillType(Fill::FILL_SOLID)->getStartColor()->setRGB('DCFCE7');
+                $sheet->getStyle("H{$ar}")->getFont()
+                    ->setColor(new Color('166534'))
+                    ->setBold(true);
+            }
+
+            foreach ($rejectedRowNumbers as $rr) {
+                $sheet->getStyle("H{$rr}")->getFill()
+                    ->setFillType(Fill::FILL_SOLID)->getStartColor()->setRGB('FEE2E2');
+                $sheet->getStyle("H{$rr}")->getFont()
+                    ->setColor(new Color('991B1B'))
+                    ->setBold(true);
+            }
+
+            $currentRow = $endDataRow + 1;
         }
 
         // Set tailored column widths
         $sheet->getColumnDimension('A')->setWidth(6);
         $sheet->getColumnDimension('B')->setWidth(14);
         $sheet->getColumnDimension('C')->setWidth(14);
-        $sheet->getColumnDimension('D')->setWidth(26);
+        $sheet->getColumnDimension('D')->setWidth(28);
         $sheet->getColumnDimension('E')->setWidth(32);
         $sheet->getColumnDimension('F')->setWidth(24);
         $sheet->getColumnDimension('G')->setWidth(18);
-        $sheet->getColumnDimension('H')->setWidth(18);
-        if ($chartType === 'outlet_types') {
+        $sheet->getColumnDimension('H')->setWidth(22);
+        if ($isStageChart) {
+            $sheet->getColumnDimension('I')->setWidth(34);
+        } elseif ($chartType === 'outlet_types') {
             $sheet->getColumnDimension('I')->setWidth(24);
         }
 

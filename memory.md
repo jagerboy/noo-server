@@ -356,8 +356,37 @@ Untuk menjamin konsistensi data 100%, dilakukan prosedur **Clean Import**:
 ### File Referensi & Artefak Terkait:
 - `migrate_noo_submission_ready_prod.xlsx`: File Excel master final 2.443 baris.
 - `backup_noo_submissions_pre_sep16.sql`: Backup data legacy sebelum refresh.
-- `noo_v2_migrated.sql`: SQL dump siap restore ke server production.
 - `storage/app/public/noo_photos/`: Direktori fisik foto toko terstandar per cabang & tanggal.
+- `scratch/update_prod_fixes.sql`: Script update mandiri untuk notes, spasi alamat, dan penyesuaian status submisi.
+
+---
+
+## 11. Pembaruan Fitur Filter, Standarisasi Spasi Alamat & Status Approval Workflow (16 Oktober 2026)
+
+### 1. Sinkronisasi Filter Status Principal di Portal EDP Inbox:
+- **Penyelarasan Filter Modal**: Filter status submisi di dalam modal *Filter & Scope* diselaraskan secara penuh dengan filter cepat luar modal:
+  1. `-- Semua Status --` (`""`)
+  2. `⏳ Belum Diproses (Pending EDP)` (`"PENDING_EDP"`)
+  3. `✔ Disetujui (Approved EDP)` (`"APPROVED_EDP"`)
+  4. `✖ Ditolak (Rejected EDP)` (`"REJECTED_EDP"`)
+- **Penyempurnaan UI Segmented Control "Arah Urutan"**:
+  - Mengganti emoji teks lama dengan ikon SVG modern untuk tombol `DESC (Z-A / Terbaru)` dan `ASC (A-Z / Terlama)`.
+  - Mengatur tinggi button sejajar presisi (`h-10`) dengan dropdown select kolom serta layout responsif.
+
+### 2. Standarisasi Format Spasi Kata Wilayah (Address Formatting):
+- Dari hasil migrasi data teks lama yang tergabung tanpa spasi (*CamelCase / Alphanumeric concatenated*), diterapkan standarisasi pemisahan kata secara otomatis pada field `kel_noo`, `kec_noo`, `kab_kota_noo`, dan `provinsi_noo`:
+  - Format angka dan kata: `15Ulu` $\rightarrow$ `15 Ulu`, `5Ulu` $\rightarrow$ `5 Ulu`.
+  - Pemisahan kata majemuk: `SunggalKanan` $\rightarrow$ `Sunggal Kanan`, `DeliSerdang` $\rightarrow$ `Deli Serdang`, `BanyuAsin` $\rightarrow$ `Banyu Asin`, `SumateraSelatan` $\rightarrow$ `Sumatera Selatan`.
+  - Angka Romawi terstandarisasi: `SeberangUluIi` $\rightarrow$ `Seberang Ulu II`, `IlirTimurIi` $\rightarrow$ `Ilir Timur II`.
+
+### 3. Penyelarasan Status Submisi & Penguncian Otoritas (Approval Lock):
+- **Akar Masalah**: Data legacy pada file migrasi memiliki keputusan `edp_decision = 'Approved'` atau `'Rejected'`, namun nilai kolom `status` masih tersimpan sebagai `PUSHED_TO_SPV`. Hal ini menyebabkan tombol approval tetap terbuka dan status di tabel utama tidak terkunci.
+- **Penyelarasan Nilai Status (`status`)**:
+  - `edp_decision = 'Approved'` $\rightarrow$ status otomatis diset ke **`APPROVED_EDP`** (1.400 toko).
+  - `edp_decision = 'Rejected'` $\rightarrow$ status otomatis diset ke **`REJECTED_EDP`** (382 toko).
+  - Belum diputuskan EDP & `approval_spv_area = 'YES'` $\rightarrow$ status diset ke **`APPROVED_SPV`** (93 toko).
+  - Belum diputuskan EDP & `approval_spv_area = 'NO'` $\rightarrow$ status diset ke **`REJECTED_SPV`** (16 toko).
+- **Hasil**: Sistem secara otomatis mengaktifkan status terkunci (`isLocked`), badge tabel berubah akurat menjadi *Approved EDP* / *Rejected EDP*, dan catatan penolakan (`edp_notes`) langsung tertampil pada modal detail verifikasi toko.
 
 ---
 *Dokumen ini merupakan panduan arsitektur resmi sistem informasi NOO+ ASWFOODS & INAFOODS.*

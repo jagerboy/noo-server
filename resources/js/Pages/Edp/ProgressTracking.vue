@@ -317,18 +317,29 @@ function submitReset() {
     targetRoute = route('edp.reset_edp_approval');
   }
 
-  resetForm.post(targetRoute, {
-    onSuccess: () => {
-      closeResetModal();
-      if (activeSubmissionModal.value) {
-        // Refresh active submission in modal
-        const reqId = activeSubmissionModal.value.request_id;
-        const updated = (props.submissions?.data || []).find((s) => s.request_id === reqId);
-        activeSubmissionModal.value = updated || null;
-      }
-    },
-  });
+  const activeParams = getActiveQueryParams();
+
+  resetForm
+    .transform((data) => ({
+      ...data,
+      ...activeParams,
+      source: 'progress_tracking',
+    }))
+    .post(targetRoute, {
+      preserveState: true,
+      preserveScroll: true,
+      onSuccess: (page) => {
+        closeResetModal();
+        if (activeSubmissionModal.value) {
+          // Refresh active submission in modal
+          const reqId = activeSubmissionModal.value.request_id;
+          const updated = (page?.props?.submissions?.data || props.submissions?.data || []).find((s) => s.request_id === reqId);
+          activeSubmissionModal.value = updated || null;
+        }
+      },
+    });
 }
+
 
 function formatDatetime(dt) {
   if (!dt) return '-';

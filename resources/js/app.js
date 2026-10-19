@@ -27,6 +27,68 @@ router.on('finish', () => {
     cleanUrlAddressBar();
 });
 
+// Global Body Scroll Lock Observer
+// Automatically locks background scrolling when any modal / backdrop overlay is present in DOM across all pages (Admin, Spv, Edp)
+if (typeof window !== 'undefined' && typeof document !== 'undefined') {
+    let isLockedByObserver = false;
+
+    const checkModalPresent = () => {
+        const modalBackdrops = document.querySelectorAll(
+            '.fixed.inset-0:not(.z-40), [role="dialog"], dialog[open], [data-modal]'
+        );
+
+        let hasActiveModal = false;
+        for (const el of modalBackdrops) {
+            const style = window.getComputedStyle(el);
+            if (style.display !== 'none' && style.visibility !== 'hidden' && el.offsetHeight > 0) {
+                const className = el.className || '';
+                if (
+                    className.includes('z-[9') ||
+                    className.includes('z-50') ||
+                    className.includes('bg-black') ||
+                    className.includes('bg-slate') ||
+                    el.tagName.toLowerCase() === 'dialog' ||
+                    el.getAttribute('role') === 'dialog' ||
+                    el.querySelector('.bg-white, .rounded-xl, .rounded-lg, [role="document"]')
+                ) {
+                    hasActiveModal = true;
+                    break;
+                }
+            }
+        }
+
+        if (hasActiveModal && !isLockedByObserver) {
+            document.body.classList.add('modal-open');
+            document.documentElement.classList.add('modal-open');
+            document.body.style.overflow = 'hidden';
+            isLockedByObserver = true;
+        } else if (!hasActiveModal && isLockedByObserver) {
+            document.body.classList.remove('modal-open');
+            document.documentElement.classList.remove('modal-open');
+            document.body.style.overflow = '';
+            isLockedByObserver = false;
+        }
+    };
+
+    const observer = new MutationObserver(() => {
+        checkModalPresent();
+    });
+
+    observer.observe(document.body, {
+        childList: true,
+        subtree: true,
+        attributes: true,
+        attributeFilter: ['class', 'style', 'open'],
+    });
+
+    router.on('navigate', () => {
+        isLockedByObserver = false;
+        document.body.classList.remove('modal-open');
+        document.documentElement.classList.remove('modal-open');
+        document.body.style.overflow = '';
+    });
+}
+
 createInertiaApp({
     title: (title) => {
         if (!title) return appName;

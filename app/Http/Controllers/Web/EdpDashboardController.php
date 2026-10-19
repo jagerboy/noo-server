@@ -540,6 +540,9 @@ class EdpDashboardController extends Controller
      */
     public function exportChartExcel(Request $request, string $chartType): StreamedResponse
     {
+        @ini_set('max_execution_time', '300');
+        @set_time_limit(300);
+
         $data = $this->prepareChartExportData($request, $chartType);
         $chartImage = $request->input('chart_image');
         $binary = $this->excelExportService->generateDashboardChartExcel(
@@ -568,9 +571,29 @@ class EdpDashboardController extends Controller
      */
     public function exportChartPdf(Request $request, string $chartType)
     {
+        @ini_set('max_execution_time', '300');
+        @set_time_limit(300);
+
         $data = $this->prepareChartExportData($request, $chartType);
         $data['chart_image'] = $request->input('chart_image');
         return view('edp.dashboard_chart_pdf', $data);
+    }
+
+    /**
+     * Format status submisi menjadi teks bahasa Indonesia yang rapi dan mudah dibaca tanpa garis bawah (underscore).
+     */
+    private function formatReadableStatus(string $status): string
+    {
+        return match (strtoupper(trim($status))) {
+            'SE_SUBMITTED', 'SUBMITTED' => 'Submisi SE (Menunggu Admin)',
+            'PUSHED_TO_SPV', 'ADMIN_APPROVED' => 'Disetujui Admin (Menunggu SPV)',
+            'APPROVED_SPV', 'APPROVED_BY_SPV', 'PUSHED_TO_EDP' => 'Disetujui SPV (Menunggu EDP)',
+            'APPROVED_EDP', 'EDP_APPROVED', 'INJECTED' => 'Disetujui EDP Principal (Final)',
+            'ADMIN_REJECTED', 'REJECTED_ADMIN' => 'Ditolak Admin Distributor',
+            'SPV_REJECTED', 'REJECTED_SPV' => 'Ditolak SPV Area',
+            'EDP_REJECTED', 'REJECTED_EDP' => 'Ditolak EDP Principal',
+            default => ucwords(strtolower(str_replace('_', ' ', $status))),
+        };
     }
 
     /**
@@ -692,9 +715,73 @@ class EdpDashboardController extends Controller
 
             $summaryRows = [
                 ['label' => 'Total NOO Disubmit SE', 'count' => $tot, 'percentage' => 100],
-                ['label' => 'Approved Principal (Final)', 'count' => $app, 'percentage' => $tot > 0 ? round(($app / $tot) * 100, 1) : 0],
-                ['label' => 'Rejected Principal', 'count' => $rej, 'percentage' => $tot > 0 ? round(($rej / $tot) * 100, 1) : 0],
+                ['label' => 'Disetujui EDP Principal (Final)', 'count' => $app, 'percentage' => $tot > 0 ? round(($app / $tot) * 100, 1) : 0],
+                ['label' => 'Ditolak EDP Principal', 'count' => $rej, 'percentage' => $tot > 0 ? round(($rej / $tot) * 100, 1) : 0],
                 ['label' => 'Sedang Dalam Proses Verifikasi', 'count' => $pen, 'percentage' => $tot > 0 ? round(($pen / $tot) * 100, 1) : 0],
+            ];
+        } elseif ($chartType === 'admin_distributor') {
+            $chartTitle = 'Laporan Verifikasi Tahap 1 - Admin Distributor';
+            $mAdmin = (clone $query)->selectRaw("
+                COUNT(*) as total_submitted,
+                COUNT(CASE WHEN noo_submissions.status = 'SE_SUBMITTED' THEN 1 END) as pending_admin,
+                COUNT(CASE WHEN noo_submissions.status IN ('PUSHED_TO_SPV', 'APPROVED_SPV', 'PUSHED_TO_EDP', 'APPROVED_EDP', 'INJECTED', 'EDP_APPROVED', 'SPV_REJECTED', 'REJECTED_SPV', 'EDP_REJECTED', 'REJECTED_EDP') THEN 1 END) as approved_admin,
+                COUNT(CASE WHEN noo_submissions.status IN ('ADMIN_REJECTED', 'REJECTED_ADMIN') THEN 1 END) as rejected_admin
+            ")->first();
+
+            $tot = (int)($mAdmin->total_submitted ?? 0);
+            $pen = (int)($mAdmin->pending_admin ?? 0);
+            $app = (int)($mAdmin->approved_admin ?? 0);
+            $rej = (int)($mAdmin->rejected_admin ?? 0);
+
+            $summaryRows = [
+                ['label' => 'Total NOO Masuk Admin Distributor', 'count' => $tot, 'percentage' => 100],
+                ['label' => 'Belum Diproses (Menunggu Verifikasi Admin)', 'count' => $pen, 'percentage' => $tot > 0 ? round(($pen / $tot) * 100, 1) : 0],
+                ['label' => 'Disetujui Admin Distributor (Diteruskan)', 'count' => $app, 'percentage' => $tot > 0 ? round(($app / $tot) * 100, 1) : 0],
+                ['label' => 'Ditolak Admin Distributor', 'count' => $rej, 'percentage' => $tot > 0 ? round(($rej / $tot) * 100, 1) : 0],
+            ];
+        } elseif ($chartType === 'spv_area') {
+            $chartTitle = 'Laporan Verifikasi Tahap 2 - SPV Area';
+            $mSpv = (clone $query)->selectRaw("
+                COUNT(*) as total_submitted,
+                COUNT(CASE WHEN noo_submissions.status = 'PUSHED_TO_SPV' THEN 1 END) as pending_spv,
+                COUNT(CASE WHEN noo_submissions.status IN ('APPROVED_SPV', 'PUSHED_TO_EDP', 'APPROVED_EDP', 'INJECTED', 'EDP_APPROVED', 'EDP_REJECTED', 'REJECTED_EDP') THEN 1 END) as approved_spv,
+                COUNT(CASE WHEN noo_submissions.status IN ('SPV_REJECTED', 'REJECTED_SPV') THEN 1 END) as rejected_spv
+            ")->first();
+
+            $tot = (int)($mSpv->total_submitted ?? 0);
+            $pen = (int)($mSpv->pending_spv ?? 0);
+            $app = (int)($mSpv->approved_spv ?? 0);
+            $rej = (int)($mSpv->rejected_spv ?? 0);
+            // Total yang masuk tahap SPV adalah total yang disetujui Admin
+            $tot = $pen + $app + $rej;
+
+            $summaryRows = [
+                ['label' => 'Total NOO Masuk SPV Area', 'count' => $tot, 'percentage' => 100],
+                ['label' => 'Belum Diproses (Menunggu Verifikasi SPV)', 'count' => $pen, 'percentage' => $tot > 0 ? round(($pen / $tot) * 100, 1) : 0],
+                ['label' => 'Disetujui SPV Area (Diteruskan ke EDP)', 'count' => $app, 'percentage' => $tot > 0 ? round(($app / $tot) * 100, 1) : 0],
+                ['label' => 'Ditolak SPV Area', 'count' => $rej, 'percentage' => $tot > 0 ? round(($rej / $tot) * 100, 1) : 0],
+            ];
+        } elseif ($chartType === 'principal_edp') {
+            $chartTitle = 'Laporan Verifikasi Tahap Final - Principal (EDP)';
+            $mEdp = (clone $query)->selectRaw("
+                COUNT(*) as total_submitted,
+                COUNT(CASE WHEN noo_submissions.status IN ('APPROVED_SPV', 'PUSHED_TO_EDP') THEN 1 END) as pending_principal,
+                COUNT(CASE WHEN noo_submissions.status IN ('APPROVED_EDP', 'INJECTED', 'EDP_APPROVED') THEN 1 END) as approved_principal,
+                COUNT(CASE WHEN noo_submissions.status IN ('EDP_REJECTED', 'REJECTED_EDP') THEN 1 END) as rejected_principal
+            ")->first();
+
+            $tot = (int)($mEdp->total_submitted ?? 0);
+            $pen = (int)($mEdp->pending_principal ?? 0);
+            $app = (int)($mEdp->approved_principal ?? 0);
+            $rej = (int)($mEdp->rejected_principal ?? 0);
+            // Total yang masuk tahap Principal EDP adalah total yang disetujui SPV
+            $tot = $pen + $app + $rej;
+
+            $summaryRows = [
+                ['label' => 'Total NOO Masuk Verifikasi EDP', 'count' => $tot, 'percentage' => 100],
+                ['label' => 'Belum Diproses (Menunggu Verifikasi EDP)', 'count' => $pen, 'percentage' => $tot > 0 ? round(($pen / $tot) * 100, 1) : 0],
+                ['label' => 'Disetujui EDP Principal (Final)', 'count' => $app, 'percentage' => $tot > 0 ? round(($app / $tot) * 100, 1) : 0],
+                ['label' => 'Ditolak EDP Principal', 'count' => $rej, 'percentage' => $tot > 0 ? round(($rej / $tot) * 100, 1) : 0],
             ];
         } elseif ($chartType === 'areas') {
             $chartTitle = 'Analisis Submisi vs Approval per Region Area';
@@ -736,7 +823,20 @@ class EdpDashboardController extends Controller
             }
         }
 
-        $details = (clone $query)->select([
+        $detailQuery = clone $query;
+        if ($chartType === 'spv_area') {
+            // Hanya NOO yang sudah disetujui Admin (masuk tahap SPV)
+            $detailQuery->whereNotIn('noo_submissions.status', ['SE_SUBMITTED', 'SUBMITTED', 'ADMIN_REJECTED', 'REJECTED_ADMIN']);
+        } elseif ($chartType === 'principal_edp') {
+            // Hanya NOO yang sudah disetujui SPV (masuk tahap Principal EDP)
+            $detailQuery->whereIn('noo_submissions.status', [
+                'APPROVED_SPV', 'PUSHED_TO_EDP',
+                'APPROVED_EDP', 'INJECTED', 'EDP_APPROVED',
+                'EDP_REJECTED', 'REJECTED_EDP'
+            ]);
+        }
+
+        $details = $detailQuery->select([
             'noo_submissions.region_code',
             DB::raw("COALESCE(master_branches.entity_code_principal, noo_submissions.principal, '-') as entity_code"),
             'noo_submissions.branch_id',
@@ -749,10 +849,49 @@ class EdpDashboardController extends Controller
             DB::raw("COALESCE(noo_submissions.type_outlet_desc, noo_submissions.type_outlet_code, '-') as type_outlet"),
         ])
         ->orderByDesc(DB::raw("COALESCE(noo_submissions.submitted_at, noo_submissions.created_at)"))
-        ->limit(5000)
+        ->limit(10000)
         ->get()
-        ->map(fn($item) => (array)$item)
+        ->map(function ($item) use ($chartType) {
+            $arr = (array)$item;
+            $rawStatus = strtoupper(trim((string)($arr['status'] ?? '')));
+
+            $stageStatus = 'Belum Diproses';
+            if ($chartType === 'admin_distributor') {
+                if (in_array($rawStatus, ['SE_SUBMITTED', 'SUBMITTED'])) {
+                    $stageStatus = 'Belum Diproses';
+                } elseif (in_array($rawStatus, ['ADMIN_REJECTED', 'REJECTED_ADMIN'])) {
+                    $stageStatus = 'Rejected';
+                } else {
+                    $stageStatus = 'Approved';
+                }
+            } elseif ($chartType === 'spv_area') {
+                if (in_array($rawStatus, ['PUSHED_TO_SPV'])) {
+                    $stageStatus = 'Belum Diproses';
+                } elseif (in_array($rawStatus, ['SPV_REJECTED', 'REJECTED_SPV'])) {
+                    $stageStatus = 'Rejected';
+                } else {
+                    $stageStatus = 'Approved';
+                }
+            } elseif ($chartType === 'principal_edp') {
+                if (in_array($rawStatus, ['APPROVED_SPV', 'PUSHED_TO_EDP'])) {
+                    $stageStatus = 'Belum Diproses';
+                } elseif (in_array($rawStatus, ['EDP_REJECTED', 'REJECTED_EDP'])) {
+                    $stageStatus = 'Rejected';
+                } else {
+                    $stageStatus = 'Approved';
+                }
+            } else {
+                $stageStatus = in_array($rawStatus, ['APPROVED_EDP', 'INJECTED', 'EDP_APPROVED']) ? 'Approved' : (str_contains($rawStatus, 'REJECT') ? 'Rejected' : 'Belum Diproses');
+            }
+
+            $arr['raw_status'] = $rawStatus;
+            $arr['stage_status'] = $stageStatus;
+            $arr['status'] = $stageStatus;
+            $arr['current_status'] = $this->formatReadableStatus($rawStatus);
+            return $arr;
+        })
         ->toArray();
+
 
         $monthNames = [
             1 => 'Januari', 2 => 'Februari', 3 => 'Maret', 4 => 'April',

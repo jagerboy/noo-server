@@ -361,3 +361,19 @@ input::-webkit-credentials-auto-fill-button {
   font-size: 11px;
 }
 
+/* Modal Body Scroll Lock & Scroll Containment */
+body.modal-open,
+html.modal-open {
+  overflow: hidden !important;
+  touch-action: none;
+}
+
+/* Prevent scroll chaining from modal overlay to background */
+.fixed.inset-0,
+[role="dialog"],
+.modal-backdrop,
+.modal-container {
+  overscroll-behavior: contain !important;
+}
+
+
