@@ -39,14 +39,16 @@ class SecurityHeadersMiddleware
         // 5. Pembatasan akses fitur browser (Kamera, Mikrofon, dll)
         $response->headers->set('Permissions-Policy', 'camera=(), microphone=(), geolocation=(self)');
 
-        // 6. Strict Transport Security (HSTS) - Enforce HTTPS hanya di Production
-        if (!app()->isLocal() && ($request->isSecure() || $request->header('X-Forwarded-Proto') === 'https' || app()->isProduction())) {
+        $host = $request->getHost();
+        $isLocalHost = in_array($host, ['localhost', '127.0.0.1', '::1'], true) || str_starts_with($host, '192.168.') || str_starts_with($host, '10.');
+
+        // 6. Strict Transport Security (HSTS) - Enforce HTTPS untuk domain production
+        if (!$isLocalHost) {
             $response->headers->set('Strict-Transport-Security', 'max-age=31536000; includeSubDomains; preload');
         }
 
-        // 7. Content Security Policy (CSP) - Hanya diaktifkan di Non-Lokal / Production
-        // Di lokal environment (APP_ENV=local), CSP dibebaskan agar Vite Dev Server (HMR) & IPv6 [::1] berjalan lancar.
-        if (!app()->isLocal()) {
+        // 7. Content Security Policy (CSP) - Hanya diaktifkan untuk domain production (bebas di lokal dev)
+        if (!$isLocalHost) {
             $csp = [
                 "default-src 'self'",
                 "script-src 'self' 'unsafe-inline' 'unsafe-eval'",
