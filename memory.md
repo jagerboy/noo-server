@@ -160,13 +160,18 @@ $$\text{Customer Code} = \text{Prefix Utama} + \text{Principal Code} + \text{Pre
 
 ### Contoh Format:
 - Prefix Utama: `C`
-- Principal Code: `A` (ASWFOODS) / `I` (INAFOODS)
-- Prefix Cabang: 3 karakter alfabet (contoh: Cabang `DAPLG002` -> Prefix `PLG`)
+- Principal Code: `A` (ASWFOODS) / `I` (INAFOODS) atau huruf kustom (`S`, dll.)
+- Prefix Cabang: 3 karakter alfabet (contoh: Cabang `DAPLG002` -> Prefix `PLG`, atau custom `ABG`)
 - Sequence: `00001`, `00002`, `00067`, dst.
-- **Hasil**: `CAPLG00067`
+- **Hasil Standar**: `CAPLG00067`
+- **Hasil Custom**: `CSABG01107`
 
-### Logika Sequence:
+### Logika Sequence & Dukungan Kustomisasi:
 - Tabel `counter_sequences` mengunci row via `DB::table('counter_sequences')->where(...)->lockForUpdate()`.
+- **Dukungan Custom Code & Prefix**:
+  1. Pencarian pertama mencoba mencocokkan `branch_id` dan `principal_code`.
+  2. Jika tidak ditemukan (misalnya admin mengubah `principal_code` di menu Master Counter Sequence menjadi `S`), sistem otomatis **fallback** mencari berdasarkan `branch_id`.
+  3. Pembentukan kode customer principal menggunakan `principal_code` dan `prefix` dari record `counter_sequences` yang disetting admin, sehingga preview di tabel dan kode asli yang digenerate selalu 100% konsisten.
 - Setiap kali toko baru disetujui (Approve EDP), sistem selalu mengambil sequence berikutnya (`last_seq + 1`) dari tabel `counter_sequences` dan memperbarui `last_seq` secara otomatis.
 
 ---
@@ -389,5 +394,44 @@ Untuk menjamin konsistensi data 100%, dilakukan prosedur **Clean Import**:
 - **Hasil**: Sistem secara otomatis mengaktifkan status terkunci (`isLocked`), badge tabel berubah akurat menjadi *Approved EDP* / *Rejected EDP*, dan catatan penolakan (`edp_notes`) langsung tertampil pada modal detail verifikasi toko.
 
 ---
+
+## 12. Pembaruan Fitur Filter Master Region, Export Tahapan Workflow & Generator Custom Sequence (19 Oktober 2026)
+
+### 1. Sinkronisasi Filter Master Region & Pembersihan Data Dummy:
+- **Akar Masalah**: Muncul opsi filter `SUMATERA - SUMATERA` di Dashboard dan Inbox verifikasi, padahal region tersebut tidak terdaftar di Master Region. Hal ini terjadi karena controller sebelumnya menarik `distinct(region_code)` dari `master_branches` yang memiliki baris dummy lama (ID 86, `branch_id` kosong).
+- **Penyelesaian**:
+  1. Filter region di `EdpDashboardController`, `EdpPortalController`, dan `EdpProgressController` disinkronkan ke tabel resmi `master_regions` dengan status `is_active = true`.
+  2. Query cabang di `DistributorLoginController` ditambahkan validasi `whereNotNull('branch_id')->where('branch_id', '!=', '')`.
+  3. Ditambahkan auto-cleanup di `AppServiceProvider::boot()`:
+     ```sql
+     DELETE FROM master_branches WHERE (branch_id IS NULL OR branch_id = '') AND region_code = 'SUMATERA';
+     ```
+
+### 2. Generator Customer Code dengan Dukungan Custom Code & Prefix:
+- **Akar Masalah**: Error *"Counter Sequence belum terdaftar untuk branch_id: DASBG001"* saat Approve EDP. Terjadi karena admin mengkustomisasi `principal_code` cabang `DASBG001` menjadi `S` dan prefix menjadi `ABG` di tabel `counter_sequences`, sementara submisi membawa `principal_code = 'A'`.
+- **Penyelesaian**:
+  - `CustomerCodeGeneratorService` diperbarui dengan mekanisme fallback pencarian berdasarkan `branch_id`.
+  - Format kode mengadopsi custom `principal_code` dan custom `prefix` langsung dari tabel `counter_sequences`, menghasilkan kode `CSABG01107` secara presisi sesuai preview.
+
+### 3. Standarisasi Kolom `nama_noo` ke Huruf Besar (UPPERCASE):
+- Seluruh data nama outlet pada tabel `noo_submissions` distandarisasi ke huruf kapital:
+  ```sql
+  UPDATE noo_submissions SET nama_noo = UPPER(TRIM(nama_noo)) WHERE nama_noo IS NOT NULL;
+  ```
+
+### 4. Ekspor Data Grafik / Verifikasi Berdasarkan Tahapan Workflow:
+- Penyesuaian kriteria data ekspor XLSX sesuai otoritas tahapan:
+  1. **Admin Distributor**: Data yang belum diproses Admin, disetujui Admin, dan ditolak Admin.
+  2. **SPV Area**: Data yang sudah disetujui Admin (belum diproses SPV, disetujui SPV, dan ditolak SPV).
+  3. **Principal (EDP)**: Data yang sudah disetujui Admin & SPV (belum diproses EDP, disetujui EDP, dan ditolak EDP).
+- Ditambahkan kolom baru **`STATUS_TERKINI`** pada setiap file ekspor untuk mempermudah audit progress.
+- Ekspor dioptimalkan menggunakan chunking streamed memory tanpa risiko timeout 60 detik.
+
+### 5. Konfigurasi HTTPS Production Domain:
+- `AppServiceProvider` & `SecurityHeadersMiddleware` mengunci aturan force HTTPS secara ketat berbasis hostname produksi (`noo.coreappl.id`), sehingga koneksi lokal (`127.0.0.1` / `localhost`) tetap aman berjalan di mode HTTP standar tanpa redirect loop.
+- Nginx reverse proxy diatur menggunakan `fastcgi_param HTTPS 'on'`.
+
+---
 *Dokumen ini merupakan panduan arsitektur resmi sistem informasi NOO+ ASWFOODS & INAFOODS.*
+
 
