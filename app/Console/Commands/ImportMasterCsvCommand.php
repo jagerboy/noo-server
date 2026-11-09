@@ -168,9 +168,11 @@ class ImportMasterCsvCommand extends Command
         }
 
         DB::table('master_salesmen')->updateOrInsert(
-            ['salesman_code' => $salesmanCode],
             [
+                'salesman_code' => $salesmanCode,
                 'branch_id' => $branchId,
+            ],
+            [
                 'salesman_name' => $d['salesman_name'] ?? $d['nama_salesman'] ?? $salesmanCode,
                 'region_code' => strtoupper($regionCode),
                 'entity_code_principal' => $d['entity_code_principal'] ?? $d['entity_id'] ?? 'ASW',

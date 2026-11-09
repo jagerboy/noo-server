@@ -302,7 +302,7 @@ const isBulkModalOpen = ref(false);
                 </td>
               </tr>
 
-              <tr v-for="s in filteredSalesmen" :key="s.id || s.salesman_code" class="hover:bg-emerald-50/20 transition">
+              <tr v-for="s in filteredSalesmen" :key="s.id || (s.branch_id + '_' + s.salesman_code)" class="hover:bg-emerald-50/20 transition">
                 <td class="px-3 py-2.5 font-mono font-bold text-[#111827] text-[12px]">{{ s.salesman_code }}</td>
                 <td class="px-3 py-2.5 font-bold text-[#111827] text-[13px]">{{ s.salesman_name }}</td>
                 <td class="px-3 py-2.5 text-[#4B5563]">

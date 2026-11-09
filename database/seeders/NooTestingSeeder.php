@@ -41,9 +41,11 @@ class NooTestingSeeder extends Seeder
 
         // 2. Data Master Salesman (SEAMDN32)
         DB::table('master_salesmen')->updateOrInsert(
-            ['salesman_code' => 'SEAMDN32'],
             [
+                'salesman_code' => 'SEAMDN32',
                 'branch_id' => 'DAMDN003',
+            ],
+            [
                 'salesman_name' => 'KURNIA SE',
                 'region_code' => 'ASWSUM1',
                 'entity_code_principal' => 'ASW',

@@ -93,7 +93,11 @@ class KtpRevisionService
         // Info SE
         $seName = $submission->nama_salesman ?? '';
         if (empty($seName) && !empty($submission->salesman_code)) {
-            $seName = DB::table('master_salesmen')->where('salesman_code', $submission->salesman_code)->value('salesman_name') ?? $submission->salesman_code;
+            $seQuery = DB::table('master_salesmen')->where('salesman_code', $submission->salesman_code);
+            if (!empty($submission->branch_id)) {
+                $seQuery->where('branch_id', $submission->branch_id);
+            }
+            $seName = $seQuery->value('salesman_name') ?? DB::table('master_salesmen')->where('salesman_code', $submission->salesman_code)->value('salesman_name') ?? $submission->salesman_code;
         }
         $seCode = $submission->salesman_code ?? '-';
         $seLine = $seName ? "SE: {$seName} ({$seCode})" : "SE: {$seCode}";

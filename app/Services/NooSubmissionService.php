@@ -79,9 +79,16 @@ class NooSubmissionService
         }
 
         $salesmanCode = trim($data['salesman_code'] ?? '');
-        $salesman = DB::table('master_salesmen')
-            ->whereRaw('LOWER(salesman_code) = ?', [strtolower($salesmanCode)])
-            ->first();
+        $salesmanQuery = DB::table('master_salesmen')
+            ->whereRaw('LOWER(salesman_code) = ?', [strtolower($salesmanCode)]);
+
+        $salesman = null;
+        if (!empty($branchId)) {
+            $salesman = (clone $salesmanQuery)->where('branch_id', $branchId)->first();
+        }
+        if (!$salesman) {
+            $salesman = $salesmanQuery->first();
+        }
 
         // Nama fallback jika cabang/salesman baru belum terdaftar di tabel master server
         $branchName = $branch->branch_name ?? $branchId;

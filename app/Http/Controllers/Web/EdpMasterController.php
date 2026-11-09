@@ -10,6 +10,7 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Schema;
+use Illuminate\Validation\Rule;
 use Inertia\Inertia;
 use Inertia\Response;
 use Throwable;
@@ -664,28 +665,39 @@ class EdpMasterController extends Controller
             return back()->withErrors(['error' => 'Akses ditolak.']);
         }
 
+        $salesmanCode = strtoupper(trim((string)$request->salesman_code));
+        $branchId = strtoupper(trim((string)$request->branch_id));
+
         $request->validate([
-            'salesman_code' => 'required|string|unique:master_salesmen,salesman_code',
+            'salesman_code' => [
+                'required',
+                'string',
+                Rule::unique('master_salesmen', 'salesman_code')->where(function ($query) use ($branchId) {
+                    return $query->where('branch_id', $branchId);
+                }),
+            ],
             'salesman_name' => 'required|string',
             'branch_id' => 'required|string',
             'region_code' => 'nullable|string',
+        ], [
+            'salesman_code.unique' => "Kode salesman '{$salesmanCode}' sudah terdaftar untuk cabang distributor {$branchId}.",
         ]);
 
         $this->syncSequence('master_salesmen');
 
         DB::table('master_salesmen')->insert([
-            'salesman_code' => strtoupper($request->salesman_code),
+            'salesman_code' => $salesmanCode,
             'salesman_name' => $request->salesman_name,
-            'branch_id' => strtoupper($request->branch_id),
+            'branch_id' => $branchId,
             'region_code' => $request->region_code ? strtoupper($request->region_code) : null,
             'is_active' => true,
             'created_at' => now(),
             'updated_at' => now(),
         ]);
 
-        $this->logAction('CREATE', 'MASTER_SALESMAN', "Menambahkan Salesman: {$request->salesman_name} ({$request->salesman_code})");
+        $this->logAction('CREATE', 'MASTER_SALESMAN', "Menambahkan Salesman: {$request->salesman_name} ({$salesmanCode}) di Cabang {$branchId}");
 
-        return back()->with('success', "Data Master Salesman '{$request->salesman_code} - {$request->salesman_name}' berhasil ditambahkan.");
+        return back()->with('success', "Data Master Salesman '{$salesmanCode} - {$request->salesman_name}' berhasil ditambahkan ke cabang {$branchId}.");
     }
 
     public function updateSalesman(Request $request, $id): RedirectResponse
@@ -694,16 +706,32 @@ class EdpMasterController extends Controller
             return back()->withErrors(['error' => 'Akses ditolak.']);
         }
 
+        $salesman = DB::table('master_salesmen')->where('id', $id)->first();
+        if (!$salesman) {
+            return back()->withErrors(['error' => 'Data salesman tidak ditemukan.']);
+        }
+
+        $branchId = strtoupper(trim((string)$request->branch_id));
+        $salesmanCode = $salesman->salesman_code;
+
         $request->validate([
             'salesman_name' => 'required|string',
-            'branch_id' => 'required|string',
+            'branch_id' => [
+                'required',
+                'string',
+                Rule::unique('master_salesmen', 'branch_id')->where(function ($query) use ($salesmanCode) {
+                    return $query->where('salesman_code', $salesmanCode);
+                })->ignore($id),
+            ],
             'region_code' => 'nullable|string',
             'is_active' => 'required|boolean',
+        ], [
+            'branch_id.unique' => "Kode salesman '{$salesmanCode}' sudah terdaftar pada cabang distributor {$branchId}.",
         ]);
 
         DB::table('master_salesmen')->where('id', $id)->update([
             'salesman_name' => $request->salesman_name,
-            'branch_id' => strtoupper($request->branch_id),
+            'branch_id' => $branchId,
             'region_code' => $request->region_code ? strtoupper($request->region_code) : null,
             'is_active' => $request->is_active,
             'updated_at' => now(),
@@ -711,7 +739,7 @@ class EdpMasterController extends Controller
 
         $this->logAction('UPDATE', 'MASTER_SALESMAN', "Memperbarui Salesman ID {$id}: {$request->salesman_name}");
 
-        return back()->with('success', "Data Master Salesman '{$request->salesman_name}' ({$request->salesman_code}) berhasil diperbarui.");
+        return back()->with('success', "Data Master Salesman '{$request->salesman_name}' ({$salesmanCode}) berhasil diperbarui.");
     }
 
     public function destroySalesman($id): RedirectResponse
@@ -1581,10 +1609,12 @@ class EdpMasterController extends Controller
                             }
 
                             DB::table('master_salesmen')->updateOrInsert(
-                                ['salesman_code' => $salesmanCode],
+                                [
+                                    'salesman_code' => $salesmanCode,
+                                    'branch_id' => $branchId,
+                                ],
                                 [
                                     'salesman_name' => $r[1] ?? '',
-                                    'branch_id' => $branchId,
                                     'region_code' => !empty($r[3]) ? strtoupper($r[3]) : null,
                                     'entity_code_principal' => !empty($r[4]) ? strtoupper($r[4]) : null,
                                     'is_active' => true,

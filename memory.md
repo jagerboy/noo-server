@@ -307,30 +307,54 @@ Sistem otorisasi telah dimigrasikan dari *hardcoded/localStorage* menjadi **Data
 ```cmd
 cd /d d:\AndroidStudioProjects\noo-server
 
-# 1. Build asset frontend (opsional lokal)
+# 1. Pastikan folder mapping-tool & geobound selalu masuk di .gitignore lokal agar tidak ikut ter-commit
+# (Cukup sekali periksa di file .gitignore)
+
+# 2. Build asset frontend (opsional lokal)
 npm run build
 
-# 2. Push perubahan ke GitHub
+# 3. Push perubahan ke GitHub
 git add .
 git commit -m "feat/fix: deskripsi perubahan"
 git push origin main
 ```
 
 ### 2. Terminal Server Production (Termius / SSH Server 172.22.1.232):
+> [!IMPORTANT]
+> **ATURAN MUTLAK PRESERVASI MAPPING-TOOL & GEOBOUND**:
+> Di dalam direktori server `/var/www/noo-server/public/` terdapat folder `mapping-tool` dan symlink `geobound`.
+> 1. **DILARANG KERAS** menjalankan `git clean -fd` atau `git clean -xdf` di root `/var/www/noo-server`! Tindakan ini akan menghapus seluruh file binary spasial (`geo_index.pkl` 295 MB) dan kode `mapping-tool`.
+> 2. Bersihkan **HANYA** folder build: `git clean -fd public/build`.
+> 3. Jangan menambahkan header `upgrade-insecure-requests` atau `fastcgi_param HTTPS 'on'` pada Nginx default port 80 jika domain IP tidak memiliki sertifikat SSL/HTTPS aktif (agar download template Excel tidak menghasilkan `ERR_CONNECTION_REFUSED`).
+
 ```bash
 cd /var/www/noo-server
 
-# 1. Bersihkan file build lokal server jika ada conflict
+# 1. Pastikan gitignore server mengabaikan mapping-tool & geobound
+grep -q "public/mapping-tool" .gitignore || echo -e "\npublic/mapping-tool\npublic/geobound" >> .gitignore
+
+# 2. Bersihkan HANYA file build frontend jika ada conflict saat pull (JANGAN git clean -fd root!)
 git reset --hard HEAD
 git clean -fd public/build
 
-# 2. Tarik update terbaru dari GitHub
+# 3. Tarik update terbaru dari GitHub
 git pull origin main
 
-# 3. Compile asset frontend Vite
+# 4. Verifikasi & auto-restore direktori mapping-tool & geobound (jika hilang/rusak)
+if [ ! -d "/var/www/noo-server/public/mapping-tool" ] || [ ! -L "/var/www/noo-server/public/geobound" ]; then
+    echo "Restoring mapping-tool from /var/www/html/mapping-tool/..."
+    sudo mkdir -p /var/www/noo-server/public/mapping-tool
+    sudo cp -r /var/www/html/mapping-tool/* /var/www/noo-server/public/mapping-tool/
+    cd /var/www/noo-server/public && sudo ln -sfn mapping-tool geobound
+    sudo chmod -R 777 /var/www/noo-server/public/mapping-tool
+    sudo chown -R www-data:www-data /var/www/noo-server/public/mapping-tool
+    cd /var/www/noo-server
+fi
+
+# 5. Compile asset frontend Vite
 npm run build
 
-# 4. Clear cache aplikasi di dalam container Docker
+# 6. Clear cache aplikasi di dalam container Docker
 docker compose exec app php artisan optimize:clear
 ```
 
@@ -432,6 +456,65 @@ Untuk menjamin konsistensi data 100%, dilakukan prosedur **Clean Import**:
 - Nginx reverse proxy diatur menggunakan `fastcgi_param HTTPS 'on'`.
 
 ---
+
+## 13. Hardening Konfigurasi Produksi & Mitigasi Celah Keamanan (26 Oktober 2026)
+
+### 1. Remedi Audit Keamanan: Mode Debug & Lingkungan Produksi (Security Audit Issue #1):
+- **Temuan Celah Keamanan**:
+  - Konfigurasi server produksi sebelumnya terdeteksi aktif dengan `APP_DEBUG=true` dan `APP_ENV=local`.
+  - **Dampak Risiko**: Setiap error/exception sistem memicu rendering debugger (Laravel Ignition) ke pengguna publik, yang mengekspos potongan source code, query SQL lengkap, kredensial koneksi database (`DB_PASSWORD`), serta kunci enkripsi aplikasi (`APP_KEY`). Celah kebocoran `APP_KEY` berpotensi dieksploitasi pihak ketiga untuk memalsukan cookie sesi pengguna (*session tampering*).
+- **Tindakan Perbaikan & Hardening yang Dilakukan**:
+  1. **Update Konfigurasi `.env` Server Produksi (`/var/www/noo-server/.env`)**:
+     ```env
+     APP_NAME=NOO+
+     APP_ENV=production
+     APP_DEBUG=false
+     APP_URL=https://noo.coreappl.id
+     ```
+  2. **Penyegaran dan Penguncian Cache Konfigurasi & Routing**:
+     ```bash
+     docker compose exec app php artisan config:clear
+     docker compose exec app php artisan config:cache
+     docker compose exec app php artisan route:cache
+     docker compose exec app php artisan view:cache
+     ```
+  3. **Verifikasi Status Produksi**:
+     Eksekusi `docker compose exec app php artisan about` mengonfirmasi status sistem:
+     - `Environment`: **`production`**
+     - `Debug Mode`: **`OFF`**
+     - `URL`: **`noo.coreappl.id`**
+     - `Config`: **`CACHED`**
+     - `Routes`: **`CACHED`**
+     - `Views`: **`CACHED`**
+  4. **Hasil**: Seluruh halaman error publik beralih menampilkan HTTP status code standar (500 Internal Server Error aman tanpa stack trace), data kredensial terlindungi penuh tanpa downtime sistem.
+
+---
+
+## 14. Relaksasi Keunikan Master Salesman Menjadi Multi-Cabang / Composite Unique (9 November 2026)
+
+### 1. Latar Belakang & Kebutuhan Bisnis:
+- **Kasus Distributor Resign & Pengganti**: Cabang distributor lama (contoh: `DAPBR001`) resign/non-aktif dan operasionalnya digantikan oleh cabang distributor baru (contoh: `DAPBR003`).
+- **Integritas Rute Principal**: Principal menghendaki kode salesman yang sama (contoh: `SEAPBR03`, `SEAPBR04`, `SEAPBR05`, `SEAPBR08`) tetap digunakan pada cabang baru agar histori penjualan dan kode rute sales executive tidak terputus pada sistem utama principal (*ERP/SFA principal*).
+- **Akar Masalah Sebelumnya**: Tabel `master_salesmen` memiliki aturan *Global Unique Constraint* pada `salesman_code`, sehingga sistem menolak pendaftaran kode salesman yang sama sekalipun didaftarkan pada cabang distributor yang berbeda.
+
+### 2. Tindakan Penyesuaian Arsitektur:
+1. **Migrasi Database PostgreSQL (`2026_11_09_000001_update_master_salesmen_unique.php`)**:
+   - Menghapus indeks unik global `master_salesmen_salesman_code_unique`.
+   - Menambahkan indeks unik gabungan (*composite unique*): `UNIQUE(salesman_code, branch_id)` dengan nama `master_salesmen_branch_salesman_unique`.
+2. **Validasi Backend Laravel (`EdpMasterController.php`)**:
+   - `storeSalesman`: Validasi keunikan berbasis rule `Rule::unique('master_salesmen', 'salesman_code')->where('branch_id', $branchId)` dengan pesan penolakan ramah pengguna jika kode salesman duplikat pada cabang yang sama.
+   - `updateSalesman`: Menambahkan proteksi keunikan berbasis cabang jika distributor dipindahkan, dengan mengabaikan ID yang sedang diedit (`ignore($id)`).
+   - `bulkImport`: Update pencocokan baris salesman pada CSV menjadi composite `['salesman_code' => $salesmanCode, 'branch_id' => $branchId]`.
+3. **Penyelarasan API Mobile & Submisi NOO (`NooSubmissionService.php` & `KtpRevisionService.php`)**:
+   - Pencarian metadata salesman memprioritaskan pencocokan `branch_id` + `salesman_code` sebelum fallback ke `salesman_code`.
+4. **Penyelarasan Dashboard & Monitoring Target RO (`EdpDashboardController.php`)**:
+   - Kalkulasi pencapaian target dan realisasi bulanan dikelompokkan menggunakan composite key `{$branchId}_{$salesmanCode}`, sehingga capaian salesman pada cabang lama (arsip) dan cabang baru tidak saling menimpa.
+
+### 3. Prosedur Eksekusi Migrasi di Server Produksi:
+```bash
+docker compose exec app php artisan migrate --force
+docker compose exec app php artisan optimize:clear
+```
+
+---
 *Dokumen ini merupakan panduan arsitektur resmi sistem informasi NOO+ ASWFOODS & INAFOODS.*
-
-

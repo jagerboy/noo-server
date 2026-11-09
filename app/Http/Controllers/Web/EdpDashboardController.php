@@ -288,6 +288,7 @@ class EdpDashboardController extends Controller
 
         $salesmanStats = $subStatsQuery
             ->selectRaw("
+                branch_id,
                 salesman_code,
                 COUNT(CASE WHEN status IN ('APPROVED_EDP', 'INJECTED', 'EDP_APPROVED') THEN 1 END) as approved_ro_count,
                 MAX(
@@ -297,13 +298,26 @@ class EdpDashboardController extends Controller
                     CASE WHEN m4 IN ('Y', 'YES') THEN 1 ELSE 0 END
                 ) as max_active_weeks
             ")
-            ->groupBy('salesman_code')
-            ->get()
-            ->keyBy('salesman_code');
+            ->whereNotNull('salesman_code')
+            ->groupBy('branch_id', 'salesman_code')
+            ->get();
 
-        $salesmanTargetsData = $salesmenList->map(function ($s) use ($salesmanStats) {
+        $statsMapByBranchAndCode = [];
+        $statsMapByCodeFallback = [];
+        foreach ($salesmanStats as $st) {
+            $b = strtoupper(trim((string)$st->branch_id));
+            $c = strtoupper(trim((string)$st->salesman_code));
+            $statsMapByBranchAndCode["{$b}_{$c}"] = $st;
+            if (!isset($statsMapByCodeFallback[$c])) {
+                $statsMapByCodeFallback[$c] = $st;
+            }
+        }
+
+        $salesmanTargetsData = $salesmenList->map(function ($s) use ($statsMapByBranchAndCode, $statsMapByCodeFallback) {
             $code = $s->salesman_code;
-            $stat = $salesmanStats->get($code);
+            $rawBranch = strtoupper(trim((string)$s->branch_id));
+            $rawCode = strtoupper(trim((string)$code));
+            $stat = $statsMapByBranchAndCode["{$rawBranch}_{$rawCode}"] ?? $statsMapByCodeFallback[$rawCode] ?? null;
 
             $approvedRo = (int)($stat->approved_ro_count ?? 0);
             $maxWeeks = (int)($stat->max_active_weeks ?? 0);
@@ -1224,8 +1238,12 @@ class EdpDashboardController extends Controller
         $uploadedBranchIds = [];
         foreach ($uploadedTargetsRaw as $tObj) {
             $uploadedBranchIds[] = $tObj->branch_id;
+            $rawBranch = strtoupper(trim((string)$tObj->branch_id));
             $rawCode = strtoupper(trim((string)$tObj->salesman_code));
-            $uploadedTargets[$rawCode] = $tObj;
+            $uploadedTargets["{$rawBranch}_{$rawCode}"] = $tObj;
+            if (!isset($uploadedTargets[$rawCode])) {
+                $uploadedTargets[$rawCode] = $tObj;
+            }
         }
         $uploadedBranchIds = array_values(array_unique($uploadedBranchIds));
         $hasAnyTargetUploaded = count($uploadedTargets) > 0;
@@ -1350,7 +1368,8 @@ class EdpDashboardController extends Controller
 
         $salesmenMap = [];
         foreach ($salesmenFromMaster as $s) {
-            $salesmenMap[$s->salesman_code] = [
+            $key = strtoupper(trim((string)$s->branch_id)) . '_' . strtoupper(trim((string)$s->salesman_code));
+            $salesmenMap[$key] = [
                 'salesman_code' => $s->salesman_code,
                 'salesman_name' => $s->salesman_name ?: $s->salesman_code,
                 'branch_id' => $s->branch_id,
@@ -1358,8 +1377,9 @@ class EdpDashboardController extends Controller
             ];
         }
         foreach ($salesmenFromSubmissions as $s) {
-            if (!isset($salesmenMap[$s->salesman_code])) {
-                $salesmenMap[$s->salesman_code] = [
+            $key = strtoupper(trim((string)$s->branch_id)) . '_' . strtoupper(trim((string)$s->salesman_code));
+            if (!isset($salesmenMap[$key])) {
+                $salesmenMap[$key] = [
                     'salesman_code' => $s->salesman_code,
                     'salesman_name' => $s->salesman_name ?: $s->salesman_code,
                     'branch_id' => $s->branch_id,
@@ -1389,7 +1409,19 @@ class EdpDashboardController extends Controller
 
         $statsLookupBySalesman = [];
         foreach ($subStatsQuery as $st) {
-            $code = $st->salesman_code;
+            $key = strtoupper(trim((string)$st->branch_id)) . '_' . strtoupper(trim((string)$st->salesman_code));
+            $code = strtoupper(trim((string)$st->salesman_code));
+            if (!isset($statsLookupBySalesman[$key])) {
+                $statsLookupBySalesman[$key] = [];
+            }
+            $statsLookupBySalesman[$key][] = [
+                'month' => (int)$st->sub_month,
+                'year' => (int)$st->sub_year,
+                'approved_count' => (int)$st->approved_ro_count,
+                'max_weeks' => (int)$st->max_active_weeks,
+            ];
+
+            // Simpan juga versi code-only sebagai fallback
             if (!isset($statsLookupBySalesman[$code])) {
                 $statsLookupBySalesman[$code] = [];
             }
@@ -1421,7 +1453,8 @@ class EdpDashboardController extends Controller
 
             foreach ($branchSalesmen as $s) {
                 $code = $s['salesman_code'];
-                $monthlyList = $statsLookupBySalesman[$code] ?? [];
+                $compositeKey = strtoupper(trim((string)$branchId)) . '_' . strtoupper(trim((string)$code));
+                $monthlyList = $statsLookupBySalesman[$compositeKey] ?? $statsLookupBySalesman[$code] ?? [];
 
                 // Filter realization for the selected month and year based on submitted_at
                 $approvedRo = 0;
@@ -1435,9 +1468,9 @@ class EdpDashboardController extends Controller
                     }
                 }
 
-                // Check if target was uploaded by EDP for this salesman (exact salesman_code matching)
+                // Check if target was uploaded by EDP for this salesman (exact branch + salesman_code matching)
                 $codeRaw = strtoupper(trim((string)$code));
-                $tObj = $uploadedTargets[$codeRaw] ?? null;
+                $tObj = $uploadedTargets[$compositeKey] ?? $uploadedTargets[$codeRaw] ?? null;
 
                 if ($tObj !== null) {
                     $targetRo = (int)$tObj->target_ro;
